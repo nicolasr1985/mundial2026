@@ -101,7 +101,7 @@ export default function StandingsPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const groupMatches = matches.filter((m) => m.round?.startsWith("Fase de Grupos"));
-  const availableGroups = [...new Set(groupMatches.map((m) => m.group).filter(Boolean) as string[])].sort();
+  const availableGroups = Array.from(new Set(groupMatches.map((m) => m.group).filter(Boolean) as string[])).sort();
 
   const realStandings = computeStandings(groupMatches);
   const predictedStandings = computePredictedStandings(groupMatches, userMatchPicks);
