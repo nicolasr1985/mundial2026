@@ -163,7 +163,7 @@ export default function PicksPage() {
                       await submitGroupPick(user.uid, group, first, second, third);
                       setGroupPicks((prev) => ({ ...prev, [group]: { ...prev[group], group, firstPlace: first, secondPlace: second, thirdPlace: third, userId: user.uid, id: group } }));
                     }}
-                    teams={[...new Set(gMatches.flatMap((m) => [m.homeTeam, m.awayTeam]))]}
+                    teams={Array.from(new Set(gMatches.flatMap((m) => [m.homeTeam, m.awayTeam])))}
                   />
                 ))}
             </div>
