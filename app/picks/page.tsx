@@ -66,7 +66,7 @@ export default function PicksPage() {
       await submitPick(user.uid, matchId, parseInt(sc.home), parseInt(sc.away));
       setPicks((prev) => ({
         ...prev,
-        [matchId]: { ...prev[matchId], homeScore: parseInt(sc.home), awayScore: parseInt(sc.away), matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: null },
+        [matchId]: { ...prev[matchId], homeScore: parseInt(sc.home), awayScore: parseInt(sc.away), matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: undefined },
       }));
       setMsgs((m) => ({ ...m, [matchId]: "✅ Guardado" }));
     } catch {
