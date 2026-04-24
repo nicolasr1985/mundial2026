@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../layout";
+import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserGroupPicks, Match, GroupPick } from "@/lib/firebase";
 
 // Real-world standings after admin sets them would come from groupStandings collection.

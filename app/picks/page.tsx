@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../layout";
+import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, submitPick, submitGroupPick, getUserGroupPicks, Match, Pick, GroupPick } from "@/lib/firebase";
 
 const ROUNDS = [

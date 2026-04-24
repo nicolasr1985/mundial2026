@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../layout";
+import { useAuth } from "@/lib/auth-context";
 import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, Pick, Match, GroupPick } from "@/lib/firebase";
 import { getPointsBreakdown } from "@/lib/scoring";
 

@@ -370,3 +370,5 @@ export function calculateMatchPoints(
   // no deben superar 4 (para que el exacto siempre valga más)
   return Math.min(pts, 4);
 }
+
+export { Timestamp };
