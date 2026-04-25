@@ -153,18 +153,18 @@ export default function PicksPage() {
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([group, gMatches]) => (
                   <SimpleGroupSection
-                    key={group}
-                    group={group}
-                    matches={gMatches}
-                    picks={picks}
-                    groupPick={groupPicks[group]}
-                    scores={scores}
-                    saving={saving}
-                    msgs={msgs}
-                    onScoreChange={(matchId, side, val) =>
-                      setScores((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: val } }))
-                    }
-                    onSubmit={handleSubmitPick}
+  key={group}
+  group={group}
+  matches={gMatches}
+  picks={picks}
+  scores={scores}
+  saving={saving}
+  msgs={msgs}
+  onScoreChange={(matchId, side, val) =>
+    setScores((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: val } }))
+  }
+  onSubmit={handleSubmitPick}
+/>
                     onSubmitGroup={async (first, second, third) => {
                       if (!user) return;
                       await submitGroupPick(user.uid, group, first, second, third);
