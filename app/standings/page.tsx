@@ -405,84 +405,169 @@ function ThirdsTab({ displayThirds, viewMode }: { displayThirds: (TeamStat & { q
   );
 }
 
-// ─── R32 TAB ─────────────────────────────────────────────────────────────────
+// ─── R32 TAB — VISUAL BRACKET ────────────────────────────────────────────────
 function R32Tab({ r32, viewMode }: { r32: R32Match[]; viewMode: string }) {
+  const bySlot = Object.fromEntries(r32.map(m => [m.slot, m]));
+
+  const leftSlots  = ["R32-1","R32-2","R32-3","R32-4","R32-5","R32-6","R32-7","R32-8"];
+  const rightSlots = ["R32-9","R32-10","R32-11","R32-12","R32-13","R32-14","R32-15","R32-16"];
+
   return (
     <div>
-      <div style={{ marginBottom: 16, padding: "10px 14px", background: "rgba(201,168,76,0.06)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-gold)", fontSize: 13, color: "var(--text-muted)" }}>
-        ✅ = equipo tercero confirmado · <span style={{ color: "var(--gold)", fontWeight: 600 }}>*</span> = provisional, puede cambiar según resultados pendientes
+      {/* Legend */}
+      <div style={{ marginBottom: 14, fontSize: 12, color: "var(--text-muted)", display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <span><span style={{ color: "var(--green)" }}>✅</span> tercero confirmado</span>
+        <span><span style={{ color: "var(--gold)", fontWeight: 700 }}>*</span> provisional</span>
+        <span style={{ color: "var(--text-muted)" }}>— = pendiente</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}>
-        {r32.map((match) => (
-          <R32Card key={match.slot} match={match} />
+
+      {/* Bracket scroll container */}
+      <div style={{ overflowX: "auto", paddingBottom: 8 }}>
+        <div style={{ display: "flex", gap: 0, minWidth: 900, alignItems: "stretch" }}>
+
+          {/* LEFT R32 */}
+          <BracketRound title="Ronda de 32" slots={leftSlots} bySlot={bySlot} count={8} />
+          <BracketConnectors count={4} />
+
+          {/* LEFT R16 */}
+          <BracketRound title="Octavos" slots={[]} bySlot={bySlot} count={4} tbd />
+          <BracketConnectors count={2} />
+
+          {/* LEFT QF */}
+          <BracketRound title="Cuartos" slots={[]} bySlot={bySlot} count={2} tbd />
+          <BracketConnectors count={1} />
+
+          {/* SEMI LEFT */}
+          <BracketRound title="Semi" slots={[]} bySlot={bySlot} count={1} tbd />
+          <BracketConnectors count={1} half />
+
+          {/* FINAL */}
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 150 }}>
+            <div style={rStyle.roundTitle as React.CSSProperties}>
+              <span style={{ color: "var(--gold)" }}>Final</span>
+            </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <BracketMatch home="Semi 1" away="Semi 2" tbd />
+            </div>
+          </div>
+
+          <BracketConnectors count={1} half reverse />
+
+          {/* SEMI RIGHT */}
+          <BracketRound title="Semi" slots={[]} bySlot={bySlot} count={1} tbd />
+          <BracketConnectors count={1} />
+
+          {/* RIGHT QF */}
+          <BracketRound title="Cuartos" slots={[]} bySlot={bySlot} count={2} tbd />
+          <BracketConnectors count={2} />
+
+          {/* RIGHT R16 */}
+          <BracketRound title="Octavos" slots={[]} bySlot={bySlot} count={4} tbd />
+          <BracketConnectors count={4} />
+
+          {/* RIGHT R32 */}
+          <BracketRound title="Ronda de 32" slots={rightSlots} bySlot={bySlot} count={8} />
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const rStyle = {
+  roundTitle: {
+    fontSize: 10, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+    letterSpacing: "0.08em", textTransform: "uppercase" as const,
+    color: "var(--text-muted)", textAlign: "center" as const,
+    padding: "4px 6px", borderBottom: "1px solid var(--border)", marginBottom: 6,
+  },
+  teamBox: (known: boolean, isThird?: boolean): React.CSSProperties => ({
+    padding: "5px 8px", fontSize: 11,
+    background: "var(--surface2)",
+    border: "1px solid var(--border)",
+    color: known ? (isThird ? "var(--gold)" : "var(--text)") : "var(--text-muted)",
+    fontStyle: known ? "normal" : "italic",
+    whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis",
+    maxWidth: 148,
+  }),
+};
+
+function BracketMatch({ home, away, homeM, awayM, tbd }: {
+  home?: string; away?: string;
+  homeM?: R32Match; awayM?: R32Match;
+  tbd?: boolean;
+}) {
+  const homeLabel = homeM?.homeTeam || (tbd ? "—" : home || "—");
+  const awayLabel = awayM ? (
+    awayM.awayTeam || awayM.awayDesc
+  ) : (tbd ? "—" : away || "—");
+  const homeKnown = !!(homeM?.homeTeam) || (!tbd && !!home);
+  const awayKnown = !!(awayM?.awayTeam) || (!tbd && !!away);
+  const awayIsThird = awayM?.awayIsThird;
+  const awayConfirmed = awayIsThird && !awayM?.isTBD;
+  const awayProvisional = awayIsThird && awayM?.isTBD && awayKnown;
+
+  return (
+    <div style={{ marginBottom: 0 }}>
+      {/* Home team */}
+      <div style={{ ...rStyle.teamBox(homeKnown), borderRadius: "4px 4px 0 0", borderBottom: "none" }}>
+        {homeLabel}
+      </div>
+      {/* Away team */}
+      <div style={{ ...rStyle.teamBox(awayKnown, awayIsThird), borderRadius: "0 0 4px 4px", display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: "none" }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {awayLabel}
+        </span>
+        {awayIsThird && awayKnown && (
+          awayConfirmed
+            ? <span style={{ fontSize: 11, color: "var(--green)", marginLeft: 4, flexShrink: 0 }}>✅</span>
+            : <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, marginLeft: 4, flexShrink: 0 }}>*</span>
+        )}
+        {awayIsThird && !awayKnown && (
+          <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 4, flexShrink: 0 }}>*</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BracketRound({ title, slots, bySlot, count, tbd }: {
+  title: string; slots: string[]; bySlot: Record<string, R32Match>;
+  count: number; tbd?: boolean;
+}) {
+  const items = Array.from({ length: count }, (_, i) => {
+    const slot = slots[i];
+    const m = slot ? bySlot[slot] : undefined;
+    return { slot, m };
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minWidth: 155, flex: "0 0 auto" }}>
+      <div style={rStyle.roundTitle as React.CSSProperties}>{title}</div>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-around", gap: 4, padding: "4px 0" }}>
+        {items.map(({ slot, m }, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            {m ? (
+              <BracketMatch homeM={m} awayM={m} />
+            ) : (
+              <BracketMatch tbd home="—" away="—" />
+            )}
+          </div>
         ))}
       </div>
     </div>
   );
 }
 
-function R32Card({ match }: { match: R32Match }) {
-  const homeKnown = !!match.homeTeam;
-  const awayKnown = !!match.awayTeam;
-  // A third slot is "confirmed" when isTBD is false (team is definitively assigned)
-  const awayThirdConfirmed = match.awayIsThird && !match.isTBD && awayKnown;
-  const awayThirdProvisional = match.awayIsThird && awayKnown && match.isTBD;
-  const fullyKnown = homeKnown && awayKnown && !match.isTBD;
-
+function BracketConnectors({ count, half, reverse }: { count: number; half?: boolean; reverse?: boolean }) {
   return (
-    <div style={{
-      background: "var(--surface)",
-      border: `1px solid ${fullyKnown ? "rgba(201,168,76,0.35)" : awayKnown ? "rgba(201,168,76,0.15)" : "var(--border)"}`,
-      borderRadius: "var(--radius-sm)",
-      padding: "12px 16px",
-    }}>
-      {/* Slot label */}
-      <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 8, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, letterSpacing: "0.06em" }}>
-        {match.slot.replace("R32-0", "PARTIDO ").replace("R32-", "PARTIDO ")}
-      </div>
-
-      {/* Match row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {/* Home */}
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 14, color: homeKnown ? "var(--text)" : "var(--text-muted)" }}>
-            {match.homeTeam || match.homeDesc}
-          </div>
+    <div style={{ width: 16, display: "flex", flexDirection: "column", justifyContent: "space-around", flex: "0 0 auto", paddingTop: 22 }}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ height: "50%", borderRight: half && !reverse ? "none" : "1px solid var(--border)", borderTop: reverse ? "none" : "1px solid var(--border)", borderBottom: reverse ? "1px solid var(--border)" : "none" }} />
+          <div style={{ height: "50%", borderRight: half && !reverse ? "none" : "1px solid var(--border)", borderTop: "none", borderBottom: "none" }} />
         </div>
-
-        {/* VS */}
-        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: "var(--gold)", padding: "0 6px", flexShrink: 0 }}>vs</div>
-
-        {/* Away */}
-        <div style={{ flex: 1, textAlign: "right" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, color: awayKnown ? "var(--text)" : "var(--text-muted)" }}>
-              {match.awayTeam || match.awayDesc}
-            </div>
-            {/* Status indicator for 3rd-place slots */}
-            {match.awayIsThird && awayKnown && (
-              awayThirdConfirmed
-                ? <span style={{ fontSize: 13, color: "var(--green)", flexShrink: 0 }} title="Tercero confirmado">✅</span>
-                : <span style={{ fontSize: 13, color: "var(--gold)", fontWeight: 700, flexShrink: 0 }} title="Provisional — puede cambiar">*</span>
-            )}
-            {match.awayIsThird && !awayKnown && (
-              <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>*</span>
-            )}
-          </div>
-          {/* Show eligible groups hint when not yet known */}
-          {match.awayIsThird && !awayKnown && match.awayThirdGroups && (
-            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-              3° de {match.awayThirdGroups.split("").join("/")}
-            </div>
-          )}
-          {/* Show provisional label */}
-          {awayThirdProvisional && (
-            <div style={{ fontSize: 10, color: "var(--gold)", marginTop: 2, opacity: 0.7 }}>
-              provisional
-            </div>
-          )}
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
