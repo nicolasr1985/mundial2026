@@ -251,7 +251,8 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
             const hasChanged = isFinished && (
               sc.home !== String(match.homeScore) || sc.away !== String(match.awayScore)
             );
-            const canSave = sc.home !== "" && sc.away !== "";
+            const bothBlank = sc.home === "" && sc.away === "";
+            const canSave = (sc.home !== "" && sc.away !== "") || (isFinished && bothBlank);
 
             return (
               <div key={match.id} style={{
