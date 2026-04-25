@@ -62,16 +62,51 @@ function computeStandings(matches: Match[]): Record<string, TeamStat[]> {
 }
 
 function computePredictedStandings(matches: Match[], picks: Record<string, { homeScore: number; awayScore: number }>): Record<string, TeamStat[]> {
-  const predictedMatches = matches
-    .filter((m) => picks[m.id] !== undefined)
-    .map((m) => {
-      const pick = picks[m.id];
-      const hs = Number(pick.homeScore);
-      const as_ = Number(pick.awayScore);
-      if (isNaN(hs) || isNaN(as_)) return { ...m, homeScore: null, awayScore: null };
-      return { ...m, homeScore: hs, awayScore: as_, status: "finished" as const };
-    });
+  // Only include matches where user made a valid pick
+  const predictedMatches: Match[] = [];
+  for (const m of matches) {
+    const pick = picks[m.id];
+    if (!pick) continue;
+    const hs = Number(pick.homeScore);
+    const as_ = Number(pick.awayScore);
+    if (isNaN(hs) || isNaN(as_)) continue;
+    predictedMatches.push({ ...m, homeScore: hs, awayScore: as_, status: "finished" as const });
+  }
   return computeStandings(predictedMatches);
+}
+
+function computeStandingsWithAllTeams(matches: Match[], allGroupMatches: Match[]): Record<string, TeamStat[]> {
+  // First seed all teams from allGroupMatches with 0 stats
+  const standings: Record<string, Record<string, TeamStat>> = {};
+  for (const m of allGroupMatches) {
+    if (!m.group) continue;
+    const g = m.group;
+    if (!standings[g]) standings[g] = {};
+    if (!standings[g][m.homeTeam]) standings[g][m.homeTeam] = { team: m.homeTeam, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+    if (!standings[g][m.awayTeam]) standings[g][m.awayTeam] = { team: m.awayTeam, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+  }
+  // Then add results from actual matches
+  for (const m of matches) {
+    if (!m.group || m.homeScore === null || m.awayScore === null) continue;
+    const g = m.group;
+    if (!standings[g]) continue;
+    const home = standings[g][m.homeTeam];
+    const away = standings[g][m.awayTeam];
+    if (!home || !away) continue;
+    const hs = Number(m.homeScore), as_ = Number(m.awayScore);
+    if (isNaN(hs) || isNaN(as_)) continue;
+    home.played++; away.played++;
+    home.gf += hs; home.ga += as_; home.gd = home.gf - home.ga;
+    away.gf += as_; away.ga += hs; away.gd = away.gf - away.ga;
+    if (hs > as_) { home.won++; home.points += 3; away.lost++; }
+    else if (hs < as_) { away.won++; away.points += 3; home.lost++; }
+    else { home.drawn++; away.drawn++; home.points++; away.points++; }
+  }
+  const result: Record<string, TeamStat[]> = {};
+  for (const g in standings) {
+    result[g] = Object.values(standings[g]).sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
+  }
+  return result;
 }
 
 export default function StandingsPage() {
@@ -108,7 +143,8 @@ export default function StandingsPage() {
   const availableGroups = [...new Set(groupMatches.map((m) => m.group).filter(Boolean) as string[])].sort();
 
   const realStandings = computeStandings(groupMatches);
-  const predictedStandings = computePredictedStandings(groupMatches, userMatchPicks);
+  const predictedMatches2 = groupMatches.filter((m) => { const p = userMatchPicks[m.id]; if (!p) return false; const hs = Number(p.homeScore), as_ = Number(p.awayScore); return !isNaN(hs) && !isNaN(as_); }).map((m) => { const p = userMatchPicks[m.id]; return { ...m, homeScore: Number(p.homeScore), awayScore: Number(p.awayScore), status: "finished" as const }; });
+  const predictedStandings = computeStandingsWithAllTeams(predictedMatches2, groupMatches);
 
   const displayStandings = viewMode === "real" ? realStandings : predictedStandings;
   const groupTable = displayStandings[activeGroup] || [];
