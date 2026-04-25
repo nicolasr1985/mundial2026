@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getMatches, createMatch, updateMatchResult, lockMatch,
+  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch,
   setGroupStanding, setTournamentResult, getTournamentSettings,
   Match, Timestamp
 } from "@/lib/firebase";
@@ -23,34 +23,22 @@ export default function AdminPage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
-  const [fetching, setFetching] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
-  const ADMIN_UIDS = ["QO7IJzE6BmcP9JpNEk51U9EH41s1"];
   useEffect(() => {
-    if (!loading && !user) { router.push("/login"); return; }
-    if (!loading && user && !ADMIN_UIDS.includes(user.uid) && !profile?.isAdmin) {
-      router.push("/dashboard"); return;
+    if (!loading) {
+      if (!user) { router.push("/login"); return; }
+      if (!profile?.isAdmin) { router.push("/dashboard"); return; }
     }
-  }, [user, profile, loading]);
+  }, [user, profile, loading, router]);
 
-const loadData = useCallback(async () => {
-    try {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 10000)
-      );
-      const [m, s] = await Promise.race([
-        Promise.all([getMatches(), getTournamentSettings()]),
-        timeout,
-      ]) as [typeof matches, Record<string, string>];
-      setMatches(m);
-      setSettings(s as Record<string, string>);
-    } catch {
-      console.warn("Admin data load timed out, continuing anyway");
-    } finally {
-      setFetching(false);
-    }
+  const loadData = useCallback(async () => {
+    const [m, s] = await Promise.all([getMatches(), getTournamentSettings()]);
+    setMatches(m);
+    setSettings(s as Record<string, string>);
+    setFetching(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -196,13 +184,33 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
 
   const handleResult = async (match: Match) => {
     const sc = scores[match.id];
-    if (!sc || sc.home === "" || sc.away === "") {
-      setMsgs((m) => ({ ...m, [match.id]: "⚠ Ingresa el marcador" })); return;
+    const homeVal = sc?.home ?? "";
+    const awayVal = sc?.away ?? "";
+    const bothBlank = homeVal === "" && awayVal === "";
+    const bothFilled = homeVal !== "" && awayVal !== "";
+
+    // Both blank on a finished match = reset to upcoming
+    if (bothBlank && match.status === "finished") {
+      if (!window.confirm(`¿Seguro que quieres eliminar el resultado de ${match.homeTeam} vs ${match.awayTeam}? El partido volverá a "Próximos" y se reabrirán las apuestas.`)) return;
+      setSaving(match.id);
+      try {
+        await resetMatch(match.id);
+        setMsgs((m) => ({ ...m, [match.id]: "↩ Resultado eliminado — partido vuelve a Próximos" }));
+        onUpdated();
+      } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
+      finally { setSaving(null); setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 4000); }
+      return;
     }
+
+    if (!bothFilled) {
+      setMsgs((m) => ({ ...m, [match.id]: "⚠ Ingresa ambos marcadores (o déjalos en blanco para eliminar el resultado)" }));
+      return;
+    }
+
     setSaving(match.id);
     try {
-      await updateMatchResult(match.id, parseInt(sc.home), parseInt(sc.away));
-      setMsgs((m) => ({ ...m, [match.id]: "✅ Resultado guardado + puntos calculados" }));
+      await updateMatchResult(match.id, parseInt(homeVal), parseInt(awayVal));
+      setMsgs((m) => ({ ...m, [match.id]: "✅ Resultado guardado + puntos recalculados" }));
       onUpdated();
     } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
     finally { setSaving(null); setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 4000); }
@@ -235,53 +243,105 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map((match) => {
-            const sc = scores[match.id] || { home: match.homeScore !== null ? String(match.homeScore) : "", away: match.awayScore !== null ? String(match.awayScore) : "" };
+            const isFinished = match.status === "finished";
+            const sc = scores[match.id] || {
+              home: match.homeScore !== null ? String(match.homeScore) : "",
+              away: match.awayScore !== null ? String(match.awayScore) : "",
+            };
+            const hasChanged = isFinished && (
+              sc.home !== String(match.homeScore) || sc.away !== String(match.awayScore)
+            );
+            const canSave = sc.home !== "" && sc.away !== "";
+
             return (
               <div key={match.id} style={{
-                background: "var(--surface)", border: "1px solid var(--border)",
+                background: "var(--surface)",
+                border: `1px solid ${hasChanged ? "rgba(231,76,60,0.4)" : isFinished ? "rgba(201,168,76,0.2)" : "var(--border)"}`,
                 borderRadius: "var(--radius-sm)", padding: "14px 16px",
                 display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                transition: "border-color 0.2s",
               }}>
+                {/* Match info */}
                 <div style={{ flex: 1, minWidth: 160 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{match.homeTeam} vs {match.awayTeam}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                    {match.homeTeam} vs {match.awayTeam}
+                    {isFinished && (
+                      <span style={{ fontSize: 10, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+                        background: hasChanged ? "rgba(231,76,60,0.15)" : "rgba(201,168,76,0.12)",
+                        color: hasChanged ? "var(--red)" : "var(--gold)",
+                        border: `1px solid ${hasChanged ? "rgba(231,76,60,0.3)" : "var(--border-gold)"}`,
+                        borderRadius: 4, padding: "2px 7px", letterSpacing: "0.06em",
+                      }}>
+                        {hasChanged ? "✏ MODIFICANDO" : `✓ ${match.homeScore}–${match.awayScore}`}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
                     {match.round} · {match.matchDate?.toDate?.()?.toLocaleString("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) ?? ""}
                   </div>
                 </div>
 
-                {match.status !== "finished" && (
+                {/* Lock button for non-finished */}
+                {!isFinished && (
                   <button className="btn-ghost" onClick={() => handleLock(match.id)}
                     style={{ fontSize: 12, padding: "6px 12px" }}>
                     🔒 Cerrar apuestas
                   </button>
                 )}
 
+                {/* Score inputs */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                   <input
                     className="score-input"
-                    type="number" min={0} max={30}
-                    placeholder={match.homeScore !== null ? String(match.homeScore) : "0"}
+                    type="number" min={0} max={20}
+                    placeholder="0"
                     value={sc.home}
-                    onChange={(e) => setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], home: e.target.value } }))}
-                    style={{ width: 48 }}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "" || (/^\d+$/.test(v) && parseInt(v) >= 0 && parseInt(v) <= 20))
+                        setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], home: v } }));
+                    }}
+                    onKeyDown={(e) => { if (["-","e","E","+","."].includes(e.key)) e.preventDefault(); }}
+                    style={{ width: 48, borderColor: hasChanged ? "rgba(231,76,60,0.5)" : undefined }}
                   />
                   <span style={{ color: "var(--text-muted)", fontFamily: "'Bebas Neue',sans-serif" }}>–</span>
                   <input
                     className="score-input"
-                    type="number" min={0} max={30}
-                    placeholder={match.awayScore !== null ? String(match.awayScore) : "0"}
+                    type="number" min={0} max={20}
+                    placeholder="0"
                     value={sc.away}
-                    onChange={(e) => setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], away: e.target.value } }))}
-                    style={{ width: 48 }}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "" || (/^\d+$/.test(v) && parseInt(v) >= 0 && parseInt(v) <= 20))
+                        setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], away: v } }));
+                    }}
+                    onKeyDown={(e) => { if (["-","e","E","+","."].includes(e.key)) e.preventDefault(); }}
+                    style={{ width: 48, borderColor: hasChanged ? "rgba(231,76,60,0.5)" : undefined }}
                   />
-                  <button className="btn-primary" onClick={() => handleResult(match)} disabled={saving === match.id}
-                    style={{ fontSize: 13, padding: "8px 14px" }}>
-                    {saving === match.id ? "..." : match.status === "finished" ? "✏ Corregir" : "✓ Guardar"}
+                  <button
+                    className={isFinished && bothBlank ? "btn-danger" : hasChanged ? "btn-danger" : "btn-primary"}
+                    onClick={() => handleResult(match)}
+                    disabled={saving === match.id || !canSave}
+                    style={{ fontSize: 13, padding: "8px 14px", opacity: !canSave ? 0.4 : 1 }}
+                  >
+                    {saving === match.id ? "..." : isFinished && bothBlank ? "↩ Eliminar resultado" : isFinished ? (hasChanged ? "⚠ Corregir" : "✏ Editar") : "✓ Guardar"}
                   </button>
+
+                  {/* Undo button when modified */}
+                  {hasChanged && (
+                    <button className="btn-ghost" style={{ fontSize: 12, padding: "6px 10px" }}
+                      onClick={() => setScores((prev) => ({
+                        ...prev,
+                        [match.id]: { home: String(match.homeScore ?? ""), away: String(match.awayScore ?? "") }
+                      }))}>
+                      ↩ Deshacer
+                    </button>
+                  )}
                 </div>
 
                 {msgs[match.id] && (
-                  <div style={{ width: "100%", fontSize: 12, color: msgs[match.id].startsWith("✅") ? "var(--green)" : "var(--red)", marginTop: 4 }}>
+                  <div style={{ width: "100%", fontSize: 12, marginTop: 4,
+                    color: msgs[match.id].startsWith("✅") ? "var(--green)" : "var(--red)" }}>
                     {msgs[match.id]}
                   </div>
                 )}
@@ -304,7 +364,7 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
   const [msg, setMsg] = useState("");
 
   const groupMatches = matches.filter((m) => m.group === group);
-  const teams = Array.from(new Set(groupMatches.flatMap((m) => [m.homeTeam, m.awayTeam])));
+  const teams = [...new Set(groupMatches.flatMap((m) => [m.homeTeam, m.awayTeam]))];
 
   const handleSave = async () => {
     if (!first || !second) { setMsg("⚠ Elige 1° y 2° lugar"); return; }

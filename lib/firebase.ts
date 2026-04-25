@@ -173,6 +173,25 @@ export async function lockMatch(matchId: string) {
   await updateDoc(doc(db, "matches", matchId), { locked: true, status: "live" });
 }
 
+export async function resetMatch(matchId: string) {
+  // Reset match to upcoming, clear scores, unlock bets, and reset all pick points
+  await updateDoc(doc(db, "matches", matchId), {
+    homeScore: null,
+    awayScore: null,
+    status: "upcoming",
+    locked: false,
+  });
+  // Reset points for all picks of this match
+  const picks = await getDocs(
+    query(collection(db, "picks"), where("matchId", "==", matchId))
+  );
+  const batch = writeBatch(db);
+  for (const d of picks.docs) {
+    batch.update(doc(db, "picks", d.id), { points: null });
+  }
+  await batch.commit();
+}
+
 // ─── APUESTAS ─────────────────────────────────────────────────────────────────
 export async function submitPick(
   userId: string,
