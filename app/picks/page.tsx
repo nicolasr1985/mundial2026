@@ -57,16 +57,28 @@ export default function PicksPage() {
   const handleSubmitPick = async (matchId: string) => {
     if (!user) return;
     const sc = scores[matchId];
-    if (!sc || sc.home === "" || sc.away === "") {
+    const homeVal = sc?.home ?? "";
+    const awayVal = sc?.away ?? "";
+    const homeNum = parseInt(homeVal);
+    const awayNum = parseInt(awayVal);
+    if (homeVal === "" || awayVal === "") {
       setMsgs((m) => ({ ...m, [matchId]: "⚠ Ingresa ambos marcadores" }));
+      return;
+    }
+    if (isNaN(homeNum) || isNaN(awayNum)) {
+      setMsgs((m) => ({ ...m, [matchId]: "⚠ Solo se permiten números" }));
+      return;
+    }
+    if (homeNum < 0 || homeNum > 20 || awayNum < 0 || awayNum > 20) {
+      setMsgs((m) => ({ ...m, [matchId]: "⚠ Marcador debe ser entre 0 y 20" }));
       return;
     }
     setSaving(matchId);
     try {
-      await submitPick(user.uid, matchId, parseInt(sc.home), parseInt(sc.away));
+      await submitPick(user.uid, matchId, homeNum, awayNum);
       setPicks((prev) => ({
         ...prev,
-        [matchId]: { ...prev[matchId], homeScore: parseInt(sc.home), awayScore: parseInt(sc.away), matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: undefined },
+        [matchId]: { ...prev[matchId], homeScore: parseInt(sc.home), awayScore: parseInt(sc.away), matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: null },
       }));
       setMsgs((m) => ({ ...m, [matchId]: "✅ Guardado" }));
     } catch {
@@ -163,7 +175,7 @@ export default function PicksPage() {
                       await submitGroupPick(user.uid, group, first, second, third);
                       setGroupPicks((prev) => ({ ...prev, [group]: { ...prev[group], group, firstPlace: first, secondPlace: second, thirdPlace: third, userId: user.uid, id: group } }));
                     }}
-                    teams={Array.from(new Set(gMatches.flatMap((m) => [m.homeTeam, m.awayTeam])))}
+                    teams={[...new Set(gMatches.flatMap((m) => [m.homeTeam, m.awayTeam]))]}
                   />
                 ))}
             </div>
@@ -353,10 +365,17 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
               type="number"
               min={0}
               max={20}
-              placeholder="0"
+              placeholder="–"
               value={score.home}
-              onChange={(e) => onScoreChange("home", e.target.value)}
-              style={{ width: compact ? 44 : 52, fontSize: compact ? 16 : 20 }}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || (/^\d+$/.test(v) && parseInt(v) >= 0 && parseInt(v) <= 20)) {
+                  onScoreChange("home", v);
+                }
+              }}
+              onKeyDown={(e) => { if (["-","e","E","+","."].includes(e.key)) e.preventDefault(); }}
+              style={{ width: compact ? 44 : 52, fontSize: compact ? 16 : 20,
+                borderColor: score.home === "" ? "rgba(231,76,60,0.4)" : "var(--border)" }}
             />
             <span style={{ color: "var(--text-muted)", fontFamily: "'Bebas Neue',sans-serif" }}>–</span>
             <input
@@ -364,16 +383,24 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
               type="number"
               min={0}
               max={20}
-              placeholder="0"
+              placeholder="–"
               value={score.away}
-              onChange={(e) => onScoreChange("away", e.target.value)}
-              style={{ width: compact ? 44 : 52, fontSize: compact ? 16 : 20 }}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || (/^\d+$/.test(v) && parseInt(v) >= 0 && parseInt(v) <= 20)) {
+                  onScoreChange("away", v);
+                }
+              }}
+              onKeyDown={(e) => { if (["-","e","E","+","."].includes(e.key)) e.preventDefault(); }}
+              style={{ width: compact ? 44 : 52, fontSize: compact ? 16 : 20,
+                borderColor: score.away === "" ? "rgba(231,76,60,0.4)" : "var(--border)" }}
             />
             <button
               className="btn-primary"
               onClick={onSubmit}
-              disabled={saving}
-              style={{ padding: compact ? "7px 12px" : "9px 16px", fontSize: 13 }}
+              disabled={saving || score.home === "" || score.away === ""}
+              style={{ padding: compact ? "7px 12px" : "9px 16px", fontSize: 13,
+                opacity: (score.home === "" || score.away === "") ? 0.35 : 1 }}
             >
               {saving ? "..." : hasPick ? "✏" : "✓"}
             </button>
