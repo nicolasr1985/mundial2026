@@ -24,7 +24,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special">("matches");
+  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special" | "rankings">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -60,6 +60,7 @@ export default function AdminPage() {
           { id: "results", label: "✏ Ingresar Resultados" },
           { id: "groups", label: "🏅 Clasificación Grupos" },
           { id: "special", label: "🏆 Campeón / Goleador" },
+          { id: "rankings", label: "🌍 Ranking FIFA" },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -80,6 +81,7 @@ export default function AdminPage() {
       {activeTab === "results" && <ResultsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "groups" && <GroupsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "special" && <SpecialTab settings={settings} onUpdated={loadData} />}
+      {activeTab === "rankings" && <FifaRankingsTab />}
     </div>
   );
 }
@@ -501,6 +503,133 @@ function SpecialTab({ settings, onUpdated }: { settings: Record<string, string>;
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── FIFA RANKINGS TAB ───────────────────────────────────────────────────────
+const WC2026_TEAMS = new Set([
+  "Argentina","France","England","Belgium","Portugal","Brazil","Netherlands",
+  "Spain","Germany","Colombia","Uruguay","Mexico","United States",
+  "Japan","Morocco","Senegal","Croatia","Switzerland","Ecuador","Australia",
+  "South Korea","Czechia","Tunisia","Norway","Sweden","Algeria","Austria",
+  "Jordan","Saudi Arabia","Iraq","Uzbekistan","Ivory Coast","Ghana","Panama",
+  "Haiti","Scotland","South Africa","Canada","Bosnia and Herzegovina",
+  "Cape Verde","New Zealand","Curacao","Congo DR","Qatar","Turkey",
+  "Egypt","Paraguay","Italy",
+]);
+
+interface FifaRankEntry { rank: number; name: string; code: string; points: number; }
+
+function FifaRankingsTab() {
+  const [rankings, setRankings] = useState<FifaRankEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [updated, setUpdated] = useState("");
+  const [filter, setFilter] = useState<"all" | "wc2026">("wc2026");
+
+  const fetchRankings = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/fifa-rankings");
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      setRankings(data.rankings || []);
+      setUpdated(data.updated || "");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayed = filter === "wc2026"
+    ? rankings.filter((r) => WC2026_TEAMS.has(r.name))
+    : rankings;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+        <button className="btn-primary" onClick={fetchRankings} disabled={loading} style={{ padding: "10px 20px" }}>
+          {loading ? "Cargando..." : "🔄 Actualizar desde football-ranking.com"}
+        </button>
+        {updated && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Actualizado: {updated}</span>}
+        {error && <span style={{ fontSize: 12, color: "var(--red)" }}>❌ {error}</span>}
+      </div>
+
+      {rankings.length > 0 && (
+        <>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            {(["wc2026", "all"] as const).map((f) => (
+              <button key={f} onClick={() => setFilter(f)} style={{
+                padding: "6px 14px", borderRadius: "var(--radius-sm)", fontSize: 12, cursor: "pointer",
+                background: filter === f ? "rgba(201,168,76,0.15)" : "var(--surface2)",
+                color: filter === f ? "var(--gold)" : "var(--text-muted)",
+                border: `1px solid ${filter === f ? "var(--border-gold)" : "var(--border)"}`,
+                fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+              }}>
+                {f === "wc2026" ? `⚽ Solo WC 2026 (${rankings.filter(r => WC2026_TEAMS.has(r.name)).length})` : `🌍 Todos (${rankings.length})`}
+              </button>
+            ))}
+          </div>
+
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    {["Rank", "País", "Código", "Puntos FIFA"].map((h) => (
+                      <th key={h} style={{ padding: "10px 12px", fontSize: 11, color: "var(--text-muted)",
+                        textAlign: h === "País" ? "left" : "center",
+                        fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, letterSpacing: "0.06em" }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayed.map((r, i) => (
+                    <tr key={r.rank} style={{
+                      borderBottom: "1px solid var(--border)",
+                      background: WC2026_TEAMS.has(r.name) ? "rgba(201,168,76,0.03)" : "transparent",
+                    }}>
+                      <td style={{ padding: "10px 12px", textAlign: "center", fontSize: 14,
+                        fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
+                        color: r.rank <= 10 ? "var(--gold)" : "var(--text)" }}>
+                        {r.rank}
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "left", fontSize: 14, fontWeight: WC2026_TEAMS.has(r.name) ? 600 : 400 }}>
+                        {r.name}
+                        {WC2026_TEAMS.has(r.name) && (
+                          <span style={{ marginLeft: 6, fontSize: 10, background: "rgba(201,168,76,0.15)",
+                            color: "var(--gold)", border: "1px solid var(--border-gold)",
+                            borderRadius: 3, padding: "1px 5px" }}>WC26</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "center", fontSize: 12,
+                        color: "var(--text-muted)", fontFamily: "monospace" }}>
+                        {r.code}
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "center", fontSize: 14,
+                        fontWeight: 600, color: "var(--text-dim)" }}>
+                        {r.points.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {!loading && rankings.length === 0 && (
+        <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🌍</div>
+          <p>Haz clic en "Actualizar" para cargar el ranking FIFA desde football-ranking.com</p>
+          <p style={{ fontSize: 12, marginTop: 8, opacity: 0.7 }}>Los datos se cachean por 24 horas en el servidor</p>
+        </div>
+      )}
     </div>
   );
 }
