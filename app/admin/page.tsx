@@ -35,11 +35,22 @@ export default function AdminPage() {
     }
   }, [user, profile, loading]);
 
-  const loadData = useCallback(async () => {
-    const [m, s] = await Promise.all([getMatches(), getTournamentSettings()]);
-    setMatches(m);
-    setSettings(s as Record<string, string>);
-    setFetching(false);
+const loadData = useCallback(async () => {
+    try {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 10000)
+      );
+      const [m, s] = await Promise.race([
+        Promise.all([getMatches(), getTournamentSettings()]),
+        timeout,
+      ]) as [typeof matches, Record<string, string>];
+      setMatches(m);
+      setSettings(s as Record<string, string>);
+    } catch {
+      console.warn("Admin data load timed out, continuing anyway");
+    } finally {
+      setFetching(false);
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
