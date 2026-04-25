@@ -41,7 +41,8 @@ function computeStandings(matches: Match[]): Record<string, TeamStat[]> {
 
     const home = standings[g][m.homeTeam];
     const away = standings[g][m.awayTeam];
-    const hs = m.homeScore, as_ = m.awayScore;
+    const hs = Number(m.homeScore), as_ = Number(m.awayScore);
+    if (isNaN(hs) || isNaN(as_)) continue;
 
     home.played++; away.played++;
     home.gf += hs; home.ga += as_; home.gd = home.gf - home.ga;
@@ -61,12 +62,15 @@ function computeStandings(matches: Match[]): Record<string, TeamStat[]> {
 }
 
 function computePredictedStandings(matches: Match[], picks: Record<string, { homeScore: number; awayScore: number }>): Record<string, TeamStat[]> {
-  // Replace real scores with user's picks
-  const predictedMatches = matches.map((m) => {
-    const pick = picks[m.id];
-    if (!pick) return m;
-    return { ...m, homeScore: pick.homeScore, awayScore: pick.awayScore, status: "finished" as const };
-  });
+  const predictedMatches = matches
+    .filter((m) => picks[m.id] !== undefined)
+    .map((m) => {
+      const pick = picks[m.id];
+      const hs = Number(pick.homeScore);
+      const as_ = Number(pick.awayScore);
+      if (isNaN(hs) || isNaN(as_)) return { ...m, homeScore: null, awayScore: null };
+      return { ...m, homeScore: hs, awayScore: as_, status: "finished" as const };
+    });
   return computeStandings(predictedMatches);
 }
 
@@ -101,7 +105,7 @@ export default function StandingsPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const groupMatches = matches.filter((m) => m.round?.startsWith("Fase de Grupos"));
-  const availableGroups = Array.from(new Set(groupMatches.map((m) => m.group).filter(Boolean) as string[])).sort();
+  const availableGroups = [...new Set(groupMatches.map((m) => m.group).filter(Boolean) as string[])].sort();
 
   const realStandings = computeStandings(groupMatches);
   const predictedStandings = computePredictedStandings(groupMatches, userMatchPicks);
