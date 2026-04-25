@@ -365,7 +365,7 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
   const [msg, setMsg] = useState("");
 
   const groupMatches = matches.filter((m) => m.group === group);
-  const teams = [...new Set(groupMatches.flatMap((m) => [m.homeTeam, m.awayTeam]))];
+  const teams = Array.from(new Set(groupMatches.flatMap((m) => [m.homeTeam, m.awayTeam])));
 
   const handleSave = async () => {
     if (!first || !second) { setMsg("⚠ Elige 1° y 2° lugar"); return; }
