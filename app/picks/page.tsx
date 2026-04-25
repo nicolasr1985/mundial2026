@@ -14,8 +14,6 @@ const ROUNDS = [
   "Final",
 ];
 
-const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
-
 export default function PicksPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -31,10 +29,7 @@ export default function PicksPage() {
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    const [m, p] = await Promise.all([
-      getMatches(),
-      getUserPicks(user.uid),
-    ]);
+    const [m, p] = await Promise.all([getMatches(), getUserPicks(user.uid)]);
     setMatches(m);
     const picksMap: Record<string, Pick> = {};
     const scoresInit: Record<string, { home: string; away: string }> = {};
@@ -73,7 +68,7 @@ export default function PicksPage() {
       await submitPick(user.uid, matchId, homeNum, awayNum);
       setPicks((prev) => ({
         ...prev,
-        [matchId]: { ...prev[matchId], homeScore: parseInt(sc.home), awayScore: parseInt(sc.away), matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: undefined },
+        [matchId]: { ...prev[matchId], homeScore: homeNum, awayScore: awayNum, matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: undefined },
       }));
       setMsgs((m) => ({ ...m, [matchId]: "✅ Guardado" }));
     } catch {
@@ -103,17 +98,15 @@ export default function PicksPage() {
 
   return (
     <div className="page animate-fade-up">
-      <div style={s.header}>
-        <div>
-          <h1 style={{ fontSize: 36 }}><span className="gold-text">APUESTAS</span></h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 2 }}>
-            Haz tus predicciones antes de cada partido
-          </p>
-        </div>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 36 }}><span className="gold-text">APUESTAS</span></h1>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 2 }}>
+          Haz tus predicciones antes de cada partido
+        </p>
       </div>
 
       {/* Round tabs */}
-      <div style={s.tabs}>
+      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 24, overflowX: "auto" }}>
         {ROUNDS.map((r) => {
           const count = matches.filter((m) =>
             r === "Fase de Grupos" ? m.round.startsWith("Fase de Grupos") : m.round === r
@@ -123,15 +116,21 @@ export default function PicksPage() {
               key={r}
               onClick={() => setActiveRound(r)}
               style={{
-                ...s.tab,
+                padding: "10px 14px", fontSize: 13, cursor: "pointer",
+                fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+                letterSpacing: "0.04em", whiteSpace: "nowrap",
+                transition: "all 0.15s", border: "none",
+                display: "flex", alignItems: "center", gap: 6,
                 background: activeRound === r ? "rgba(201,168,76,0.15)" : "transparent",
                 color: activeRound === r ? "var(--gold)" : "var(--text-muted)",
-                borderBottom: activeRound === r ? "2px solid var(--gold)" : "2px solid transparent",
+                borderBottom: `2px solid ${activeRound === r ? "var(--gold)" : "transparent"}`,
               }}
             >
               {r.replace("Fase de Grupos", "Grupos").replace(" de Final", "")}
               {count > 0 && (
-                <span style={s.tabBadge}>{count}</span>
+                <span style={{ background: "var(--surface3)", color: "var(--text-muted)", borderRadius: 10, fontSize: 10, padding: "1px 6px" }}>
+                  {count}
+                </span>
               )}
             </button>
           );
@@ -146,37 +145,28 @@ export default function PicksPage() {
         </div>
       ) : (
         <>
-          {/* Group standings picks (only in group stage) */}
           {activeRound === "Fase de Grupos" && groupedByGroup && (
             <div style={{ marginBottom: 24 }}>
               {Object.entries(groupedByGroup)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([group, gMatches]) => (
                   <SimpleGroupSection
-  key={group}
-  group={group}
-  matches={gMatches}
-  picks={picks}
-  scores={scores}
-  saving={saving}
-  msgs={msgs}
-  onScoreChange={(matchId, side, val) =>
-    setScores((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: val } }))
-  }
-  onSubmit={handleSubmitPick}
-/>
-                    onSubmitGroup={async (first, second, third) => {
-                      if (!user) return;
-                      await submitGroupPick(user.uid, group, first, second, third);
-                      setGroupPicks((prev) => ({ ...prev, [group]: { ...prev[group], group, firstPlace: first, secondPlace: second, thirdPlace: third, userId: user.uid, id: group } }));
-                    }}
-                    teams={[...new Set(gMatches.flatMap((m) => [m.homeTeam, m.awayTeam]))]}
+                    key={group}
+                    group={group}
+                    matches={gMatches}
+                    picks={picks}
+                    scores={scores}
+                    saving={saving}
+                    msgs={msgs}
+                    onScoreChange={(matchId, side, val) =>
+                      setScores((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: val } }))
+                    }
+                    onSubmit={handleSubmitPick}
                   />
                 ))}
             </div>
           )}
 
-          {/* Non-group matches */}
           {activeRound !== "Fase de Grupos" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {roundMatches.map((match) => (
@@ -201,7 +191,7 @@ export default function PicksPage() {
   );
 }
 
-// ─── GROUP SECTION ────────────────────────────────────────────────────────────
+// ─── SIMPLE GROUP SECTION ─────────────────────────────────────────────────────
 function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onScoreChange, onSubmit }: {
   group: string; matches: Match[]; picks: Record<string, Pick>;
   scores: Record<string, { home: string; away: string }>; saving: string | null;
@@ -232,7 +222,7 @@ function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onSco
         ))}
       </div>
       <div style={{ marginTop: 8, padding: "8px 12px", background: "rgba(201,168,76,0.04)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-gold)", fontSize: 12, color: "var(--text-muted)" }}>
-        La clasificacion 1, 2 y 3 se calcula automaticamente segun tus picks. Ve a <strong style={{color:"var(--gold)"}}>Tabla</strong> para verla.
+        La clasificacion 1, 2 y 3 se calcula automaticamente segun tus picks. Ve a <strong style={{ color: "var(--gold)" }}>Tabla</strong> para verla.
       </div>
     </div>
   );
@@ -245,7 +235,6 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
   onSubmit: () => void; compact?: boolean;
 }) {
   const locked = match.locked;
-  const finished = match.status === "finished";
   const hasResult = match.homeScore !== null && match.awayScore !== null;
   const hasPick = !!pick;
 
@@ -253,24 +242,21 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
     ? match.matchDate.toDate().toLocaleString("es-CO", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     : "—";
 
+  const canSubmit = score.home !== "" && score.away !== "";
+
   return (
     <div style={{
       background: "var(--surface)",
       border: `1px solid ${locked ? "var(--border)" : hasPick ? "rgba(201,168,76,0.3)" : "var(--border)"}`,
       borderRadius: "var(--radius-sm)",
       padding: compact ? "12px 14px" : "16px 20px",
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      flexWrap: "wrap",
+      display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
     }}>
-      {/* Status */}
       <div style={{ width: compact ? 6 : 8, height: compact ? 6 : 8, borderRadius: "50%", flexShrink: 0,
         background: match.status === "live" ? "var(--green)" : match.status === "finished" ? "var(--text-muted)" : "var(--gold)",
         boxShadow: match.status === "live" ? "0 0 8px var(--green)" : "none",
       }} />
 
-      {/* Teams + result */}
       <div style={{ flex: 1, minWidth: 160 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{match.homeTeam}</span>
@@ -286,7 +272,6 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{dateStr}</div>
       </div>
 
-      {/* Pick input or result */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {locked ? (
           hasPick ? (
@@ -342,9 +327,9 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
             <button
               className="btn-primary"
               onClick={onSubmit}
-              disabled={saving || score.home === "" || score.away === ""}
+              disabled={saving || !canSubmit}
               style={{ padding: compact ? "7px 12px" : "9px 16px", fontSize: 13,
-                opacity: (score.home === "" || score.away === "") ? 0.35 : 1 }}
+                opacity: !canSubmit ? 0.35 : 1 }}
             >
               {saving ? "..." : hasPick ? "✏" : "✓"}
             </button>
@@ -370,33 +355,4 @@ function Loading() {
 
 const s: Record<string, React.CSSProperties> = {
   header: { marginBottom: 20 },
-  tabs: {
-    display: "flex", gap: 0, borderBottom: "1px solid var(--border)",
-    marginBottom: 24, overflowX: "auto",
-  },
-  tab: {
-    padding: "10px 14px", fontSize: 13, cursor: "pointer",
-    fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
-    letterSpacing: "0.04em", whiteSpace: "nowrap",
-    display: "flex", alignItems: "center", gap: 6,
-    transition: "all 0.15s", border: "none",
-  },
-  tabBadge: {
-    background: "var(--surface3)", color: "var(--text-muted)",
-    borderRadius: 10, fontSize: 10, padding: "1px 6px",
-  },
-  groupHeader: {
-    display: "flex", alignItems: "center", gap: 10,
-    marginBottom: 8,
-  },
-  groupLabel: {
-    fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
-    color: "var(--gold)", letterSpacing: "0.08em",
-  },
-  groupPredBox: {
-    background: "rgba(201,168,76,0.04)",
-    border: "1px solid var(--border-gold)",
-    borderRadius: "var(--radius-sm)",
-    padding: "12px 14px",
-  },
 };
