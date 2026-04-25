@@ -309,7 +309,9 @@ export interface RankingEntry {
   championPoints: number;
   topScorerPoints: number;
   picksCount: number;
-  exactCount: number;
+  exactCount: number;   // picks worth 5 pts (exact score)
+  resultCount: number;  // picks worth 3 pts (correct result)
+  partialCount: number; // picks worth 1 pt (correct goals only)
 }
 
 export async function getRanking(): Promise<RankingEntry[]> {
@@ -345,10 +347,21 @@ export async function getRanking(): Promise<RankingEntry[]> {
         topScorerPoints,
         totalPoints: matchPoints + groupPoints + championPoints + topScorerPoints,
         picksCount: userPicks.length,
-        exactCount: userPicks.filter((p) => p.points === 5).length,
+        exactCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) >= 5).length,
+        resultCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 3).length,
+        partialCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) > 0 && (p.points ?? 0) < 3).length,
       };
     })
-    .sort((a, b) => b.totalPoints - a.totalPoints);
+    .sort((a, b) => {
+      // 1st: total points
+      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+      // 2nd: most exact scores (5 pts)
+      if (b.exactCount !== a.exactCount) return b.exactCount - a.exactCount;
+      // 3rd: most correct results (3 pts)
+      if (b.resultCount !== a.resultCount) return b.resultCount - a.resultCount;
+      // 4th: most partial goals (1 pt)
+      return b.partialCount - a.partialCount;
+    });
 }
 
 export function onRankingChange(cb: (ranking: RankingEntry[]) => void) {

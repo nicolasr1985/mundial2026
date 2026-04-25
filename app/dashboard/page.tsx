@@ -192,42 +192,71 @@ function RankRow({ entry, position, isMe }: { entry: RankingEntry; position: num
   const medal = position === 1 ? "🥇" : position === 2 ? "🥈" : position === 3 ? "🥉" : null;
   return (
     <div style={{
-      display: "flex",
-      alignItems: "center",
-      padding: "14px 20px",
-      borderBottom: "1px solid var(--border)",
+      display: "flex", alignItems: "center",
+      padding: "12px 20px", borderBottom: "1px solid var(--border)",
       background: isMe ? "rgba(201,168,76,0.05)" : "transparent",
-      transition: "background 0.15s",
-      gap: 12,
+      transition: "background 0.15s", gap: 12, flexWrap: "wrap",
     }}>
+      {/* Position */}
       <div style={{ width: 32, textAlign: "center", fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
-        color: position <= 3 ? "var(--gold)" : "var(--text-muted)" }}>
+        color: position <= 3 ? "var(--gold)" : "var(--text-muted)", flexShrink: 0 }}>
         {medal || `#${position}`}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}>
+
+      {/* Name + tiebreaker badges */}
+      <div style={{ flex: 1, minWidth: 120 }}>
+        <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {entry.displayName}
           {isMe && <span className="badge badge-gold" style={{ fontSize: 10, padding: "2px 7px" }}>Tú</span>}
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-          {entry.picksCount} apuestas · {entry.exactCount} exactas
+        <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+          <span style={tieStyle("#C9A84C")} title="Marcador exacto (5 pts)">
+            ⭐ {entry.exactCount}
+          </span>
+          <span style={tieStyle("#9B8FD0")} title="Resultado correcto (3 pts)">
+            ✅ {entry.resultCount ?? 0}
+          </span>
+          <span style={tieStyle("#6ABCB0")} title="Goles acertados (1 pt)">
+            ½ {entry.partialCount ?? 0}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+            {entry.picksCount} apuestas
+          </span>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-        <PointsBreakdown label="Partidos" value={entry.matchPoints} />
-        <PointsBreakdown label="Grupos" value={entry.groupPoints} />
-        {(entry.championPoints > 0 || entry.topScorerPoints > 0) && (
-          <PointsBreakdown label="Especial" value={entry.championPoints + entry.topScorerPoints} highlight />
+
+      {/* Points breakdown */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
+        {entry.matchPoints > 0 && (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-dim)" }}>{entry.matchPoints}</div>
+            <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>partidos</div>
+          </div>
         )}
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: isMe ? "var(--gold)" : "var(--text)" }}>
+        {(entry.championPoints + entry.topScorerPoints) > 0 && (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--gold)" }}>{entry.championPoints + entry.topScorerPoints}</div>
+            <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>especial</div>
+          </div>
+        )}
+        <div style={{ textAlign: "right", marginLeft: 4 }}>
+          <div style={{ fontSize: 24, fontFamily: "'Bebas Neue',sans-serif", color: isMe ? "var(--gold)" : "var(--text)" }}>
             {entry.totalPoints}
           </div>
-          <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+          <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", marginTop: -4 }}>pts</div>
         </div>
       </div>
     </div>
   );
+}
+
+function tieStyle(color: string): React.CSSProperties {
+  return {
+    fontSize: 11, color, fontWeight: 600,
+    background: "var(--surface2)", borderRadius: 4,
+    padding: "2px 6px", border: "1px solid var(--border)",
+    display: "inline-flex", alignItems: "center", gap: 3,
+  };
 }
 
 function PointsBreakdown({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
