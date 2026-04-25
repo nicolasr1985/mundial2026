@@ -152,7 +152,7 @@ export default function PicksPage() {
               {Object.entries(groupedByGroup)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([group, gMatches]) => (
-                  <GroupSection
+                  <SimpleGroupSection
                     key={group}
                     group={group}
                     matches={gMatches}
