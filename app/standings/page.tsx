@@ -474,6 +474,9 @@ function R32Tab({ r32, viewMode }: { r32: R32Match[]; viewMode: string }) {
   );
 }
 
+const TEAM_BOX_W = 152;
+const TEAM_BOX_H = 28;
+
 const rStyle = {
   roundTitle: {
     fontSize: 10, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
@@ -482,13 +485,22 @@ const rStyle = {
     padding: "4px 6px", borderBottom: "1px solid var(--border)", marginBottom: 6,
   },
   teamBox: (known: boolean, isThird?: boolean): React.CSSProperties => ({
-    padding: "5px 8px", fontSize: 11,
+    padding: "0 8px",
+    fontSize: 11,
+    height: TEAM_BOX_H,
+    width: TEAM_BOX_W,
+    minWidth: TEAM_BOX_W,
+    maxWidth: TEAM_BOX_W,
+    boxSizing: "border-box" as const,
+    display: "flex",
+    alignItems: "center",
     background: "var(--surface2)",
     border: "1px solid var(--border)",
     color: known ? (isThird ? "var(--gold)" : "var(--text)") : "var(--text-muted)",
     fontStyle: known ? "normal" : "italic",
-    whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis",
-    maxWidth: 148,
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   }),
 };
 
@@ -514,7 +526,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd }: {
         {homeLabel}
       </div>
       {/* Away team */}
-      <div style={{ ...rStyle.teamBox(awayKnown, awayIsThird), borderRadius: "0 0 4px 4px", display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: "none" }}>
+      <div style={{ ...rStyle.teamBox(awayKnown, awayIsThird), borderRadius: "0 0 4px 4px", justifyContent: "space-between" }}>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
           {awayLabel}
         </span>
@@ -542,7 +554,7 @@ function BracketRound({ title, slots, bySlot, count, tbd }: {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minWidth: 155, flex: "0 0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", minWidth: 154, flex: "0 0 auto" }}>
       <div style={rStyle.roundTitle as React.CSSProperties}>{title}</div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-around", gap: 4, padding: "4px 0" }}>
         {items.map(({ slot, m }, i) => (
