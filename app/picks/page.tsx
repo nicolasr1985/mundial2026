@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getMatches, getUserPicks, submitPick, submitGroupPick, getUserGroupPicks, Match, Pick, GroupPick } from "@/lib/firebase";
+import { getMatches, getUserPicks, submitPick, Match, Pick } from "@/lib/firebase";
 
 const ROUNDS = [
   "Fase de Grupos",
@@ -21,7 +21,6 @@ export default function PicksPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [picks, setPicks] = useState<Record<string, Pick>>({});
-  const [groupPicks, setGroupPicks] = useState<Record<string, GroupPick>>({});
   const [activeRound, setActiveRound] = useState("Fase de Grupos");
   const [fetching, setFetching] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -32,10 +31,9 @@ export default function PicksPage() {
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    const [m, p, gp] = await Promise.all([
+    const [m, p] = await Promise.all([
       getMatches(),
       getUserPicks(user.uid),
-      getUserGroupPicks(user.uid),
     ]);
     setMatches(m);
     const picksMap: Record<string, Pick> = {};
@@ -46,9 +44,6 @@ export default function PicksPage() {
     });
     setPicks(picksMap);
     setScores(scoresInit);
-    const gpMap: Record<string, GroupPick> = {};
-    gp.forEach((gp) => { gpMap[gp.group] = gp; });
-    setGroupPicks(gpMap);
     setFetching(false);
   }, [user]);
 
@@ -78,7 +73,7 @@ export default function PicksPage() {
       await submitPick(user.uid, matchId, homeNum, awayNum);
       setPicks((prev) => ({
         ...prev,
-        [matchId]: { ...prev[matchId], homeScore: parseInt(sc.home), awayScore: parseInt(sc.away), matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: undefined },
+        [matchId]: { ...prev[matchId], homeScore: parseInt(sc.home), awayScore: parseInt(sc.away), matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: null },
       }));
       setMsgs((m) => ({ ...m, [matchId]: "✅ Guardado" }));
     } catch {
@@ -175,7 +170,7 @@ export default function PicksPage() {
                       await submitGroupPick(user.uid, group, first, second, third);
                       setGroupPicks((prev) => ({ ...prev, [group]: { ...prev[group], group, firstPlace: first, secondPlace: second, thirdPlace: third, userId: user.uid, id: group } }));
                     }}
-                    teams={Array.from(new Set(gMatches.flatMap((m) => [m.homeTeam, m.awayTeam])))}
+                    teams={[...new Set(gMatches.flatMap((m) => [m.homeTeam, m.awayTeam]))]}
                   />
                 ))}
             </div>
@@ -207,47 +202,21 @@ export default function PicksPage() {
 }
 
 // ─── GROUP SECTION ────────────────────────────────────────────────────────────
-function GroupSection({ group, matches, picks, groupPick, scores, saving, msgs, onScoreChange, onSubmit, onSubmitGroup, teams }: {
-  group: string; matches: Match[]; picks: Record<string, Pick>; groupPick?: GroupPick;
+function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onScoreChange, onSubmit }: {
+  group: string; matches: Match[]; picks: Record<string, Pick>;
   scores: Record<string, { home: string; away: string }>; saving: string | null;
   msgs: Record<string, string>; onScoreChange: (matchId: string, side: "home" | "away", val: string) => void;
   onSubmit: (matchId: string) => void;
-  onSubmitGroup: (first: string, second: string, third: string) => Promise<void>;
-  teams: string[];
 }) {
-  const [first, setFirst] = useState(groupPick?.firstPlace || "");
-  const [second, setSecond] = useState(groupPick?.secondPlace || "");
-  const [third, setThird] = useState(groupPick?.thirdPlace || "");
-  const [gpSaving, setGpSaving] = useState(false);
-  const [gpMsg, setGpMsg] = useState("");
-
-  useEffect(() => {
-    if (groupPick) {
-      setFirst(groupPick.firstPlace || "");
-      setSecond(groupPick.secondPlace || "");
-      setThird(groupPick.thirdPlace || "");
-    }
-  }, [groupPick]);
-
-  const handleSaveGroup = async () => {
-    if (!first || !second) { setGpMsg("⚠ Elige 1° y 2° lugar"); return; }
-    setGpSaving(true);
-    try {
-      await onSubmitGroup(first, second, third);
-      setGpMsg("✅ Guardado");
-    } catch { setGpMsg("❌ Error"); }
-    finally { setGpSaving(false); setTimeout(() => setGpMsg(""), 3000); }
-  };
-
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={s.groupHeader}>
-        <span style={s.groupLabel}>GRUPO {group}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)", letterSpacing: "0.08em" }}>
+          GRUPO {group}
+        </span>
         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{matches.length} partidos</span>
       </div>
-
-      {/* Matches */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {matches.map((match) => (
           <MatchCard
             key={match.id}
@@ -262,33 +231,8 @@ function GroupSection({ group, matches, picks, groupPick, scores, saving, msgs, 
           />
         ))}
       </div>
-
-      {/* Group standing prediction */}
-      <div style={s.groupPredBox}>
-        <div style={{ fontSize: 12, color: "var(--gold)", fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 10 }}>
-          CLASIFICACIÓN DEL GRUPO (1 pt cada uno)
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-          {[
-            { label: "🥇 1° lugar", val: first, set: setFirst },
-            { label: "🥈 2° lugar", val: second, set: setSecond },
-            { label: "🥉 3° que pasa", val: third, set: setThird },
-          ].map(({ label, val, set }) => (
-            <div key={label}>
-              <label className="label" style={{ fontSize: 10 }}>{label}</label>
-              <select className="input" value={val} onChange={(e) => set(e.target.value)} style={{ fontSize: 13 }}>
-                <option value="">—</option>
-                {teams.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-          <button className="btn-ghost" onClick={handleSaveGroup} disabled={gpSaving} style={{ fontSize: 13, padding: "7px 16px" }}>
-            {gpSaving ? "Guardando..." : "Guardar clasificación"}
-          </button>
-          {gpMsg && <span style={{ fontSize: 12, color: gpMsg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{gpMsg}</span>}
-        </div>
+      <div style={{ marginTop: 8, padding: "8px 12px", background: "rgba(201,168,76,0.04)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-gold)", fontSize: 12, color: "var(--text-muted)" }}>
+        La clasificacion 1, 2 y 3 se calcula automaticamente segun tus picks. Ve a <strong style={{color:"var(--gold)"}}>Tabla</strong> para verla.
       </div>
     </div>
   );
