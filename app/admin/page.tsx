@@ -27,12 +27,13 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
+  const ADMIN_UIDS = ["QO7IJzE6BmcP9JpNEk51U9EH41s1"];
   useEffect(() => {
-    if (!loading) {
-      if (!user) { router.push("/login"); return; }
-      if (!profile?.isAdmin) { router.push("/dashboard"); return; }
+    if (!loading && !user) { router.push("/login"); return; }
+    if (!loading && user && !ADMIN_UIDS.includes(user.uid) && !profile?.isAdmin) {
+      router.push("/dashboard"); return;
     }
-  }, [user, profile, loading, router]);
+  }, [user, profile, loading]);
 
   const loadData = useCallback(async () => {
     const [m, s] = await Promise.all([getMatches(), getTournamentSettings()]);
