@@ -416,9 +416,9 @@ function R32Tab({ r32, viewMode }: { r32: R32Match[]; viewMode: string }) {
     <div>
       {/* Legend */}
       <div style={{ marginBottom: 14, fontSize: 12, color: "var(--text-muted)", display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <span><span style={{ color: "var(--green)" }}>✅</span> tercero confirmado</span>
-        <span><span style={{ color: "var(--gold)", fontWeight: 700 }}>*</span> provisional</span>
-        <span style={{ color: "var(--text-muted)" }}>— = pendiente</span>
+        <span><span style={{ color: "var(--gold)", fontWeight: 700 }}>Negrita dorada</span> = clasificado confirmado</span>
+        <span><span style={{ color: "var(--text)" }}>Blanco</span> = pendiente de confirmar</span>
+        <span><span style={{ color: "var(--green)" }}>*</span> = tercero provisional</span>
       </div>
 
       {/* Bracket scroll container */}
@@ -484,7 +484,7 @@ const rStyle = {
     color: "var(--text-muted)", textAlign: "center" as const,
     padding: "4px 6px", borderBottom: "1px solid var(--border)", marginBottom: 6,
   },
-  teamBox: (known: boolean, isThird?: boolean): React.CSSProperties => ({
+  teamBox: (known: boolean, isThird?: boolean, confirmed?: boolean): React.CSSProperties => ({
     padding: "0 8px",
     fontSize: 11,
     height: TEAM_BOX_H,
@@ -496,7 +496,8 @@ const rStyle = {
     alignItems: "center",
     background: "var(--surface2)",
     border: "1px solid var(--border)",
-    color: known ? (isThird ? "var(--gold)" : "var(--text)") : "var(--text-muted)",
+    color: confirmed ? "var(--gold)" : (isThird && known) ? "var(--green)" : known ? "var(--text)" : "var(--text-muted)",
+    fontWeight: confirmed ? 700 : 400,
     fontStyle: known ? "normal" : "italic",
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
@@ -516,24 +517,24 @@ function BracketMatch({ home, away, homeM, awayM, tbd }: {
   const homeKnown = !!(homeM?.homeTeam) || (!tbd && !!home);
   const awayKnown = !!(awayM?.awayTeam) || (!tbd && !!away);
   const awayIsThird = awayM?.awayIsThird;
-  const awayConfirmed = awayIsThird && !awayM?.isTBD;
+  const awayConfirmed = awayIsThird && !awayM?.isTBD && awayKnown;
   const awayProvisional = awayIsThird && awayM?.isTBD && awayKnown;
+  // Home is confirmed if it has a real team (1st or 2nd place is always confirmed once known)
+  const homeConfirmed = homeKnown && !tbd;
 
   return (
     <div style={{ marginBottom: 0 }}>
       {/* Home team */}
-      <div style={{ ...rStyle.teamBox(homeKnown), borderRadius: "4px 4px 0 0", borderBottom: "none" }}>
+      <div style={{ ...rStyle.teamBox(homeKnown, false, homeConfirmed), borderRadius: "4px 4px 0 0", borderBottom: "none" }}>
         {homeLabel}
       </div>
       {/* Away team */}
-      <div style={{ ...rStyle.teamBox(awayKnown, awayIsThird), borderRadius: "0 0 4px 4px", justifyContent: "space-between" }}>
+      <div style={{ ...rStyle.teamBox(awayKnown, awayIsThird, awayConfirmed), borderRadius: "0 0 4px 4px", justifyContent: "space-between" }}>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
           {awayLabel}
         </span>
-        {awayIsThird && awayKnown && (
-          awayConfirmed
-            ? <span style={{ fontSize: 11, color: "var(--green)", marginLeft: 4, flexShrink: 0 }}>✅</span>
-            : <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, marginLeft: 4, flexShrink: 0 }}>*</span>
+        {awayIsThird && awayProvisional && (
+          <span style={{ fontSize: 10, color: "var(--green)", marginLeft: 4, flexShrink: 0, opacity: 0.8 }}>*</span>
         )}
         {awayIsThird && !awayKnown && (
           <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 4, flexShrink: 0 }}>*</span>
