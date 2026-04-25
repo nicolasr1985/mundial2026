@@ -40,7 +40,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   };
 
   const isAuth = !!user;
-  const isAdmin = profile?.isAdmin ?? false;
+  const ADMIN_UIDS = ["QO7IJzE6BmcP9JpNEk51U9EH41s1"];
+const isAdmin = ADMIN_UIDS.includes(user?.uid ?? "") || (profile?.isAdmin ?? false);
 
   const navLinks = [
     { href: "/dashboard", label: "Ranking" },
