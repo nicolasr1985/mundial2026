@@ -593,7 +593,7 @@ function FifaRankingsTab() {
                       borderBottom: "1px solid var(--border)",
                       background: WC2026_TEAMS.has(r.name) ? "rgba(201,168,76,0.03)" : "transparent",
                     }}>
-                      <td style={{ padding: "10px 12px", textAlign: "center", fontSize: 14,
+                      <td style={{ padding: "10px 12px", textAlign: "center",
                         fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
                         color: r.rank <= 10 ? "var(--gold)" : "var(--text)" }}>
                         {r.rank}
