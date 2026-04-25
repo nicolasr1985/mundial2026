@@ -23,7 +23,7 @@ export default function AdminPage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
-  const [fetching, setFetching] = useState(true);
+  const [fetching, setFetching] = useState(false);
   const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
