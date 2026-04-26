@@ -845,7 +845,7 @@ function GroupsTab({ availableGroups, activeGroup, setActiveGroup, groupTable, d
                     <tr key={team.team} style={{ borderBottom: "1px solid var(--border)", background: advances ? "rgba(201,168,76,0.04)" : "transparent" }}>
                       <td style={s.td}><span style={{ color: i < 2 ? "var(--gold)" : qualifies3rd ? "var(--green)" : "var(--text-muted)" }}>{i + 1}</span></td>
                       <td style={{ ...s.td, fontWeight: 600, textAlign: "left", paddingLeft: 16 }}>
-                        {team.team}
+                        {teamWithRank(team.team, showRank)}
                         {i < 2 && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--gold)" }}>✓</span>}
                         {qualifies3rd && <span style={{ marginLeft: 6, fontSize: 10, color: "var(--green)" }}>✓3°</span>}
                       </td>
