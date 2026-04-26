@@ -192,6 +192,8 @@ export default function MyPicksPage() {
           ))}
         </div>
       )}
+        </div>
+      )}
     </div>
   );
 }
@@ -331,8 +333,6 @@ function StatCard({ label, value, unit, highlight, extra }: { label: string; val
         {value}{extra !== undefined ? `/${extra}` : ""} <span style={{ fontSize: 14 }}>{unit}</span>
       </div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{label}</div>
-      </div>
-      )}
     </div>
   );
 }
