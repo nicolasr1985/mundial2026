@@ -1028,10 +1028,10 @@ const rStyle = {
   }),
 };
 
-function BracketMatch({ home, away, homeM, awayM, tbd }: {
+function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
   home?: string; away?: string;
   homeM?: R32Match; awayM?: R32Match;
-  tbd?: boolean;
+  tbd?: boolean; showRank?: boolean;
 }) {
   const homeLabel = homeM?.homeTeam ? teamWithRank(homeM.homeTeam, showRank ?? false) : (tbd ? "—" : home || "—");
   const awayLabel = awayM ? (
