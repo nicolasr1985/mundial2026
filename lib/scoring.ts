@@ -25,7 +25,7 @@ export const POINTS = {
   GROUP_THIRD: 1,
   CHAMPION: 15,
   TOP_SCORER: 10,
-  DEADLINE: new Date("2026-06-09T23:59:59-05:00"), // UTC-5 Colombia
+  DEADLINE: new Date("2026-06-11T15:00:00-05:00"), // Pitazo inicial — June 11, 2026 3pm Bogotá
 } as const;
 
 export function calculateMatchPoints(

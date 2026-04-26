@@ -97,8 +97,8 @@ export default function DashboardPage() {
             <h2 style={{ fontSize: 20, color: "var(--text)" }}>🏆 Predicciones Especiales</h2>
             <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
               {deadlinePassed
-                ? "🔒 Fecha límite superada — bloqueadas"
-                : `Fecha límite: ${formatDeadline()}`}
+                ? "🔒 Cerradas — pitazo inicial del Mundial"
+                : `⏰ Fecha límite: ${formatDeadline()} (pitazo inicial)`}
             </p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -107,40 +107,74 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div>
-            <label className="label">🥇 Campeón del Mundial</label>
-            <input
-              className="input"
-              placeholder="Ej: Brasil"
-              value={champion}
-              onChange={(e) => setChampion(e.target.value)}
-              disabled={deadlinePassed}
-            />
+        {/* Already submitted — show read-only confirmation */}
+        {(profile?.champion || profile?.topScorer) ? (
+          <div style={{ background: "rgba(46,204,113,0.08)", border: "1px solid rgba(46,204,113,0.25)", borderRadius: "var(--radius-sm)", padding: "16px 20px" }}>
+            <div style={{ fontSize: 13, color: "var(--green)", fontWeight: 600, marginBottom: 12 }}>
+              ✅ Predicciones registradas {deadlinePassed ? "— ya no se pueden modificar" : "— puedes cambiarlas antes del pitazo"}
+            </div>
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>🥇 CAMPEÓN</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{profile.champion || "—"}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>⚽ GOLEADOR</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{profile.topScorer || "—"}</div>
+              </div>
+            </div>
+            {!deadlinePassed && (
+              <button
+                className="btn-ghost"
+                style={{ marginTop: 12, fontSize: 12, padding: "6px 14px" }}
+                onClick={() => { /* clear to allow editing */ }}
+              >
+                ✏ Modificar predicciones
+              </button>
+            )}
           </div>
-          <div>
-            <label className="label">⚽ Goleador del Torneo</label>
-            <input
-              className="input"
-              placeholder="Ej: Mbappé"
-              value={topScorer}
-              onChange={(e) => setTopScorer(e.target.value)}
-              disabled={deadlinePassed}
-            />
+        ) : deadlinePassed ? (
+          <div style={{ background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.2)", borderRadius: "var(--radius-sm)", padding: "16px 20px", color: "var(--text-muted)", fontSize: 14 }}>
+            🔒 No enviaste predicciones especiales antes del pitazo. No acumularás puntos de campeón/goleador.
           </div>
-        </div>
-
-        {!deadlinePassed && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-            <button className="btn-primary" onClick={handleSavePicks} disabled={saving} style={{ padding: "10px 24px" }}>
-              {saving ? "Guardando..." : "Guardar predicciones"}
-            </button>
-            {msg && <span style={{ fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
-          </div>
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <label className="label">🥇 Campeón del Mundial</label>
+                <input
+                  className="input"
+                  placeholder="Ej: Brasil"
+                  value={champion}
+                  onChange={(e) => setChampion(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">⚽ Goleador del Torneo</label>
+                <input
+                  className="input"
+                  placeholder="Ej: Mbappé"
+                  value={topScorer}
+                  onChange={(e) => setTopScorer(e.target.value)}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+              <button
+                className="btn-primary"
+                onClick={handleSavePicks}
+                disabled={saving || !champion.trim() || !topScorer.trim()}
+                style={{ padding: "10px 24px", opacity: (!champion.trim() || !topScorer.trim()) ? 0.4 : 1 }}
+              >
+                {saving ? "Guardando..." : "Enviar predicciones"}
+              </button>
+              {msg && <span style={{ fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
+            </div>
+          </>
         )}
 
         {settings.champion && (
-          <div style={s.resultRow}>
+          <div style={{ ...s.resultRow, marginTop: 16 }}>
             <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Resultado oficial:</span>
             <span style={{ color: "var(--gold)", fontWeight: 600 }}>🏆 {settings.champion}</span>
             {settings.topScorer && <span style={{ color: "var(--gold)", fontWeight: 600 }}>⚽ {settings.topScorer}</span>}

@@ -2,11 +2,12 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { isDeadlinePassed } from "@/lib/scoring";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, lockMatch, resetMatch,
-  setGroupStanding, setTournamentResult, getTournamentSettings,
-  Match, Timestamp
+  setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers,
+  Match, Timestamp, UserProfile
 } from "@/lib/firebase";
 
 const ROUNDS = [
@@ -34,10 +35,13 @@ export default function AdminPage() {
     }
   }, [user, profile, loading, router]);
 
+  const [users, setUsers] = useState<UserProfile[]>([]);
+
   const loadData = useCallback(async () => {
-    const [m, s] = await Promise.all([getMatches(), getTournamentSettings()]);
+    const [m, s, u] = await Promise.all([getMatches(), getTournamentSettings(), getAllUsers()]);
     setMatches(m);
     setSettings(s as Record<string, string>);
+    setUsers(u);
     setFetching(false);
   }, []);
 
@@ -79,7 +83,7 @@ export default function AdminPage() {
       {activeTab === "matches" && <CreateMatchTab onCreated={loadData} />}
       {activeTab === "results" && <ResultsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "groups" && <GroupsTab matches={matches} onUpdated={loadData} />}
-      {activeTab === "special" && <SpecialTab settings={settings} onUpdated={loadData} />}
+      {activeTab === "special" && <SpecialTab settings={settings} users={users} onUpdated={loadData} />}
     </div>
   );
 }
@@ -455,11 +459,16 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
 }
 
 // ─── SPECIAL TAB ──────────────────────────────────────────────────────────────
-function SpecialTab({ settings, onUpdated }: { settings: Record<string, string>; onUpdated: () => void }) {
+function SpecialTab({ settings, users, onUpdated }: {
+  settings: Record<string, string>;
+  users: UserProfile[];
+  onUpdated: () => void;
+}) {
   const [champion, setChampion] = useState(settings.champion || "");
   const [topScorer, setTopScorer] = useState(settings.topScorer || "");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const deadlinePassed = isDeadlinePassed();
 
   useEffect(() => {
     setChampion(settings.champion || "");
@@ -477,29 +486,106 @@ function SpecialTab({ settings, onUpdated }: { settings: Record<string, string>;
     finally { setSaving(false); setTimeout(() => setMsg(""), 4000); }
   };
 
+  // Only show user picks after deadline has passed
+  const nonAdminUsers = users.filter(u => !u.isAdmin);
+
   return (
-    <div style={{ maxWidth: 480 }}>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
-        Al guardar estos resultados, el sistema calculará automáticamente los puntos especiales de todos los participantes.
-      </p>
-      <div className="card-gold">
-        <h2 style={{ fontSize: 18, marginBottom: 20 }}>Resultados Finales</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div>
-            <label className="label">🏆 Campeón del Mundial (+15 pts a quien acertó)</label>
-            <input className="input" placeholder="Ej: Brasil" value={champion} onChange={(e) => setChampion(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">⚽ Goleador del Torneo (+10 pts a quien acertó)</label>
-            <input className="input" placeholder="Ej: Mbappé" value={topScorer} onChange={(e) => setTopScorer(e.target.value)} />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
-            <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: "11px 24px" }}>
-              {saving ? "Guardando..." : "Guardar y calcular puntos"}
-            </button>
-            {msg && <span style={{ fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
+    <div>
+      {/* Official result entry */}
+      <div style={{ maxWidth: 480, marginBottom: 32 }}>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
+          Al guardar estos resultados, el sistema calculará automáticamente los puntos especiales de todos los participantes.
+        </p>
+        <div className="card-gold">
+          <h2 style={{ fontSize: 18, marginBottom: 20 }}>Resultados Finales</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <label className="label">🏆 Campeón del Mundial (+15 pts a quien acertó)</label>
+              <input className="input" placeholder="Ej: Brasil" value={champion} onChange={(e) => setChampion(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">⚽ Goleador del Torneo (+10 pts a quien acertó)</label>
+              <input className="input" placeholder="Ej: Mbappé" value={topScorer} onChange={(e) => setTopScorer(e.target.value)} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+              <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: "11px 24px" }}>
+                {saving ? "Guardando..." : "Guardar y calcular puntos"}
+              </button>
+              {msg && <span style={{ fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* User picks table — only visible after deadline */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, color: "var(--text)" }}>📋 Picks de los Participantes</h2>
+          {!deadlinePassed && (
+            <span className="badge badge-red" style={{ fontSize: 11 }}>
+              🔒 Visible solo después del pitazo inicial (Jun 11, 3pm)
+            </span>
+          )}
+        </div>
+
+        {!deadlinePassed ? (
+          <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>⏰</div>
+            <p>Los picks de los participantes serán visibles aquí cuando empiece el primer partido del Mundial.</p>
+            <p style={{ fontSize: 12, marginTop: 8 }}>Junio 11, 2026 — 3:00 pm (hora Bogotá)</p>
+          </div>
+        ) : (
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                    {["Participante", "🥇 Campeón", "⚽ Goleador"].map((h) => (
+                      <th key={h} style={{
+                        padding: "12px 16px", fontSize: 11, color: "var(--text-muted)",
+                        textAlign: "left", fontFamily: "'Rajdhani',sans-serif",
+                        fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase",
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {nonAdminUsers.length === 0 ? (
+                    <tr><td colSpan={3} style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>No hay participantes registrados</td></tr>
+                  ) : nonAdminUsers.map((u) => {
+                    const champCorrect = settings.champion && u.champion === settings.champion;
+                    const scorerCorrect = settings.topScorer && u.topScorer === settings.topScorer;
+                    return (
+                      <tr key={u.uid} style={{ borderBottom: "1px solid var(--border)" }}>
+                        <td style={{ padding: "12px 16px", fontWeight: 600, fontSize: 14 }}>
+                          {u.displayName}
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 14 }}>
+                          {u.champion ? (
+                            <span style={{ color: champCorrect ? "var(--green)" : "var(--text)" }}>
+                              {champCorrect ? "✅ " : ""}{u.champion}
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>N/A</span>
+                          )}
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 14 }}>
+                          {u.topScorer ? (
+                            <span style={{ color: scorerCorrect ? "var(--green)" : "var(--text)" }}>
+                              {scorerCorrect ? "✅ " : ""}{u.topScorer}
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>N/A</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
