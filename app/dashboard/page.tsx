@@ -238,9 +238,9 @@ function RankRow({ entry, position, isMe }: { entry: RankingEntry; position: num
   return (
     <div style={{
       display: "flex", alignItems: "center",
-      padding: "12px 20px", borderBottom: "1px solid var(--border)",
+      padding: "10px 14px", borderBottom: "1px solid var(--border)",
       background: isMe ? "rgba(201,168,76,0.05)" : "transparent",
-      transition: "background 0.15s", gap: 12, flexWrap: "wrap",
+      transition: "background 0.15s", gap: 10, flexWrap: "wrap",
     }}>
       {/* Position */}
       <div style={{ width: 32, textAlign: "center", fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
@@ -254,7 +254,7 @@ function RankRow({ entry, position, isMe }: { entry: RankingEntry; position: num
           {entry.displayName}
           {isMe && <span className="badge badge-gold" style={{ fontSize: 10, padding: "2px 7px" }}>Tú</span>}
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap", rowGap: 4 }}>
           <span style={tieStyle("#C9A84C")} title="Marcador exacto (5 pts)">
             ⭐ {entry.exactCount}
           </span>

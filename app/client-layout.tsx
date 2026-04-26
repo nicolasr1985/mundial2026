@@ -58,7 +58,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               <span className="gold-text">⚽ MUNDIAL</span>
               <span style={{ color: "var(--text-muted)", fontSize: 14, marginLeft: 6 }}>2026</span>
             </Link>
-            <div className="nav-links">
+            <div className="nav-links" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
               {navLinks.map((l) => (
                 <Link
                   key={l.href}

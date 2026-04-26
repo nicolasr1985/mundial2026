@@ -236,12 +236,37 @@ input, select {
 .rank-2 { color: #C0C0C0; }
 .rank-3 { color: #CD7F32; }
 
-/* Mobile */
+/* ─── MOBILE ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .nav-links { gap: 2px; }
-  .nav-link { padding: 5px 8px; font-size: 12px; }
-  .page, .page-wide { padding: 16px 12px; }
-  h1 { font-size: 32px; }
+
+  /* Nav — scrollable on small screens */
+  .nav-inner { height: auto; min-height: 52px; padding: 8px 12px; flex-wrap: wrap; gap: 6px; }
+  .nav-logo { font-size: 18px; }
+  .nav-links { gap: 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; width: 100%; padding-bottom: 2px; }
+  .nav-link { padding: 5px 10px; font-size: 12px; flex-shrink: 0; }
+
+  /* Page padding */
+  .page, .page-wide { padding: 14px 12px; }
+
+  /* Typography */
+  h1 { font-size: 28px !important; }
+  h2 { font-size: 18px; }
+
+  /* Cards */
+  .card, .card-gold { padding: 14px; }
+
+  /* Buttons — full width on mobile when stacked */
+  .btn-primary, .btn-ghost, .btn-danger { padding: 10px 16px; font-size: 13px; }
+
+  /* Score inputs — slightly smaller */
+  .score-input { width: 44px; font-size: 18px; }
+
+  /* Tables — horizontal scroll */
+  table { font-size: 12px; }
+  th, td { padding: 8px 6px !important; }
+
+  /* Badges — smaller */
+  .badge { font-size: 10px; padding: 2px 7px; }
 }
 
 /* Divider */

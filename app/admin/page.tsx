@@ -59,7 +59,7 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div style={s.tabs}>
+      <div style={{ ...s.tabs, overflowX: "auto", WebkitOverflowScrolling: "touch", flexWrap: "nowrap" } as React.CSSProperties}>
         {([
           { id: "matches", label: "➕ Crear Partidos" },
           { id: "results", label: "✏ Ingresar Resultados" },
@@ -125,7 +125,7 @@ function CreateMatchTab({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, alignItems: "start" }}>
       <div className="card-gold">
         <h2 style={{ fontSize: 20, marginBottom: 20 }}>Nuevo Partido</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -225,7 +225,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         {(["upcoming", "live", "finished"] as const).map((f) => {
           const c = matches.filter((m) => m.status === f).length;
           const labels = { upcoming: "Próximos", live: "🔴 En Juego", finished: "Finalizados" };
@@ -266,7 +266,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                 background: "var(--surface)",
                 border: `1px solid ${hasChanged ? "rgba(231,76,60,0.4)" : isFinished ? "rgba(201,168,76,0.2)" : "var(--border)"}`,
                 borderRadius: "var(--radius-sm)", padding: "14px 16px",
-                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
                 transition: "border-color 0.2s",
               }}>
                 {/* Match info */}

@@ -255,8 +255,8 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
       background: "var(--surface)",
       border: `1px solid ${locked ? "var(--border)" : hasPick ? "rgba(201,168,76,0.3)" : "var(--border)"}`,
       borderRadius: "var(--radius-sm)",
-      padding: compact ? "12px 14px" : "16px 20px",
-      display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+      padding: compact ? "10px 12px" : "14px 16px",
+      display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
     }}>
       <div style={{ width: compact ? 6 : 8, height: compact ? 6 : 8, borderRadius: "50%", flexShrink: 0,
         background: match.status === "live" ? "var(--green)" : match.status === "finished" ? "var(--text-muted)" : "var(--gold)",
@@ -281,7 +281,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
         {locked ? (
           hasPick ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Tu pick:</span>
               <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--text)" }}>
                 {pick.homeScore} – {pick.awayScore}
@@ -294,7 +294,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>🔒 Sin apuesta</span>
           )
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <input
               className="score-input"
               type="number"

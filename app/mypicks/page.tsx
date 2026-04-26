@@ -440,7 +440,7 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
                   {/* Expanded picks grid */}
                   {isExpanded && (
                     <div style={{ borderTop: "1px solid var(--border)", padding: "12px 16px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
                         {nonAdminUsers.map((u) => {
                           const pick = matchPicks[u.uid];
                           const isMe = u.uid === myUid;

@@ -769,7 +769,7 @@ export default function StandingsPage() {
       </p>
 
       {/* View mode toggle */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {(["real", "predicted"] as const).map((mode) => (
           <button key={mode} onClick={() => setViewMode(mode)} style={{
             padding: "8px 18px", borderRadius: "var(--radius-sm)", cursor: "pointer",
@@ -976,8 +976,9 @@ function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string
         <span><span style={{ color: "var(--green)" }}>*</span> = tercero provisional</span>
       </div>
 
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>← Desliza para ver el bracket completo →</div>
       {/* Bracket scroll container */}
-      <div style={{ overflowX: "auto", paddingBottom: 8 }}>
+      <div style={{ overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         <div style={{ display: "flex", gap: 0, minWidth: 900, alignItems: "stretch" }}>
 
           {/* LEFT R32 */}
@@ -997,7 +998,7 @@ function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string
           <BracketConnectors count={1} half />
 
           {/* FINAL */}
-          <div style={{ display: "flex", flexDirection: "column", minWidth: 150 }}>
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 140 }}>
             <div style={rStyle.roundTitle as React.CSSProperties}>
               <span style={{ color: "var(--gold)" }}>Final</span>
             </div>
