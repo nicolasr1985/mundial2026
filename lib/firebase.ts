@@ -234,6 +234,11 @@ export async function getAllPicksForMatch(matchId: string): Promise<Pick[]> {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Pick));
 }
 
+export async function getAllPicks(): Promise<Pick[]> {
+  const snap = await getDocs(collection(db, "picks"));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Pick));
+}
+
 async function recalculatePicksForMatch(
   matchId: string,
   realHome: number,

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, Pick, Match, GroupPick } from "@/lib/firebase";
+import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, getAllPicks, getAllUsers, Pick, Match, GroupPick, UserProfile } from "@/lib/firebase";
 import { getPointsBreakdown } from "@/lib/scoring";
 import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
@@ -20,18 +20,26 @@ export default function MyPicksPage() {
 
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
+  const [allPicks, setAllPicks] = useState<Pick[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [activeView, setActiveView] = useState<"mine" | "community">("mine");
+
   const loadData = useCallback(async () => {
     if (!user) return;
-    const [p, m, gp, st] = await Promise.all([
+    const [p, m, gp, st, ap, au] = await Promise.all([
       getUserPicks(user.uid),
       getMatches(),
       getUserGroupPicks(user.uid),
       getTournamentSettings(),
+      getAllPicks(),
+      getAllUsers(),
     ]);
     setPicks(p);
     setMatches(m);
     setGroupPicks(gp);
     setSettings(st as Record<string, string>);
+    setAllPicks(ap);
+    setAllUsers(au);
     setFetching(false);
   }, [user]);
 
@@ -71,9 +79,38 @@ export default function MyPicksPage() {
   return (
     <div className="page animate-fade-up">
       <h1 style={{ fontSize: 36, marginBottom: 4 }}><span className="gold-text">MIS PICKS</span></h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24 }}>
+      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
         Historial de apuestas y resultados de {profile?.displayName}
       </p>
+
+      {/* View toggle */}
+      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 24 }}>
+        {([
+          { id: "mine", label: "📋 Mis Picks" },
+          { id: "community", label: "👥 Todos los Picks" },
+        ] as const).map((t) => (
+          <button key={t.id} onClick={() => setActiveView(t.id)} style={{
+            padding: "10px 18px", fontSize: 13, cursor: "pointer", border: "none",
+            fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, letterSpacing: "0.04em",
+            background: "transparent", transition: "all 0.15s",
+            color: activeView === t.id ? "var(--gold)" : "var(--text-muted)",
+            borderBottom: `2px solid ${activeView === t.id ? "var(--gold)" : "transparent"}`,
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {activeView === "community" && (
+        <CommunityPicksView
+          matches={matches}
+          allPicks={allPicks}
+          allUsers={allUsers}
+          myUid={user?.uid ?? ""}
+          showRank={showRank}
+        />
+      )}
+
+      {activeView === "mine" && (
+      <div>
 
       {/* Stats row */}
       <div style={s.statsGrid}>
@@ -294,6 +331,163 @@ function StatCard({ label, value, unit, highlight, extra }: { label: string; val
         {value}{extra !== undefined ? `/${extra}` : ""} <span style={{ fontSize: 14 }}>{unit}</span>
       </div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{label}</div>
+      </div>
+      )}
+    </div>
+  );
+}
+
+// ─── COMMUNITY PICKS VIEW ────────────────────────────────────────────────────
+function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
+  matches: Match[];
+  allPicks: Pick[];
+  allUsers: UserProfile[];
+  myUid: string;
+  showRank: boolean;
+}) {
+  const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+
+  // Only show group stage + other rounds that are locked or finished
+  const relevantMatches = matches
+    .filter((m) => m.round?.startsWith("Fase de Grupos"))
+    .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0));
+
+  // Group by group
+  const byGroup = relevantMatches.reduce((acc, m) => {
+    const g = m.group || "?";
+    if (!acc[g]) acc[g] = [];
+    acc[g].push(m);
+    return acc;
+  }, {} as Record<string, Match[]>);
+
+  // Build picks index: matchId -> userId -> pick
+  const picksIndex: Record<string, Record<string, Pick>> = {};
+  for (const p of allPicks) {
+    if (!picksIndex[p.matchId]) picksIndex[p.matchId] = {};
+    picksIndex[p.matchId][p.userId] = p;
+  }
+
+  const nonAdminUsers = allUsers.filter(u => !u.isAdmin);
+
+  if (matches.length === 0) return (
+    <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
+      <p>No hay partidos cargados aún.</p>
+    </div>
+  );
+
+  return (
+    <div>
+      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20, padding: "10px 14px", background: "rgba(201,168,76,0.06)", border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)" }}>
+        💡 Puedes ver si alguien apostó en un partido. El marcador exacto se revela solo cuando el partido haya comenzado y las apuestas estén cerradas.
+      </p>
+
+      {Object.entries(byGroup).sort(([a],[b]) => a.localeCompare(b)).map(([group, gMatches]) => (
+        <div key={group} style={{ marginBottom: 28 }}>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)", letterSpacing: "0.08em", marginBottom: 10 }}>
+            GRUPO {group}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {gMatches.map((match) => {
+              const matchPicks = picksIndex[match.id] ?? {};
+              const isLocked = match.locked || match.status === "finished" || match.status === "live";
+              const dateStr = match.matchDate?.toDate?.()?.toLocaleString("es-CO", {
+                weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
+              }) ?? "—";
+              const isExpanded = selectedMatch === match.id;
+
+              return (
+                <div key={match.id} style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-sm)",
+                  overflow: "hidden",
+                }}>
+                  {/* Match header row */}
+                  <div
+                    onClick={() => setSelectedMatch(isExpanded ? null : match.id)}
+                    style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+                  >
+                    {/* Status dot */}
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                      background: match.status === "live" ? "var(--green)" : match.status === "finished" ? "var(--text-muted)" : "var(--gold)",
+                      boxShadow: match.status === "live" ? "0 0 8px var(--green)" : "none",
+                    }} />
+
+                    {/* Teams */}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>
+                        {teamWithRank(match.homeTeam, showRank)} <span style={{ color: "var(--text-muted)" }}>vs</span> {teamWithRank(match.awayTeam, showRank)}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{dateStr}</div>
+                    </div>
+
+                    {/* Official result if finished */}
+                    {match.homeScore !== null && match.awayScore !== null && (
+                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "var(--gold)" }}>
+                        {match.homeScore} – {match.awayScore}
+                      </div>
+                    )}
+
+                    {/* Pick count badge */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                        {Object.keys(matchPicks).length}/{nonAdminUsers.length} apostaron
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{isExpanded ? "▲" : "▼"}</span>
+                    </div>
+                  </div>
+
+                  {/* Expanded picks grid */}
+                  {isExpanded && (
+                    <div style={{ borderTop: "1px solid var(--border)", padding: "12px 16px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
+                        {nonAdminUsers.map((u) => {
+                          const pick = matchPicks[u.uid];
+                          const isMe = u.uid === myUid;
+                          const showScore = isLocked || isMe; // show score if locked OR it's my own pick
+
+                          return (
+                            <div key={u.uid} style={{
+                              background: isMe ? "rgba(201,168,76,0.08)" : "var(--surface2)",
+                              border: `1px solid ${isMe ? "var(--border-gold)" : "var(--border)"}`,
+                              borderRadius: "var(--radius-sm)",
+                              padding: "10px 12px",
+                            }}>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: isMe ? "var(--gold)" : "var(--text)", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                                {u.displayName}
+                                {isMe && <span style={{ fontSize: 10, background: "rgba(201,168,76,0.2)", color: "var(--gold)", padding: "1px 5px", borderRadius: 3 }}>Tú</span>}
+                              </div>
+                              {pick ? (
+                                showScore ? (
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--text)" }}>
+                                      {pick.homeScore} – {pick.awayScore}
+                                    </span>
+                                    {pick.points !== null && pick.points !== undefined && (
+                                      <span className="badge badge-gold" style={{ fontSize: 10 }}>{pick.points} pts</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ fontSize: 13, color: "var(--green)" }}>✓ Apostó</span>
+                                    <span style={{ fontSize: 10, color: "var(--text-muted)" }}>(se revela al inicio)</span>
+                                  </div>
+                                )
+                              ) : (
+                                <span style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Sin apuesta</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
