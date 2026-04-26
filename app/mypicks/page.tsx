@@ -151,7 +151,7 @@ export default function MyPicksPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filteredPicks.map(({ pick, match }) => (
-            <PickResultRow key={pick.id} pick={pick} match={match} />
+            <PickResultRow key={pick.id} pick={pick} match={match} showRank={showRank} />
           ))}
         </div>
       )}
