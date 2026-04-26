@@ -217,7 +217,7 @@ function RankRow({ entry, position, isMe }: { entry: RankingEntry; position: num
             ✅ {entry.resultCount ?? 0}
           </span>
           <span style={tieStyle("#6ABCB0")} title="Goles acertados (1 pt)">
-            ½ {entry.partialCount ?? 0}
+            ⚽ {entry.partialCount ?? 0}
           </span>
           <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             {entry.picksCount} apuestas
