@@ -160,7 +160,7 @@ export default function MyPicksPage() {
 }
 
 // ─── PICK RESULT ROW ──────────────────────────────────────────────────────────
-function PickResultRow({ pick, match }: { pick: Pick; match: Match }) {
+function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; showRank: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const finished = match.status === "finished";
   const hasResult = match.homeScore !== null && match.awayScore !== null;
