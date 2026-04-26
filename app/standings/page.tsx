@@ -31,6 +31,26 @@ interface R32Match {
 }
 
 // ─── STANDINGS CALCULATOR ────────────────────────────────────────────────────
+// FIFA tiebreaker order:
+// 1) Points  2) Goal difference  3) Goals scored
+// 4) Conduct score (not tracked — skipped)
+// 5-6) FIFA ranking (lower rank number = better)
+function fifaRankOf(team: string): number {
+  const FIFA_RANK: Record<string, number> = {
+    "France":1,"Spain":2,"Argentina":3,"England":4,"Portugal":5,"Brazil":6,
+    "Netherlands":7,"Morocco":8,"Belgium":9,"Germany":10,"Croatia":11,
+    "Colombia":12,"Senegal":13,"Italy":14,"Mexico":15,"United States":16,
+    "Uruguay":17,"Japan":18,"Switzerland":19,"Iran":20,"Turkey":22,
+    "Ecuador":23,"Austria":24,"South Korea":25,"Australia":27,"Algeria":28,
+    "Egypt":29,"Canada":30,"Norway":31,"Panama":33,"Ivory Coast":34,
+    "Sweden":37,"Czechia":38,"Paraguay":41,"Scotland":43,"Tunisia":44,
+    "Congo DR":46,"Uzbekistan":49,"Qatar":55,"Iraq":57,"South Africa":59,
+    "Saudi Arabia":61,"Bosnia and Herzegovina":63,"Jordan":64,"Cape Verde":68,
+    "Ghana":73,"Curacao":82,"Haiti":83,"New Zealand":85,
+  };
+  return FIFA_RANK[team] ?? 999;
+}
+
 function computeGroupStandings(
   matches: Match[],
   allMatches: Match[]
@@ -61,7 +81,13 @@ function computeGroupStandings(
   }
   const result: Record<string, TeamStat[]> = {};
   for (const g in standings) {
-    result[g] = Object.values(standings[g]).sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
+    result[g] = Object.values(standings[g]).sort((a, b) =>
+      b.points - a.points ||          // 1. Points
+      b.gd - a.gd ||                  // 2. Goal difference
+      b.gf - a.gf ||                  // 3. Goals scored
+      // 4. Conduct score — not tracked
+      fifaRankOf(a.team) - fifaRankOf(b.team)  // 5-6. FIFA ranking
+    );
   }
   return result;
 }
@@ -71,7 +97,12 @@ function getThirdPlaceTable(standings: Record<string, TeamStat[]>): (TeamStat & 
   for (const g in standings) {
     if (standings[g].length >= 3) thirds.push(standings[g][2]);
   }
-  const sorted = thirds.sort((a, b) => b.points - a.points || b.gd - a.gd || b.gf - a.gf);
+  const sorted = thirds.sort((a, b) =>
+    b.points - a.points ||
+    b.gd - a.gd ||
+    b.gf - a.gf ||
+    fifaRankOf(a.team) - fifaRankOf(b.team)
+  );
   return sorted.map((t, i) => ({ ...t, qualifies: i < 8 }));
 }
 
@@ -867,7 +898,8 @@ function GroupsTab({ availableGroups, activeGroup, setActiveGroup, groupTable, d
           </div>
         )}
         <div style={{ padding: "8px 16px", fontSize: 11, color: "var(--text-muted)", borderTop: "1px solid var(--border)" }}>
-          ✓ = Clasificado directo · ✓3° = Clasifica como mejor tercero
+          ✓ = Clasificado directo · ✓3° = Clasifica como mejor tercero<br/>
+          <span style={{ opacity: 0.7 }}>Criterios FIFA: 1) Pts · 2) DG · 3) GF · 4) Conducta · 5-6) Ranking FIFA</span>
         </div>
       </div>
     </>
