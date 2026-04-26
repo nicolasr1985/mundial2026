@@ -997,7 +997,7 @@ function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string
   );
 }
 
-const TEAM_BOX_W = 152;
+const TEAM_BOX_W = 200;
 const TEAM_BOX_H = 28;
 
 const rStyle = {
@@ -1078,7 +1078,7 @@ function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minWidth: 154, flex: "0 0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", minWidth: 202, flex: "0 0 auto" }}>
       <div style={rStyle.roundTitle as React.CSSProperties}>{title}</div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-around", gap: 4, padding: "4px 0" }}>
         {items.map(({ slot, m }, i) => (
