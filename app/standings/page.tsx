@@ -783,9 +783,10 @@ export default function StandingsPage() {
           displayThirds={displayThirds}
           viewMode={viewMode}
           realStandings={realStandings}
+          showRank={showRank}
         />
       ) : activeTab === "thirds" ? (
-        <ThirdsTab displayThirds={displayThirds} viewMode={viewMode} />
+        <ThirdsTab displayThirds={displayThirds} viewMode={viewMode} showRank={showRank} />
       ) : (
         <R32Tab r32={displayR32} viewMode={viewMode} showRank={showRank} />
       )}
@@ -794,7 +795,7 @@ export default function StandingsPage() {
 }
 
 // ─── GROUPS TAB ───────────────────────────────────────────────────────────────
-function GroupsTab({ availableGroups, activeGroup, setActiveGroup, groupTable, displayThirds, viewMode, realStandings }: {
+function GroupsTab({ availableGroups, activeGroup, setActiveGroup, groupTable, displayThirds, viewMode, realStandings, showRank }: {
   availableGroups: string[];
   activeGroup: string;
   setActiveGroup: (g: string) => void;
@@ -802,6 +803,7 @@ function GroupsTab({ availableGroups, activeGroup, setActiveGroup, groupTable, d
   displayThirds: (TeamStat & { qualifies: boolean })[];
   viewMode: "real" | "predicted";
   realStandings: Record<string, TeamStat[]>;
+  showRank: boolean;
 }) {
   return (
     <>
@@ -873,7 +875,7 @@ function GroupsTab({ availableGroups, activeGroup, setActiveGroup, groupTable, d
 }
 
 // ─── THIRDS TAB ───────────────────────────────────────────────────────────────
-function ThirdsTab({ displayThirds, viewMode }: { displayThirds: (TeamStat & { qualifies: boolean })[]; viewMode: string }) {
+function ThirdsTab({ displayThirds, viewMode, showRank }: { displayThirds: (TeamStat & { qualifies: boolean })[]; viewMode: string; showRank: boolean }) {
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
