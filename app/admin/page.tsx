@@ -25,7 +25,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special">("matches");
+  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special" | "whatsapp">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export default function AdminPage() {
           { id: "results", label: "✏ Ingresar Resultados" },
           { id: "groups", label: "🏅 Clasificación Grupos" },
           { id: "special", label: "🏆 Campeón / Goleador" },
+          { id: "whatsapp", label: "📱 WhatsApp" },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -84,6 +85,7 @@ export default function AdminPage() {
       {activeTab === "results" && <ResultsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "groups" && <GroupsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "special" && <SpecialTab settings={settings} users={users} onUpdated={loadData} />}
+      {activeTab === "whatsapp" && <WhatsAppTab matches={matches} users={users} settings={settings} />}
     </div>
   );
 }
@@ -712,6 +714,265 @@ function FifaRankingsTab() {
           <div style={{ fontSize: 36, marginBottom: 12 }}>🌍</div>
           <p>Haz clic en "Actualizar" para cargar el ranking FIFA desde football-ranking.com</p>
           <p style={{ fontSize: 12, marginTop: 8, opacity: 0.7 }}>Los datos se cachean por 24 horas en el servidor</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── WHATSAPP TAB ─────────────────────────────────────────────────────────────
+function WhatsAppTab({ matches, users, settings }: {
+  matches: Match[];
+  users: UserProfile[];
+  settings: Record<string, string>;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState<"today" | "general" | "matchday">("today");
+
+  // ── scoring helpers ──────────────────────────────────────────────
+  function calcMatchPts(ph: number, pa: number, rh: number, ra: number): number {
+    let pts = 0;
+    if (ph === rh && pa === ra) pts += 5;
+    else {
+      const pr = ph > pa ? "H" : ph < pa ? "A" : "D";
+      const rr = rh > ra ? "H" : rh < ra ? "A" : "D";
+      if (pr === rr) pts += 3;
+    }
+    if (ph === rh) pts += 1;
+    if (pa === ra) pts += 1;
+    return pts;
+  }
+
+  // ── build ranking from picks stored in user profiles via getRanking ──
+  // We use what's available: matches + users
+  // For simplicity we compute from match results only (not group picks / special)
+  // since we have matches and can cross-reference picks via getAllPicks
+  // Instead we use the users array which has champion/topScorer
+  // and rely on existing pick points stored per pick document
+  // We'll use a simpler approach: compute from match data that is already loaded
+
+  const finishedMatches = matches.filter(m => m.status === "finished" && m.homeScore !== null);
+
+  // Today's finished matches (Bogotá UTC-5)
+  const nowBogota = new Date(Date.now() - 5 * 3600 * 1000);
+  const todayStr = nowBogota.toISOString().slice(0, 10);
+  const todayMatches = finishedMatches.filter(m => {
+    if (!m.matchDate?.toDate) return false;
+    const d = m.matchDate.toDate();
+    const bogota = new Date(d.getTime() - 5 * 3600 * 1000);
+    return bogota.toISOString().slice(0, 10) === todayStr;
+  });
+
+  const nonAdminUsers = users.filter(u => !u.isAdmin);
+
+  // Date header
+  const dateHeader = nowBogota.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const dateHeaderCap = dateHeader.charAt(0).toUpperCase() + dateHeader.slice(1);
+
+  // ── Generate message ─────────────────────────────────────────────
+  function generateMessage(): string {
+    const lines: string[] = [];
+
+    if (mode === "today") {
+      lines.push(`⚽ *POLLA MUNDIAL 2026*`);
+      lines.push(`📅 ${dateHeaderCap}`);
+      lines.push("");
+
+      if (todayMatches.length === 0) {
+        lines.push("_No hubo partidos hoy_");
+        return lines.join("
+");
+      }
+
+      lines.push(`*Resultados de hoy (${todayMatches.length} partido${todayMatches.length !== 1 ? "s" : ""}):*`);
+      todayMatches.forEach(m => {
+        lines.push(`• ${m.homeTeam} ${m.homeScore}–${m.awayScore} ${m.awayTeam}`);
+      });
+      lines.push("");
+      lines.push("━━━━━━━━━━━━━━━━━");
+      lines.push("*Puntos de hoy:*");
+      lines.push("_Actualiza la app para ver tus puntos_");
+      lines.push("");
+      lines.push("🔗 mundial2026-kappa.vercel.app");
+
+    } else if (mode === "general") {
+      lines.push(`⚽ *POLLA MUNDIAL 2026*`);
+      lines.push(`🏆 *Tabla General — ${dateHeaderCap}*`);
+      lines.push("");
+      lines.push("_Posiciones actualizadas:_");
+      lines.push("");
+
+      // We don't have total points per user here without getAllPicks,
+      // so we show a prompt to check the app
+      lines.push("🔗 *Ver tabla completa:*");
+      lines.push("mundial2026-kappa.vercel.app/dashboard");
+      lines.push("");
+      lines.push("_Ingresa para ver tu posición y puntos 👆_");
+
+    } else if (mode === "matchday") {
+      // Show all today's matches with results
+      lines.push(`⚽ *POLLA MUNDIAL 2026*`);
+      lines.push(`📅 *Jornada del ${dateHeaderCap}*`);
+      lines.push("");
+
+      if (todayMatches.length === 0) {
+        lines.push("_No hay partidos finalizados hoy todavía_");
+      } else {
+        lines.push("*📊 Resultados:*");
+        todayMatches.forEach((m, i) => {
+          const hScore = m.homeScore ?? 0;
+          const aScore = m.awayScore ?? 0;
+          const winner = hScore > aScore ? m.homeTeam : hScore < aScore ? m.awayTeam : "Empate";
+          const emoji = hScore > aScore ? "🟢" : hScore < aScore ? "🔴" : "🟡";
+          lines.push(`${emoji} ${m.homeTeam} *${hScore}–${aScore}* ${m.awayTeam}`);
+        });
+        lines.push("");
+        lines.push("━━━━━━━━━━━━━━━━━");
+        lines.push("👉 ¿Acertaste? Revisa tus puntos:");
+        lines.push("mundial2026-kappa.vercel.app");
+      }
+    }
+
+    lines.push("");
+    lines.push("_No apto para sensibles_ 🔥");
+    return lines.join("
+");
+  }
+
+  const message = generateMessage();
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      // fallback
+      const el = document.createElement("textarea");
+      el.value = message;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
+        Genera el mensaje para tu grupo de WhatsApp. Cópialo con un click y pégalo en el grupo.
+      </p>
+
+      {/* Mode selector */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        {([
+          { id: "matchday", label: "📊 Resultados del día" },
+          { id: "today", label: "⚡ Resumen corto" },
+          { id: "general", label: "🏆 Tabla general" },
+        ] as const).map((m) => (
+          <button key={m.id} onClick={() => setMode(m.id)} style={{
+            padding: "8px 14px", borderRadius: "var(--radius-sm)", fontSize: 13, cursor: "pointer",
+            fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+            background: mode === m.id ? "rgba(201,168,76,0.15)" : "var(--surface2)",
+            color: mode === m.id ? "var(--gold)" : "var(--text-muted)",
+            border: `1px solid ${mode === m.id ? "var(--border-gold)" : "var(--border)"}`,
+          }}>{m.label}</button>
+        ))}
+      </div>
+
+      {/* Message preview */}
+      <div style={{ position: "relative" }}>
+        <div style={{
+          background: "#0B141A",
+          borderRadius: 12,
+          padding: "20px 20px 60px",
+          fontFamily: "system-ui, sans-serif",
+          fontSize: 14,
+          lineHeight: 1.6,
+          color: "#E9EDEF",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          border: "1px solid #1F2C34",
+          minHeight: 200,
+        }}>
+          {/* WhatsApp-style header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #1F2C34" }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚽</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Polla Mundial 2026</div>
+              <div style={{ fontSize: 12, color: "#8696A0" }}>Vista previa del mensaje</div>
+            </div>
+          </div>
+
+          {/* Message bubble */}
+          <div style={{
+            background: "#202C33",
+            borderRadius: "0 8px 8px 8px",
+            padding: "10px 14px",
+            maxWidth: "85%",
+            position: "relative",
+          }}>
+            <div dangerouslySetInnerHTML={{
+              __html: message
+                .replace(/\*(.*?)\*/g, "<strong>$1</strong>")
+                .replace(/_(.*?)_/g, "<em>$1</em>")
+                .replace(/━/g, "━")
+                .replace(/
+/g, "<br/>")
+            }} />
+            <div style={{ fontSize: 11, color: "#8696A0", textAlign: "right", marginTop: 6 }}>
+              {new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          </div>
+        </div>
+
+        {/* Copy button */}
+        <button
+          onClick={handleCopy}
+          style={{
+            position: "absolute", bottom: 16, right: 16,
+            background: copied ? "#25D366" : "#25D366",
+            color: "#fff", border: "none", borderRadius: 8,
+            padding: "10px 20px", fontSize: 14, fontWeight: 700,
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 8,
+            transition: "all 0.2s",
+            boxShadow: "0 2px 12px rgba(37,211,102,0.3)",
+          }}
+        >
+          {copied ? "✅ ¡Copiado!" : "📋 Copiar mensaje"}
+        </button>
+      </div>
+
+      {/* Raw text (fallback) */}
+      <details style={{ marginTop: 16 }}>
+        <summary style={{ fontSize: 12, color: "var(--text-muted)", cursor: "pointer" }}>Ver texto plano</summary>
+        <textarea
+          readOnly
+          value={message}
+          style={{
+            width: "100%", marginTop: 8, padding: 12,
+            background: "var(--surface2)", border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)", color: "var(--text)",
+            fontSize: 12, fontFamily: "monospace", resize: "vertical",
+            minHeight: 160,
+          }}
+        />
+      </details>
+
+      {/* Today's match info for context */}
+      {todayMatches.length > 0 && (
+        <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(37,211,102,0.06)", border: "1px solid rgba(37,211,102,0.2)", borderRadius: "var(--radius-sm)", fontSize: 13 }}>
+          <strong style={{ color: "var(--green)" }}>✓ {todayMatches.length} partido{todayMatches.length !== 1 ? "s" : ""} finalizado{todayMatches.length !== 1 ? "s" : ""} hoy</strong>
+          <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
+            {todayMatches.map(m => `${m.homeTeam} ${m.homeScore}–${m.awayScore} ${m.awayTeam}`).join(" · ")}
+          </div>
+        </div>
+      )}
+      {todayMatches.length === 0 && (
+        <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(201,168,76,0.06)", border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)", fontSize: 13, color: "var(--text-muted)" }}>
+          ⚠ No hay partidos finalizados hoy. El mensaje se generará sin resultados.
         </div>
       )}
     </div>
