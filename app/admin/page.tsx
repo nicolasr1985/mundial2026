@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isDeadlinePassed } from "@/lib/scoring";
+import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, lockMatch, resetMatch,
@@ -503,11 +504,21 @@ function SpecialTab({ settings, users, onUpdated }: {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
               <label className="label">🏆 Campeón del Mundial (+15 pts a quien acertó)</label>
-              <input className="input" placeholder="Ej: Brasil" value={champion} onChange={(e) => setChampion(e.target.value)} />
+              <select className="input" value={champion} onChange={(e) => setChampion(e.target.value)} style={{ cursor: "pointer" }}>
+                <option value="">— Selecciona el campeón —</option>
+                {WC2026_TEAMS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">⚽ Goleador del Torneo (+10 pts a quien acertó)</label>
-              <input className="input" placeholder="Ej: Mbappé" value={topScorer} onChange={(e) => setTopScorer(e.target.value)} />
+              <select className="input" value={topScorer} onChange={(e) => setTopScorer(e.target.value)} style={{ cursor: "pointer" }}>
+                <option value="">— Selecciona el goleador —</option>
+                {WC2026_SCORERS.map((s, i) => (
+                  <option key={i} value={formatScorer(s)}>{formatScorer(s)}</option>
+                ))}
+              </select>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
               <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ padding: "11px 24px" }}>

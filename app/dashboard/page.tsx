@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getRanking, getTournamentSettings, updateChampionPick, RankingEntry } from "@/lib/firebase";
+import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { isDeadlinePassed, formatDeadline } from "@/lib/scoring";
 
 export default function DashboardPage() {
@@ -142,21 +143,31 @@ export default function DashboardPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div>
                 <label className="label">🥇 Campeón del Mundial</label>
-                <input
+                <select
                   className="input"
-                  placeholder="Ej: Brasil"
                   value={champion}
                   onChange={(e) => setChampion(e.target.value)}
-                />
+                  style={{ cursor: "pointer" }}
+                >
+                  <option value="">— Selecciona un equipo —</option>
+                  {WC2026_TEAMS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="label">⚽ Goleador del Torneo</label>
-                <input
+                <select
                   className="input"
-                  placeholder="Ej: Mbappé"
                   value={topScorer}
                   onChange={(e) => setTopScorer(e.target.value)}
-                />
+                  style={{ cursor: "pointer" }}
+                >
+                  <option value="">— Selecciona un jugador —</option>
+                  {WC2026_SCORERS.map((s, i) => (
+                    <option key={i} value={formatScorer(s)}>{formatScorer(s)}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
