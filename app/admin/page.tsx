@@ -917,8 +917,7 @@ function WhatsAppTab({ matches, users, settings }: {
                 .replace(/\*(.*?)\*/g, "<strong>$1</strong>")
                 .replace(/_(.*?)_/g, "<em>$1</em>")
                 .replace(/━/g, "━")
-                .replace(/
-/g, "<br/>")
+                .replace(/\n/g, "<br/>")
             }} />
             <div style={{ fontSize: 11, color: "#8696A0", textAlign: "right", marginTop: 6 }}>
               {new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
@@ -994,4 +993,3 @@ const s: Record<string, React.CSSProperties> = {
     transition: "all 0.15s", border: "none",
   },
 };
-
