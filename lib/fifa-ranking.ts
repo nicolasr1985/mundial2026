@@ -6,7 +6,7 @@ export const FIFA_RANK: Record<string, number> = {
   "Portugal": 5, "Brazil": 6, "Netherlands": 7, "Morocco": 8,
   "Belgium": 9, "Germany": 10, "Croatia": 11, "Colombia": 12,
   "Senegal": 13, "Italy": 14, "Mexico": 15, "United States": 16,
-  "Uruguay": 17, "Japan": 18, "Switzerland": 19, "Turkey": 22,
+  "Uruguay": 17, "Japan": 18, "Switzerland": 19, "Iran": 20, "Turkey": 22,
   "Ecuador": 23, "Austria": 24, "South Korea": 25, "Australia": 27,
   "Algeria": 28, "Egypt": 29, "Canada": 30, "Norway": 31,
   "Panama": 33, "Ivory Coast": 34, "Sweden": 37, "Czechia": 38,
