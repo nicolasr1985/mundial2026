@@ -17,7 +17,14 @@ export const FIFA_RANK: Record<string, number> = {
   "New Zealand": 85,
 };
 
-export function teamWithRank(name: string): string {
+const RANKING_ALLOWED_EMAILS = ["nicolasr9@gmail.com"];
+
+export function canSeeRanking(email: string | null | undefined): boolean {
+  return RANKING_ALLOWED_EMAILS.includes(email ?? "");
+}
+
+export function teamWithRank(name: string, showRank: boolean): string {
+  if (!showRank) return name;
   const rank = FIFA_RANK[name];
   return rank ? `${name} (${rank})` : name;
 }

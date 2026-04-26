@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, Match } from "@/lib/firebase";
-import { teamWithRank } from "@/lib/fifa-ranking";
+import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
 interface TeamStat {
   team: string;
@@ -678,6 +678,7 @@ function assignThirds(
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 export default function StandingsPage() {
   const { user, loading } = useAuth();
+  const showRank = canSeeRanking(user?.email);
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [userPickMap, setUserPickMap] = useState<Record<string, { homeScore: number; awayScore: number }>>({});
@@ -786,7 +787,7 @@ export default function StandingsPage() {
       ) : activeTab === "thirds" ? (
         <ThirdsTab displayThirds={displayThirds} viewMode={viewMode} />
       ) : (
-        <R32Tab r32={displayR32} viewMode={viewMode} />
+        <R32Tab r32={displayR32} viewMode={viewMode} showRank={showRank} />
       )}
     </div>
   );
@@ -895,7 +896,7 @@ function ThirdsTab({ displayThirds, viewMode }: { displayThirds: (TeamStat & { q
               {displayThirds.map((team, i) => (
                 <tr key={team.team} style={{ borderBottom: "1px solid var(--border)", background: team.qualifies ? "rgba(46,204,113,0.04)" : "transparent" }}>
                   <td style={s.td}><span style={{ color: team.qualifies ? "var(--green)" : "var(--text-muted)" }}>{i + 1}</span></td>
-                  <td style={{ ...s.td, fontWeight: 600, textAlign: "left", paddingLeft: 16 }}>{teamWithRank(team.team)}</td>
+                  <td style={{ ...s.td, fontWeight: 600, textAlign: "left", paddingLeft: 16 }}>{teamWithRank(team.team, showRank)}</td>
                   <td style={{ ...s.td, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif" }}>{team.group}</td>
                   <td style={s.td}>{team.played}</td>
                   <td style={s.td}>{team.won}</td>
@@ -926,7 +927,7 @@ function ThirdsTab({ displayThirds, viewMode }: { displayThirds: (TeamStat & { q
 }
 
 // ─── R32 TAB — VISUAL BRACKET ────────────────────────────────────────────────
-function R32Tab({ r32, viewMode }: { r32: R32Match[]; viewMode: string }) {
+function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string; showRank: boolean }) {
   const bySlot = Object.fromEntries(r32.map(m => [m.slot, m]));
 
   const leftSlots  = ["R32-1","R32-2","R32-3","R32-4","R32-5","R32-6","R32-7","R32-8"];
@@ -946,7 +947,7 @@ function R32Tab({ r32, viewMode }: { r32: R32Match[]; viewMode: string }) {
         <div style={{ display: "flex", gap: 0, minWidth: 900, alignItems: "stretch" }}>
 
           {/* LEFT R32 */}
-          <BracketRound title="Ronda de 32" slots={leftSlots} bySlot={bySlot} count={8} />
+          <BracketRound title="Ronda de 32" slots={leftSlots} bySlot={bySlot} count={8} showRank={showRank} />
           <BracketConnectors count={4} />
 
           {/* LEFT R16 */}
@@ -986,7 +987,7 @@ function R32Tab({ r32, viewMode }: { r32: R32Match[]; viewMode: string }) {
           <BracketConnectors count={4} />
 
           {/* RIGHT R32 */}
-          <BracketRound title="Ronda de 32" slots={rightSlots} bySlot={bySlot} count={8} />
+          <BracketRound title="Ronda de 32" slots={rightSlots} bySlot={bySlot} count={8} showRank={showRank} />
 
         </div>
       </div>
@@ -1030,9 +1031,9 @@ function BracketMatch({ home, away, homeM, awayM, tbd }: {
   homeM?: R32Match; awayM?: R32Match;
   tbd?: boolean;
 }) {
-  const homeLabel = homeM?.homeTeam ? teamWithRank(homeM.homeTeam) : (tbd ? "—" : home || "—");
+  const homeLabel = homeM?.homeTeam ? teamWithRank(homeM.homeTeam, showRank ?? false) : (tbd ? "—" : home || "—");
   const awayLabel = awayM ? (
-    awayM.awayTeam ? teamWithRank(awayM.awayTeam) : awayM.awayDesc
+    awayM.awayTeam ? teamWithRank(awayM.awayTeam, showRank ?? false) : awayM.awayDesc
   ) : (tbd ? "—" : away || "—");
   const homeKnown = !!(homeM?.homeTeam) || (!tbd && !!home);
   const awayKnown = !!(awayM?.awayTeam) || (!tbd && !!away);
@@ -1064,9 +1065,9 @@ function BracketMatch({ home, away, homeM, awayM, tbd }: {
   );
 }
 
-function BracketRound({ title, slots, bySlot, count, tbd }: {
+function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
   title: string; slots: string[]; bySlot: Record<string, R32Match>;
-  count: number; tbd?: boolean;
+  count: number; tbd?: boolean; showRank?: boolean;
 }) {
   const items = Array.from({ length: count }, (_, i) => {
     const slot = slots[i];
@@ -1081,7 +1082,7 @@ function BracketRound({ title, slots, bySlot, count, tbd }: {
         {items.map(({ slot, m }, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {m ? (
-              <BracketMatch homeM={m} awayM={m} />
+              <BracketMatch homeM={m} awayM={m} showRank={showRank} />
             ) : (
               <BracketMatch tbd home="—" away="—" />
             )}

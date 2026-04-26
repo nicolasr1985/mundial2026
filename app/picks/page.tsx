@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, submitPick, Match, Pick } from "@/lib/firebase";
-import { teamWithRank } from "@/lib/fifa-ranking";
+import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
 const ROUNDS = [
   "Fase de Grupos",
@@ -17,6 +17,7 @@ const ROUNDS = [
 
 export default function PicksPage() {
   const { user, loading } = useAuth();
+  const showRank = canSeeRanking(user?.email);
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [picks, setPicks] = useState<Record<string, Pick>>({});
@@ -163,6 +164,7 @@ export default function PicksPage() {
                       setScores((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: val } }))
                     }
                     onSubmit={handleSubmitPick}
+                    showRank={showRank}
                   />
                 ))}
             </div>
@@ -182,6 +184,7 @@ export default function PicksPage() {
                     setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], [side]: val } }))
                   }
                   onSubmit={() => handleSubmitPick(match.id)}
+                  showRank={showRank}
                 />
               ))}
             </div>
@@ -193,11 +196,11 @@ export default function PicksPage() {
 }
 
 // ─── SIMPLE GROUP SECTION ─────────────────────────────────────────────────────
-function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onScoreChange, onSubmit }: {
+function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onScoreChange, onSubmit, showRank }: {
   group: string; matches: Match[]; picks: Record<string, Pick>;
   scores: Record<string, { home: string; away: string }>; saving: string | null;
   msgs: Record<string, string>; onScoreChange: (matchId: string, side: "home" | "away", val: string) => void;
-  onSubmit: (matchId: string) => void;
+  onSubmit: (matchId: string) => void; showRank?: boolean;
 }) {
   return (
     <div style={{ marginBottom: 20 }}>
@@ -219,6 +222,7 @@ function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onSco
             onScoreChange={(side, val) => onScoreChange(match.id, side, val)}
             onSubmit={() => onSubmit(match.id)}
             compact
+            showRank={showRank}
           />
         ))}
       </div>
@@ -230,10 +234,11 @@ function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onSco
 }
 
 // ─── MATCH CARD ───────────────────────────────────────────────────────────────
-function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, compact }: {
+function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, compact, showRank }: {
   match: Match; pick?: Pick; score: { home: string; away: string };
   saving: boolean; msg?: string; onScoreChange: (side: "home" | "away", val: string) => void;
   onSubmit: () => void; compact?: boolean;
+  showRank?: boolean;
 }) {
   const locked = match.locked;
   const hasResult = match.homeScore !== null && match.awayScore !== null;
@@ -260,7 +265,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
 
       <div style={{ flex: 1, minWidth: 160 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{teamWithRank(match.homeTeam)}</span>
+          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{teamWithRank(match.homeTeam, showRank ?? false)}</span>
           {hasResult ? (
             <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: compact ? 16 : 20, color: "var(--gold)", padding: "0 4px" }}>
               {match.homeScore} – {match.awayScore}
@@ -268,7 +273,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
           ) : (
             <span style={{ color: "var(--text-muted)", fontSize: 13 }}>vs</span>
           )}
-          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{teamWithRank(match.awayTeam)}</span>
+          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{teamWithRank(match.awayTeam, showRank ?? false)}</span>
         </div>
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{dateStr}</div>
       </div>

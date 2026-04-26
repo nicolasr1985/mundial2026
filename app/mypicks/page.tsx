@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, Pick, Match, GroupPick } from "@/lib/firebase";
 import { getPointsBreakdown } from "@/lib/scoring";
-import { teamWithRank } from "@/lib/fifa-ranking";
+import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
 export default function MyPicksPage() {
   const { user, profile, loading } = useAuth();
+  const showRank = canSeeRanking(user?.email);
   const router = useRouter();
   const [picks, setPicks] = useState<Pick[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -196,7 +197,7 @@ function PickResultRow({ pick, match }: { pick: Pick; match: Match }) {
         {/* Teams */}
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 500, fontSize: 14 }}>
-            {teamWithRank(match.homeTeam)} <span style={{ color: "var(--text-muted)" }}>vs</span> {teamWithRank(match.awayTeam)}
+            {teamWithRank(match.homeTeam, showRank)} <span style={{ color: "var(--text-muted)" }}>vs</span> {teamWithRank(match.awayTeam, showRank)}
           </div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{dateStr}</div>
         </div>
