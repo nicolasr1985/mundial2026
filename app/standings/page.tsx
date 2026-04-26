@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, Match } from "@/lib/firebase";
+import { teamWithRank } from "@/lib/fifa-ranking";
 
 interface TeamStat {
   team: string;
@@ -894,7 +895,7 @@ function ThirdsTab({ displayThirds, viewMode }: { displayThirds: (TeamStat & { q
               {displayThirds.map((team, i) => (
                 <tr key={team.team} style={{ borderBottom: "1px solid var(--border)", background: team.qualifies ? "rgba(46,204,113,0.04)" : "transparent" }}>
                   <td style={s.td}><span style={{ color: team.qualifies ? "var(--green)" : "var(--text-muted)" }}>{i + 1}</span></td>
-                  <td style={{ ...s.td, fontWeight: 600, textAlign: "left", paddingLeft: 16 }}>{team.team}</td>
+                  <td style={{ ...s.td, fontWeight: 600, textAlign: "left", paddingLeft: 16 }}>{teamWithRank(team.team)}</td>
                   <td style={{ ...s.td, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif" }}>{team.group}</td>
                   <td style={s.td}>{team.played}</td>
                   <td style={s.td}>{team.won}</td>
@@ -1029,9 +1030,9 @@ function BracketMatch({ home, away, homeM, awayM, tbd }: {
   homeM?: R32Match; awayM?: R32Match;
   tbd?: boolean;
 }) {
-  const homeLabel = homeM?.homeTeam || (tbd ? "—" : home || "—");
+  const homeLabel = homeM?.homeTeam ? teamWithRank(homeM.homeTeam) : (tbd ? "—" : home || "—");
   const awayLabel = awayM ? (
-    awayM.awayTeam || awayM.awayDesc
+    awayM.awayTeam ? teamWithRank(awayM.awayTeam) : awayM.awayDesc
   ) : (tbd ? "—" : away || "—");
   const homeKnown = !!(homeM?.homeTeam) || (!tbd && !!home);
   const awayKnown = !!(awayM?.awayTeam) || (!tbd && !!away);

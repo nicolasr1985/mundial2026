@@ -195,7 +195,7 @@ function PickResultRow({ pick, match }: { pick: Pick; match: Match }) {
         {/* Teams */}
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 500, fontSize: 14 }}>
-            {match.homeTeam} <span style={{ color: "var(--text-muted)" }}>vs</span> {match.awayTeam}
+            {teamWithRank(match.homeTeam)} <span style={{ color: "var(--text-muted)" }}>vs</span> {teamWithRank(match.awayTeam)}
           </div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{dateStr}</div>
         </div>

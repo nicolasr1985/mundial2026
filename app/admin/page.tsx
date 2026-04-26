@@ -24,7 +24,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special" | "rankings">("matches");
+  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -60,7 +60,6 @@ export default function AdminPage() {
           { id: "results", label: "✏ Ingresar Resultados" },
           { id: "groups", label: "🏅 Clasificación Grupos" },
           { id: "special", label: "🏆 Campeón / Goleador" },
-          { id: "rankings", label: "🌍 Ranking FIFA" },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -81,7 +80,6 @@ export default function AdminPage() {
       {activeTab === "results" && <ResultsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "groups" && <GroupsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "special" && <SpecialTab settings={settings} onUpdated={loadData} />}
-      {activeTab === "rankings" && <FifaRankingsTab />}
     </div>
   );
 }

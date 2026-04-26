@@ -41,14 +41,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const isAuth = !!user;
   const isAdmin = profile?.isAdmin ?? false;
-  const canSeeRankings = ["nicolasr9@gmail.com"].includes(user?.email ?? "");
-
   const navLinks = [
     { href: "/dashboard", label: "Ranking" },
     { href: "/picks", label: "Apuestas" },
     { href: "/mypicks", label: "Mis Picks" },
     { href: "/standings", label: "Tabla" },
-    ...(canSeeRankings ? [{ href: "/rankings", label: "🌍 FIFA" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "⚙ Admin" }] : []),
   ];
 

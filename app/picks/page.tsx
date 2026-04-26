@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, submitPick, Match, Pick } from "@/lib/firebase";
+import { teamWithRank } from "@/lib/fifa-ranking";
 
 const ROUNDS = [
   "Fase de Grupos",
@@ -259,7 +260,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
 
       <div style={{ flex: 1, minWidth: 160 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{match.homeTeam}</span>
+          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{teamWithRank(match.homeTeam)}</span>
           {hasResult ? (
             <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: compact ? 16 : 20, color: "var(--gold)", padding: "0 4px" }}>
               {match.homeScore} – {match.awayScore}
@@ -267,7 +268,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
           ) : (
             <span style={{ color: "var(--text-muted)", fontSize: 13 }}>vs</span>
           )}
-          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{match.awayTeam}</span>
+          <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{teamWithRank(match.awayTeam)}</span>
         </div>
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{dateStr}</div>
       </div>
