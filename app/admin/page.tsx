@@ -780,8 +780,7 @@ function WhatsAppTab({ matches, users, settings }: {
 
       if (todayMatches.length === 0) {
         lines.push("_No hubo partidos hoy_");
-        return lines.join("
-");
+        return lines.join("\n");
       }
 
       lines.push(`*Resultados de hoy (${todayMatches.length} partido${todayMatches.length !== 1 ? "s" : ""}):*`);
@@ -835,8 +834,7 @@ function WhatsAppTab({ matches, users, settings }: {
 
     lines.push("");
     lines.push("_No apto para sensibles_ 🔥");
-    return lines.join("
-");
+    return lines.join("\n");
   }
 
   const message = generateMessage();
@@ -996,3 +994,4 @@ const s: Record<string, React.CSSProperties> = {
     transition: "all 0.15s", border: "none",
   },
 };
+
