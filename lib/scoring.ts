@@ -1,31 +1,25 @@
 // lib/scoring.ts
 // Sistema de puntos:
-// 5 pts  → marcador exacto
-// 3 pts  → resultado correcto (ganador/empate)
-// 1 pt   → gol local acertado (independiente)
-// 1 pt   → gol visitante acertado (independiente)
-// Nota: el exacto ya incluye todo, máximo por partido sin exacto = 4 pts
-//
-// Fase de grupos:
-// 1 pt   → 1er lugar de grupo
-// 1 pt   → 2do lugar de grupo
-// 1 pt   → 3er lugar que pasa
+// 5 pts  → marcador exacto (máximo, no se acumula con otros)
+// 2 pts  → resultado correcto (ganador/empate), solo si no fue exacto
+// 1 pt   → gol de un equipo acertado, solo si no fue exacto
+//          (ej: COL 4-1 POR real, pick 3-1 → 2pts resultado + 1pt POR = 3pts)
 //
 // Predicciones especiales:
 // 15 pts → campeón
 // 10 pts → goleador
-// Fecha límite: 9 de junio de 2026
+// Fecha límite: pitazo inicial 11 junio 2026
 
 export const POINTS = {
   EXACT_SCORE: 5,
-  CORRECT_RESULT: 3,
-  CORRECT_GOAL: 1,       // por cada marcador de equipo acertado
+  CORRECT_RESULT: 2,
+  CORRECT_GOAL: 1,
   GROUP_FIRST: 1,
   GROUP_SECOND: 1,
   GROUP_THIRD: 1,
   CHAMPION: 15,
   TOP_SCORER: 10,
-  DEADLINE: new Date("2026-06-11T15:00:00-05:00"), // Pitazo inicial — June 11, 2026 3pm Bogotá
+  DEADLINE: new Date("2026-06-11T15:00:00-05:00"),
 } as const;
 
 export function calculateMatchPoints(
@@ -34,19 +28,19 @@ export function calculateMatchPoints(
   realHome: number,
   realAway: number
 ): number {
-  // Marcador exacto
+  // Exact score — 5 pts, nothing added on top
   if (predHome === realHome && predAway === realAway) {
     return POINTS.EXACT_SCORE;
   }
 
   let pts = 0;
 
-  // Resultado correcto
-  const predWinner = Math.sign(predHome - predAway); // 1 local, 0 empate, -1 visitante
+  // Correct result (win/draw/loss)
+  const predWinner = Math.sign(predHome - predAway);
   const realWinner = Math.sign(realHome - realAway);
   if (predWinner === realWinner) pts += POINTS.CORRECT_RESULT;
 
-  // Goles individuales acertados
+  // Correct goals per team (only if not exact)
   if (predHome === realHome) pts += POINTS.CORRECT_GOAL;
   if (predAway === realAway) pts += POINTS.CORRECT_GOAL;
 
@@ -59,27 +53,26 @@ export function getPointsBreakdown(
   realHome: number,
   realAway: number
 ): { total: number; reasons: string[] } {
-  const reasons: string[] = [];
-
   if (predHome === realHome && predAway === realAway) {
-    return { total: POINTS.EXACT_SCORE, reasons: ["⭐ Marcador exacto"] };
+    return { total: POINTS.EXACT_SCORE, reasons: ["⭐ Marcador exacto (+5)"] };
   }
 
   let total = 0;
+  const reasons: string[] = [];
   const predWinner = Math.sign(predHome - predAway);
   const realWinner = Math.sign(realHome - realAway);
 
   if (predWinner === realWinner) {
     total += POINTS.CORRECT_RESULT;
-    reasons.push("✅ Resultado correcto (+3)");
+    reasons.push("✅ Resultado correcto (+2)");
   }
   if (predHome === realHome) {
     total += POINTS.CORRECT_GOAL;
-    reasons.push(`⚽ Goles local acertado (+1)`);
+    reasons.push("⚽ Goles local acertado (+1)");
   }
   if (predAway === realAway) {
     total += POINTS.CORRECT_GOAL;
-    reasons.push(`⚽ Goles visitante acertado (+1)`);
+    reasons.push("⚽ Goles visitante acertado (+1)");
   }
   if (total === 0) reasons.push("❌ Sin puntos");
 

@@ -232,7 +232,7 @@ export default function DashboardPage() {
         <span style={{ color: "var(--text-muted)", fontSize: 12 }}>Sistema de puntos:</span>
         {[
           ["⭐", "Marcador exacto", "5 pts"],
-          ["✅", "Resultado correcto", "3 pts"],
+          ["✅", "Resultado correcto", "2 pts"],
           ["⚽", "Gol acertado", "1 pt"],
           ["🥇", "1° grupo", "1 pt"],
           ["🥈", "2° grupo", "1 pt"],
@@ -273,7 +273,7 @@ function RankRow({ entry, position, isMe }: { entry: RankingEntry; position: num
           <span style={tieStyle("#C9A84C")} title="Marcador exacto (5 pts)">
             ⭐ {entry.exactCount}
           </span>
-          <span style={tieStyle("#9B8FD0")} title="Resultado correcto (3 pts)">
+          <span style={tieStyle("#9B8FD0")} title="Resultado correcto (2 pts)">
             ✅ {entry.resultCount ?? 0}
           </span>
           <span style={tieStyle("#6ABCB0")} title="Goles acertados (1 pt)">

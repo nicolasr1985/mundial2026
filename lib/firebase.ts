@@ -353,8 +353,8 @@ export async function getRanking(): Promise<RankingEntry[]> {
         totalPoints: matchPoints + groupPoints + championPoints + topScorerPoints,
         picksCount: userPicks.length,
         exactCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) >= 5).length,
-        resultCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 3).length,
-        partialCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) > 0 && (p.points ?? 0) < 3).length,
+        resultCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 2).length,
+        partialCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 1).length,
       };
     })
     .sort((a, b) => {
