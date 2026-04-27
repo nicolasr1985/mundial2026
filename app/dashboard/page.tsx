@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [topScorer, setTopScorer] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const deadlinePassed = isDeadlinePassed();
 
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function DashboardPage() {
     try {
       await updateChampionPick(user.uid, champion, topScorer);
       setMsg("✅ Predicciones guardadas");
+      setIsEditing(false);
     } catch {
       setMsg("❌ Error al guardar");
     } finally {
@@ -108,8 +110,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Already submitted — show read-only confirmation */}
-        {(profile?.champion || profile?.topScorer) ? (
+        {/* Already submitted — show read-only confirmation unless editing */}
+        {(profile?.champion || profile?.topScorer) && !isEditing ? (
           <div style={{ background: "rgba(46,204,113,0.08)", border: "1px solid rgba(46,204,113,0.25)", borderRadius: "var(--radius-sm)", padding: "16px 20px" }}>
             <div style={{ fontSize: 13, color: "var(--green)", fontWeight: 600, marginBottom: 12 }}>
               ✅ Predicciones registradas {deadlinePassed ? "— ya no se pueden modificar" : "— puedes cambiarlas antes del pitazo"}
@@ -128,7 +130,7 @@ export default function DashboardPage() {
               <button
                 className="btn-ghost"
                 style={{ marginTop: 12, fontSize: 12, padding: "6px 14px" }}
-                onClick={() => { /* clear to allow editing */ }}
+                onClick={() => setIsEditing(true)}
               >
                 ✏ Modificar predicciones
               </button>
@@ -177,8 +179,21 @@ export default function DashboardPage() {
                 disabled={saving || !champion.trim() || !topScorer.trim()}
                 style={{ padding: "10px 24px", opacity: (!champion.trim() || !topScorer.trim()) ? 0.4 : 1 }}
               >
-                {saving ? "Guardando..." : "Enviar predicciones"}
+                {saving ? "Guardando..." : isEditing ? "Actualizar predicciones" : "Enviar predicciones"}
               </button>
+              {isEditing && (
+                <button
+                  className="btn-ghost"
+                  style={{ fontSize: 12, padding: "8px 14px" }}
+                  onClick={() => {
+                    setChampion(profile?.champion || "");
+                    setTopScorer(profile?.topScorer || "");
+                    setIsEditing(false);
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
               {msg && <span style={{ fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
             </div>
           </>
