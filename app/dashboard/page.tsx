@@ -111,7 +111,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Already submitted — show read-only confirmation unless editing */}
-        {(profile?.champion || profile?.topScorer) && !isEditing ? (
+        {(champion || topScorer) && !isEditing ? (
           <div style={{ background: "rgba(46,204,113,0.08)", border: "1px solid rgba(46,204,113,0.25)", borderRadius: "var(--radius-sm)", padding: "16px 20px" }}>
             <div style={{ fontSize: 13, color: "var(--green)", fontWeight: 600, marginBottom: 12 }}>
               ✅ Predicciones registradas {deadlinePassed ? "— ya no se pueden modificar" : "— puedes cambiarlas antes del pitazo"}
@@ -119,11 +119,11 @@ export default function DashboardPage() {
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>🥇 CAMPEÓN</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{profile.champion || "—"}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{champion || "—"}</div>
               </div>
               <div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>⚽ GOLEADOR</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{profile.topScorer || "—"}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{topScorer || "—"}</div>
               </div>
             </div>
             {!deadlinePassed && (
