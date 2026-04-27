@@ -347,14 +347,13 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
 }) {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
 
-  // Only show group stage + other rounds that are locked or finished
+  // All matches sorted by date
   const relevantMatches = matches
-    .filter((m) => m.round?.startsWith("Fase de Grupos"))
     .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0));
 
-  // Group by group
+  // Group by round
   const byGroup = relevantMatches.reduce((acc, m) => {
-    const g = m.group || "?";
+    const g = m.group ? `Grupo ${m.group}` : (m.round || "Otros");
     if (!acc[g]) acc[g] = [];
     acc[g].push(m);
     return acc;
@@ -381,10 +380,17 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
         💡 Puedes ver si alguien apostó en un partido. El marcador exacto se revela solo cuando el partido haya comenzado y las apuestas estén cerradas.
       </p>
 
-      {Object.entries(byGroup).sort(([a],[b]) => a.localeCompare(b)).map(([group, gMatches]) => (
+      {Object.entries(byGroup).sort(([a],[b]) => {
+        const order = ["Grupo A","Grupo B","Grupo C","Grupo D","Grupo E","Grupo F","Grupo G","Grupo H","Grupo I","Grupo J","Grupo K","Grupo L","Ronda de 32","Octavos de Final","Cuartos de Final","Semifinal","Tercer Puesto","Final","Otros"];
+        const ia = order.indexOf(a), ib = order.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      }).map(([group, gMatches]) => (
         <div key={group} style={{ marginBottom: 28 }}>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)", letterSpacing: "0.08em", marginBottom: 10 }}>
-            GRUPO {group}
+            {group.startsWith("Grupo ") ? group.toUpperCase() : group}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {gMatches.map((match) => {
