@@ -59,7 +59,7 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ ...s.tabs, overflowX: "auto", WebkitOverflowScrolling: "touch", flexWrap: "nowrap" } as React.CSSProperties}>
+      <div style={{ ...s.tabs, overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", flexWrap: "nowrap", maxWidth: "100vw" } as React.CSSProperties}>
         {([
           { id: "matches", label: "➕ Crear Partidos" },
           { id: "results", label: "✏ Ingresar Resultados" },
@@ -620,7 +620,7 @@ function WhatsAppTab({ matches, users, settings }: {
     else {
       const pr = ph > pa ? "H" : ph < pa ? "A" : "D";
       const rr = rh > ra ? "H" : rh < ra ? "A" : "D";
-      if (pr === rr) pts += 3;
+      if (pr === rr) pts += 2;
     }
     if (ph === rh) pts += 1;
     if (pa === ra) pts += 1;

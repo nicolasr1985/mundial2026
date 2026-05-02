@@ -84,7 +84,7 @@ export default function MyPicksPage() {
       </p>
 
       {/* View toggle */}
-      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 24 }}>
+      <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 24, overflowX: "auto", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         {([
           { id: "mine", label: "📋 Mis Picks" },
           { id: "community", label: "👥 Todos los Picks" },

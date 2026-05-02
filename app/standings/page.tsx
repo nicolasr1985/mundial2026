@@ -978,7 +978,7 @@ function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string
 
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>← Desliza para ver el bracket completo →</div>
       {/* Bracket scroll container */}
-      <div style={{ overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+      <div style={{ overflowX: "auto", overflowY: "hidden", paddingBottom: 8, WebkitOverflowScrolling: "touch", maxWidth: "100vw" } as React.CSSProperties}>
         <div style={{ display: "flex", gap: 0, minWidth: 900, alignItems: "stretch" }}>
 
           {/* LEFT R32 */}
