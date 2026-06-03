@@ -395,7 +395,8 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {gMatches.map((match) => {
               const matchPicks = picksIndex[match.id] ?? {};
-              const isLocked = match.locked || match.status === "finished" || match.status === "live";
+              const kickoffPassed = match.matchDate?.toDate ? match.matchDate.toDate() <= new Date() : false;
+              const isLocked = kickoffPassed || match.locked || match.status === "finished" || match.status === "live";
               const dateStr = match.matchDate?.toDate?.()?.toLocaleString("es-CO", {
                 weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
               }) ?? "—";
