@@ -1,170 +1,201 @@
 // app/login/page.tsx
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { loginUser } from "@/lib/firebase";
-
-const LogoSVG = () => (
-  <svg width="100%" viewBox="0 0 680 460" role="img" xmlns="http://www.w3.org/2000/svg" style={{ maxWidth: 340, margin: "0 auto", display: "block" }}>
-    <title>FIFA World Cup 2026 - No Apto para Sensibles</title>
-    <defs>
-      <clipPath id="cu"><rect width="80" height="50" rx="4"/></clipPath>
-      <clipPath id="cc"><rect width="80" height="50" rx="4"/></clipPath>
-      <clipPath id="cm"><rect width="80" height="50" rx="4"/></clipPath>
-    </defs>
-    <text x="340" y="38" fontFamily="'Arial Black', Impact, sans-serif" fontSize="11" fontWeight="900" fill="#5A5750" textAnchor="middle" letterSpacing="5">NO APTO PARA SENSIBLES</text>
-    <line x1="140" y1="45" x2="250" y2="45" stroke="#2A2A30" strokeWidth="1"/>
-    <line x1="430" y1="45" x2="540" y2="45" stroke="#2A2A30" strokeWidth="1"/>
-    <text x="300" y="70" fontFamily="Georgia, serif" fontSize="11" fill="#C9A84C" textAnchor="middle">★</text>
-    <text x="340" y="62" fontFamily="Georgia, serif" fontSize="14" fill="#C9A84C" textAnchor="middle">★</text>
-    <text x="380" y="70" fontFamily="Georgia, serif" fontSize="11" fill="#C9A84C" textAnchor="middle">★</text>
-    <g transform="translate(340, 150)">
-      <path d="M -30 -55 Q -38 -30 -35 0 Q -28 25 0 30 Q 28 25 35 0 Q 38 -30 30 -55 Z" fill="#C9A84C"/>
-      <path d="M -35 -40 Q -60 -30 -55 -10 Q -50 5 -35 0" fill="none" stroke="#C9A84C" strokeWidth="5" strokeLinecap="round"/>
-      <path d="M 35 -40 Q 60 -30 55 -10 Q 50 5 35 0" fill="none" stroke="#C9A84C" strokeWidth="5" strokeLinecap="round"/>
-      <rect x="-8" y="30" width="16" height="18" fill="#C9A84C"/>
-      <rect x="-28" y="48" width="56" height="10" rx="3" fill="#C9A84C"/>
-      <path d="M -15 -45 Q -10 -25 -12 -5" fill="none" stroke="#F0D080" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
-    </g>
-    <text x="340" y="242" fontFamily="'Arial Black', Impact, sans-serif" fontSize="13" fontWeight="900" fill="#6A6560" textAnchor="middle" letterSpacing="8">FIFA</text>
-    <text x="340" y="282" fontFamily="'Arial Black', Impact, sans-serif" fontSize="44" fontWeight="900" fill="#C9A84C" textAnchor="middle" letterSpacing="3">WORLD CUP</text>
-    <line x1="95" y1="292" x2="188" y2="292" stroke="#C9A84C" strokeWidth="1" opacity="0.5"/>
-    <text x="340" y="308" fontFamily="'Arial Black', Impact, sans-serif" fontSize="22" fontWeight="900" fill="#E8C56A" textAnchor="middle" letterSpacing="6">2026</text>
-    <line x1="492" y1="292" x2="585" y2="292" stroke="#C9A84C" strokeWidth="1" opacity="0.5"/>
-    <line x1="180" y1="328" x2="500" y2="328" stroke="#2A2A30" strokeWidth="1"/>
-    <text x="340" y="345" fontFamily="Arial, sans-serif" fontSize="9" fill="#4A4540" textAnchor="middle" letterSpacing="4">HOST NATIONS</text>
-    {/* USA */}
-    <g transform="translate(180, 390)">
-      <g clipPath="url(#cu)" transform="translate(-40,-28)">
-        <rect width="80" height="56" fill="#B22234"/>
-        <rect x="0" y="4.3" width="80" height="4.3" fill="white"/>
-        <rect x="0" y="12.9" width="80" height="4.3" fill="white"/>
-        <rect x="0" y="21.5" width="80" height="4.3" fill="white"/>
-        <rect x="0" y="30.1" width="80" height="4.3" fill="white"/>
-        <rect x="0" y="38.7" width="80" height="4.3" fill="white"/>
-        <rect x="0" y="47.3" width="80" height="4.3" fill="white"/>
-        <rect x="0" y="0" width="32" height="30" fill="#3C3B6E"/>
-        <circle cx="3.2" cy="3" r="1.2" fill="white"/><circle cx="8.5" cy="3" r="1.2" fill="white"/><circle cx="13.8" cy="3" r="1.2" fill="white"/><circle cx="19.1" cy="3" r="1.2" fill="white"/><circle cx="24.4" cy="3" r="1.2" fill="white"/><circle cx="29.7" cy="3" r="1.2" fill="white"/>
-        <circle cx="5.8" cy="7.5" r="1.2" fill="white"/><circle cx="11.1" cy="7.5" r="1.2" fill="white"/><circle cx="16.4" cy="7.5" r="1.2" fill="white"/><circle cx="21.7" cy="7.5" r="1.2" fill="white"/><circle cx="27" cy="7.5" r="1.2" fill="white"/>
-        <circle cx="3.2" cy="12" r="1.2" fill="white"/><circle cx="8.5" cy="12" r="1.2" fill="white"/><circle cx="13.8" cy="12" r="1.2" fill="white"/><circle cx="19.1" cy="12" r="1.2" fill="white"/><circle cx="24.4" cy="12" r="1.2" fill="white"/><circle cx="29.7" cy="12" r="1.2" fill="white"/>
-        <circle cx="5.8" cy="16.5" r="1.2" fill="white"/><circle cx="11.1" cy="16.5" r="1.2" fill="white"/><circle cx="16.4" cy="16.5" r="1.2" fill="white"/><circle cx="21.7" cy="16.5" r="1.2" fill="white"/><circle cx="27" cy="16.5" r="1.2" fill="white"/>
-        <circle cx="3.2" cy="21" r="1.2" fill="white"/><circle cx="8.5" cy="21" r="1.2" fill="white"/><circle cx="13.8" cy="21" r="1.2" fill="white"/><circle cx="19.1" cy="21" r="1.2" fill="white"/><circle cx="24.4" cy="21" r="1.2" fill="white"/><circle cx="29.7" cy="21" r="1.2" fill="white"/>
-        <circle cx="5.8" cy="25.5" r="1.2" fill="white"/><circle cx="11.1" cy="25.5" r="1.2" fill="white"/><circle cx="16.4" cy="25.5" r="1.2" fill="white"/><circle cx="21.7" cy="25.5" r="1.2" fill="white"/><circle cx="27" cy="25.5" r="1.2" fill="white"/>
-        <rect width="80" height="56" rx="4" fill="none" stroke="#3A3A42" strokeWidth="0.8"/>
-      </g>
-      <text x="0" y="38" fontFamily="Arial, sans-serif" fontSize="10" fill="#9A9590" textAnchor="middle" letterSpacing="2">USA</text>
-    </g>
-    {/* Canada */}
-    <g transform="translate(340, 390)">
-      <g clipPath="url(#cc)" transform="translate(-40,-28)">
-        <rect width="80" height="56" fill="white"/>
-        <rect x="0" y="0" width="20" height="56" fill="#FF0000"/>
-        <rect x="60" y="0" width="20" height="56" fill="#FF0000"/>
-        <path d="M40,10 L42,20 L50,16 L46,24 L54,26 L47,29 L50,38 L40,34 L30,38 L33,29 L26,26 L34,24 L30,16 L38,20 Z" fill="#FF0000"/>
-        <rect x="37" y="34" width="6" height="10" fill="#FF0000"/>
-        <rect width="80" height="56" rx="4" fill="none" stroke="#3A3A42" strokeWidth="0.8"/>
-      </g>
-      <text x="0" y="38" fontFamily="Arial, sans-serif" fontSize="10" fill="#9A9590" textAnchor="middle" letterSpacing="2">CANADA</text>
-    </g>
-    {/* Mexico */}
-    <g transform="translate(500, 390)">
-      <g clipPath="url(#cm)" transform="translate(-40,-28)">
-        <rect width="80" height="56" fill="white"/>
-        <rect x="0" y="0" width="26.6" height="56" fill="#006847"/>
-        <rect x="53.4" y="0" width="26.6" height="56" fill="#CE1126"/>
-        <ellipse cx="40" cy="44" rx="10" ry="4" fill="#8B6914" opacity="0.7"/>
-        <rect x="38" y="28" width="4" height="18" fill="#006847"/>
-        <rect x="32" y="33" width="8" height="3" fill="#006847"/>
-        <rect x="40" y="33" width="8" height="3" fill="#006847"/>
-        <ellipse cx="40" cy="24" rx="8" ry="10" fill="#6B4F1A"/>
-        <circle cx="40" cy="15" r="5" fill="#6B4F1A"/>
-        <path d="M40 17 L44 20 L40 21 Z" fill="#DAA520"/>
-        <path d="M32 22 Q22 16 24 28 Q30 26 32 22Z" fill="#5A4010"/>
-        <path d="M48 22 Q58 16 56 28 Q50 26 48 22Z" fill="#5A4010"/>
-        <path d="M44 18 Q50 14 52 18 Q54 22 50 24" fill="none" stroke="#228B22" strokeWidth="1.5" strokeLinecap="round"/>
-        <rect width="80" height="56" rx="4" fill="none" stroke="#3A3A42" strokeWidth="0.8"/>
-      </g>
-      <text x="0" y="38" fontFamily="Arial, sans-serif" fontSize="10" fill="#9A9590" textAnchor="middle" letterSpacing="2">MEXICO</text>
-    </g>
-    <path d="M 200 445 Q 340 458 480 445" fill="none" stroke="#C9A84C" strokeWidth="1" opacity="0.25"/>
-  </svg>
-);
+import { loginUser, sendUserPasswordReset } from "@/lib/firebase";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  // Forgot password state
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMsg, setForgotMsg] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) { setMsg("⚠ Completa todos los campos"); return; }
     setLoading(true);
     try {
       await loginUser(email, password);
       router.push("/dashboard");
-    } catch {
-      setError("Correo o contraseña incorrectos.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        setMsg("❌ Correo o contraseña incorrectos");
+      } else {
+        setMsg("❌ Error al iniciar sesión");
+      }
+    } finally { setLoading(false); }
+  };
+
+  const handleForgot = async () => {
+    if (!forgotEmail.trim()) { setForgotMsg("⚠ Ingresa tu correo electrónico"); return; }
+    setForgotLoading(true);
+    try {
+      await sendUserPasswordReset(forgotEmail.trim());
+      setForgotMsg("✅ Email de recuperación enviado. Revisa tu bandeja de entrada.");
+      setTimeout(() => {
+        setShowForgot(false);
+        setForgotMsg("");
+        setForgotEmail("");
+      }, 4000);
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      if (code === "auth/user-not-found") {
+        setForgotMsg("❌ No existe una cuenta con ese correo");
+      } else {
+        setForgotMsg("❌ Error al enviar el email");
+      }
+    } finally { setForgotLoading(false); }
   };
 
   return (
-    <div style={styles.bg}>
-      <div style={styles.bgDecor} />
-      <div style={styles.container} className="animate-fade-up">
-        <LogoSVG />
-        <div className="card-gold" style={{ padding: 32, marginTop: 8 }}>
-          <h2 style={{ fontSize: 22, marginBottom: 24, color: "var(--text)" }}>Iniciar Sesión</h2>
-          {error && <div style={styles.errorBox}>{error}</div>}
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div>
-              <label className="label">Correo electrónico</label>
-              <input className="input" type="email" placeholder="tu@correo.com" value={email} onChange={(e) => setEmail(e.target.value)} required/>
+    <div style={{
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      background: "var(--black)", padding: "24px 16px",
+    }}>
+      {/* WC2026 Logo */}
+      <div style={{ marginBottom: 32, textAlign: "center" }}>
+        <svg width="200" height="160" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+          <text x="100" y="30" textAnchor="middle" fontSize="11" fill="#9A8F84" fontFamily="Arial" letterSpacing="4">NO APTO PARA SENSIBLES</text>
+          <text x="100" y="52" textAnchor="middle" fontSize="9" fill="#C9A84C" fontFamily="Arial" letterSpacing="2">· · ·</text>
+          <text x="100" y="72" textAnchor="middle" fontSize="38" fill="#C9A84C">🏆</text>
+          <text x="100" y="92" textAnchor="middle" fontSize="8" fill="#9A8F84" fontFamily="Arial" letterSpacing="3">FIFA</text>
+          <text x="100" y="110" textAnchor="middle" fontSize="18" fill="#C9A84C" fontFamily="Arial Black" fontWeight="900" letterSpacing="2">WORLD CUP</text>
+          <text x="100" y="126" textAnchor="middle" fontSize="14" fill="#C9A84C" fontFamily="Arial" letterSpacing="4">2026</text>
+          <text x="100" y="142" textAnchor="middle" fontSize="8" fill="#9A8F84" fontFamily="Arial" letterSpacing="2">HOST NATIONS</text>
+          <text x="60" y="158" textAnchor="middle" fontSize="18">🇺🇸</text>
+          <text x="100" y="158" textAnchor="middle" fontSize="18">🇨🇦</text>
+          <text x="140" y="158" textAnchor="middle" fontSize="18">🇲🇽</text>
+        </svg>
+      </div>
+
+      {/* Login / Forgot card */}
+      <div className="card" style={{ width: "100%", maxWidth: 420, padding: "32px 28px" }}>
+
+        {!showForgot ? (
+          <>
+            <h1 style={{ fontSize: 22, marginBottom: 24, letterSpacing: "0.06em" }}>INICIAR SESIÓN</h1>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label className="label">CORREO ELECTRÓNICO</label>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="tu@correo.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()}
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label className="label">CONTRASEÑA</label>
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()}
+                  autoComplete="current-password"
+                />
+              </div>
             </div>
-            <div>
-              <label className="label">Contraseña</label>
-              <input className="input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required/>
-            </div>
-            <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 8, width: "100%", padding: "14px" }}>
-              {loading ? "Entrando..." : "Entrar"}
+
+            {msg && (
+              <div style={{ marginTop: 12, fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>
+                {msg}
+              </div>
+            )}
+
+            <button
+              className="btn-primary"
+              onClick={handleLogin}
+              disabled={loading}
+              style={{ width: "100%", marginTop: 20, padding: "13px", fontSize: 15, letterSpacing: "0.08em" }}
+            >
+              {loading ? "Entrando..." : "ENTRAR"}
             </button>
-          </form>
-          <div className="divider" />
-          <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}>
-            ¿No tienes cuenta?{" "}
-            <a href="/register" style={{ color: "var(--gold)" }}>Regístrate aquí</a>
-          </p>
-        </div>
+
+            {/* Forgot password link */}
+            <div style={{ marginTop: 12, textAlign: "center" }}>
+              <button
+                onClick={() => { setShowForgot(true); setForgotEmail(email); setMsg(""); }}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: 13, color: "var(--text-muted)",
+                  textDecoration: "underline", fontFamily: "inherit",
+                }}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)", textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>
+              ¿No tienes cuenta?{" "}
+              <a href="/register" style={{ color: "var(--gold)", fontWeight: 600, textDecoration: "none" }}>
+                Regístrate aquí
+              </a>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 style={{ fontSize: 22, marginBottom: 8, letterSpacing: "0.06em" }}>RECUPERAR CONTRASEÑA</h1>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 24, lineHeight: 1.6 }}>
+              Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+            </p>
+
+            <div>
+              <label className="label">CORREO ELECTRÓNICO</label>
+              <input
+                className="input"
+                type="email"
+                placeholder="tu@correo.com"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleForgot()}
+                autoFocus
+              />
+            </div>
+
+            {forgotMsg && (
+              <div style={{ marginTop: 12, fontSize: 13, color: forgotMsg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>
+                {forgotMsg}
+              </div>
+            )}
+
+            <button
+              className="btn-primary"
+              onClick={handleForgot}
+              disabled={forgotLoading}
+              style={{ width: "100%", marginTop: 20, padding: "13px", fontSize: 15, letterSpacing: "0.08em" }}
+            >
+              {forgotLoading ? "Enviando..." : "ENVIAR EMAIL DE RECUPERACIÓN"}
+            </button>
+
+            <div style={{ marginTop: 12, textAlign: "center" }}>
+              <button
+                onClick={() => { setShowForgot(false); setForgotMsg(""); }}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: 13, color: "var(--text-muted)",
+                  textDecoration: "underline", fontFamily: "inherit",
+                }}
+              >
+                ← Volver al inicio de sesión
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  bg: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "24px 16px",
-    position: "relative",
-    overflow: "hidden",
-    background: "radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.08) 0%, var(--black) 60%)",
-  },
-  bgDecor: {
-    position: "absolute", top: "-200px", left: "50%", transform: "translateX(-50%)",
-    width: "600px", height: "600px", borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%)",
-    pointerEvents: "none",
-  },
-  container: { width: "100%", maxWidth: 440, position: "relative", zIndex: 1 },
-  errorBox: {
-    background: "rgba(231,76,60,0.12)", border: "1px solid rgba(231,76,60,0.3)",
-    borderRadius: "var(--radius-sm)", padding: "10px 14px", color: "var(--red)",
-    fontSize: 14, marginBottom: 8,
-  },
-};
