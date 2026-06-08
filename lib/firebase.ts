@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   User,
   updateProfile,
 } from "firebase/auth";
@@ -406,6 +407,10 @@ export function calculateMatchPoints(
   // Si acertamos marcador exacto ya retornamos 5, aquí los puntos parciales
   // no deben superar 4 (para que el exacto siempre valga más)
   return Math.min(pts, 4);
+}
+
+export async function sendUserPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 export { Timestamp };

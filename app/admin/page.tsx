@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, lockMatch, resetMatch,
   setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers,
-  Match, Timestamp, UserProfile
+  sendUserPasswordReset, Match, Timestamp, UserProfile
 } from "@/lib/firebase";
 
 const ROUNDS = [
@@ -26,7 +26,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special" | "whatsapp">("matches");
+  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special" | "whatsapp" | "usuarios">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -66,6 +66,7 @@ export default function AdminPage() {
           { id: "groups", label: "🏅 Clasificación Grupos" },
           { id: "special", label: "🏆 Campeón / Goleador" },
           { id: "whatsapp", label: "📱 WhatsApp" },
+          { id: "usuarios", label: "👥 Usuarios" },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -87,6 +88,7 @@ export default function AdminPage() {
       {activeTab === "groups" && <GroupsTab matches={matches} onUpdated={loadData} />}
       {activeTab === "special" && <SpecialTab settings={settings} users={users} onUpdated={loadData} />}
       {activeTab === "whatsapp" && <WhatsAppTab matches={matches} users={users} settings={settings} />}
+      {activeTab === "usuarios" && <UsuariosTab users={users} onUpdated={loadData} />}
     </div>
   );
 }
@@ -856,6 +858,244 @@ function WhatsAppTab({ matches, users, settings }: {
           ⚠ No hay partidos finalizados hoy. El mensaje se generará sin resultados.
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── USUARIOS TAB ─────────────────────────────────────────────────────────────
+function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: () => void }) {
+  const [msgs, setMsgs] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const setMsg = (uid: string, msg: string) => {
+    setMsgs(prev => ({ ...prev, [uid]: msg }));
+    setTimeout(() => setMsgs(prev => { const n = { ...prev }; delete n[uid]; return n; }), 5000);
+  };
+
+  const handleReset = async (u: UserProfile) => {
+    setLoading(u.uid);
+    try {
+      await sendUserPasswordReset(u.email);
+      setMsg(u.uid, "✅ Email de recuperación enviado a " + u.email);
+    } catch (e) {
+      setMsg(u.uid, "❌ Error: " + String(e));
+    } finally { setLoading(null); }
+  };
+
+  const handleDelete = async (uid: string) => {
+    setLoading(uid);
+    setConfirmDelete(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", uid }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg(uid, "✅ Usuario eliminado");
+        onUpdated();
+      } else {
+        setMsg(uid, "❌ " + data.error);
+      }
+    } catch (e) {
+      setMsg(uid, "❌ Error: " + String(e));
+    } finally { setLoading(null); }
+  };
+
+  const handleToggleAdmin = async (u: UserProfile) => {
+    setLoading(u.uid);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "toggleAdmin", uid: u.uid }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg(u.uid, data.isAdmin ? "✅ Ahora es admin" : "✅ Ya no es admin");
+        onUpdated();
+      } else {
+        setMsg(u.uid, "❌ " + data.error);
+      }
+    } catch (e) {
+      setMsg(u.uid, "❌ Error: " + String(e));
+    } finally { setLoading(null); }
+  };
+
+  const filtered = users.filter(u =>
+    u.displayName?.toLowerCase().includes(search.toLowerCase()) ||
+    u.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const admins = filtered.filter(u => u.isAdmin);
+  const regulars = filtered.filter(u => !u.isAdmin);
+
+  const UserRow = ({ u }: { u: UserProfile }) => (
+    <div style={{
+      background: "var(--surface)", border: "1px solid var(--border)",
+      borderRadius: "var(--radius-sm)", padding: "14px 16px",
+      display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+    }}>
+      {/* Avatar */}
+      <div style={{
+        width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+        background: u.isAdmin ? "rgba(201,168,76,0.2)" : "var(--surface2)",
+        border: `2px solid ${u.isAdmin ? "var(--gold)" : "var(--border)"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 18,
+      }}>
+        {u.isAdmin ? "⚙" : "👤"}
+      </div>
+
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 120 }}>
+        <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+          {u.displayName}
+          {u.isAdmin && (
+            <span className="badge badge-gold" style={{ fontSize: 10 }}>Admin</span>
+          )}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{u.email}</div>
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, display: "flex", gap: 10 }}>
+          {u.champion && <span>🏆 {u.champion}</span>}
+          {u.topScorer && <span>⚽ {u.topScorer}</span>}
+          {!u.champion && !u.topScorer && <span style={{ opacity: 0.5 }}>Sin predicciones especiales</span>}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
+        {/* Reset password */}
+        <button
+          className="btn-ghost"
+          onClick={() => handleReset(u)}
+          disabled={loading === u.uid}
+          style={{ fontSize: 12, padding: "6px 10px" }}
+          title="Enviar email de recuperación de contraseña"
+        >
+          🔑 Reset clave
+        </button>
+
+        {/* Toggle admin */}
+        <button
+          className="btn-ghost"
+          onClick={() => handleToggleAdmin(u)}
+          disabled={loading === u.uid}
+          style={{ fontSize: 12, padding: "6px 10px", color: u.isAdmin ? "var(--red)" : "var(--text-muted)" }}
+          title={u.isAdmin ? "Quitar permisos de admin" : "Dar permisos de admin"}
+        >
+          {u.isAdmin ? "⬇ Quitar admin" : "⬆ Hacer admin"}
+        </button>
+
+        {/* Delete */}
+        {confirmDelete === u.uid ? (
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <span style={{ fontSize: 12, color: "var(--red)" }}>¿Seguro?</span>
+            <button
+              className="btn-danger"
+              onClick={() => handleDelete(u.uid)}
+              disabled={loading === u.uid}
+              style={{ fontSize: 12, padding: "6px 10px" }}
+            >
+              Sí, eliminar
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => setConfirmDelete(null)}
+              style={{ fontSize: 12, padding: "6px 10px" }}
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn-ghost"
+            onClick={() => setConfirmDelete(u.uid)}
+            disabled={loading === u.uid}
+            style={{ fontSize: 12, padding: "6px 10px", color: "var(--red)" }}
+            title="Eliminar usuario y todos sus picks"
+          >
+            🗑 Eliminar
+          </button>
+        )}
+      </div>
+
+      {/* Status message */}
+      {msgs[u.uid] && (
+        <div style={{ width: "100%", fontSize: 12, marginTop: 4,
+          color: msgs[u.uid].startsWith("✅") ? "var(--green)" : "var(--red)" }}>
+          {msgs[u.uid]}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Header stats */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <div className="card" style={{ padding: "12px 20px", textAlign: "center", flex: "0 0 auto" }}>
+          <div style={{ fontSize: 28, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)" }}>{users.length}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase" }}>Total</div>
+        </div>
+        <div className="card" style={{ padding: "12px 20px", textAlign: "center", flex: "0 0 auto" }}>
+          <div style={{ fontSize: 28, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text)" }}>{users.filter(u => !u.isAdmin).length}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase" }}>Participantes</div>
+        </div>
+        <div className="card" style={{ padding: "12px 20px", textAlign: "center", flex: "0 0 auto" }}>
+          <div style={{ fontSize: 28, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)" }}>{users.filter(u => u.champion).length}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase" }}>Con pred. especial</div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <input
+        className="input"
+        placeholder="🔍 Buscar por nombre o email..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        style={{ marginBottom: 16, maxWidth: 400 }}
+      />
+
+      {/* Note about delete */}
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16, padding: "8px 12px",
+        background: "rgba(231,76,60,0.05)", border: "1px solid rgba(231,76,60,0.2)", borderRadius: "var(--radius-sm)" }}>
+        ⚠ Eliminar un usuario borrará su cuenta y <strong>todas sus apuestas</strong> permanentemente.
+        El reset de clave enviará un email de recuperación a la dirección registrada.
+      </div>
+
+      {/* Admins */}
+      {admins.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: "var(--gold)", fontWeight: 600, letterSpacing: "0.08em",
+            textTransform: "uppercase", marginBottom: 8 }}>
+            Administradores ({admins.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {admins.map(u => <UserRow key={u.uid} u={u} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Regular users */}
+      <div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.08em",
+          textTransform: "uppercase", marginBottom: 8 }}>
+          Participantes ({regulars.length})
+        </div>
+        {regulars.length === 0 ? (
+          <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
+            {search ? "No hay usuarios que coincidan con la búsqueda" : "No hay participantes registrados"}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {regulars.map(u => <UserRow key={u.uid} u={u} />)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
