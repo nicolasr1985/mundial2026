@@ -116,3 +116,18 @@ export function getRank(teamName: string): number | null {
   );
   return entry ? entry.rank : null;
 }
+
+const RANKING_EMAIL = "nicolasr9@gmail.com";
+
+export function canSeeRanking(email: string | null | undefined): boolean {
+  return email === RANKING_EMAIL;
+}
+
+export function teamWithRank(
+  teamName: string,
+  showRank: boolean
+): string {
+  if (!showRank) return teamName;
+  const rank = getRank(teamName);
+  return rank !== null ? `${teamName} (${rank})` : teamName;
+}
