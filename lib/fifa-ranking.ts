@@ -28,7 +28,7 @@ export const FIFA_RANKINGS: FifaEntry[] = [
   { rank: 18, name: "Japan", code: "JPN" },
   { rank: 19, name: "Switzerland", code: "SUI" },
   { rank: 20, name: "Denmark", code: "DEN" },
-  { rank: 21, name: "IR Iran", code: "IRN" },
+  { rank: 21, name: "Iran", code: "IRN" },
   { rank: 22, name: "Turkey", code: "TUR" },
   { rank: 23, name: "Ecuador", code: "ECU" },
   { rank: 24, name: "Austria", code: "AUT" },
