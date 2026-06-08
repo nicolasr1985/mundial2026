@@ -23,11 +23,9 @@ import {
   query,
   where,
   orderBy,
-  updateDoc,
   addDoc,
   Timestamp,
   onSnapshot,
-  writeBatch,
 } from "firebase/firestore";
 
 // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
