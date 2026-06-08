@@ -66,24 +66,28 @@ export default function LoginPage() {
           NO APTO PARA SENSIBLES
         </div>
         <div style={{ fontSize: 10, color: "#C9A84C", marginBottom: 8, letterSpacing: "2px" }}>· · ·</div>
-        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 4 }}>🏆</div>
+        <div style={{ fontSize: 48, lineHeight: 1, marginBottom: 4, filter: "drop-shadow(0 0 8px rgba(201,168,76,0.4))" }}>🏆</div>
         <div style={{ fontSize: 9, color: "#9A8F84", letterSpacing: "4px", marginBottom: 2 }}>FIFA</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: "#C9A84C", letterSpacing: "3px", fontFamily: "Arial Black, sans-serif" }}>WORLD CUP</div>
         <div style={{ fontSize: 15, color: "#C9A84C", letterSpacing: "5px", marginBottom: 6 }}>2026</div>
         <div style={{ fontSize: 9, color: "#9A8F84", letterSpacing: "3px", marginBottom: 8 }}>HOST NATIONS</div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 20 }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 28 }}>🇺🇸</div>
-            <div style={{ fontSize: 9, color: "#9A8F84", letterSpacing: "1px", marginTop: 2 }}>USA</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 28 }}>🇨🇦</div>
-            <div style={{ fontSize: 9, color: "#9A8F84", letterSpacing: "1px", marginTop: 2 }}>CANADA</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 28 }}>🇲🇽</div>
-            <div style={{ fontSize: 9, color: "#9A8F84", letterSpacing: "1px", marginTop: 2 }}>MEXICO</div>
-          </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 24 }}>
+          {[
+            { code: "us", label: "USA" },
+            { code: "ca", label: "CANADA" },
+            { code: "mx", label: "MEXICO" },
+          ].map(({ code, label }) => (
+            <div key={code} style={{ textAlign: "center" }}>
+              <img
+                src={`https://flagcdn.com/w40/${code}.png`}
+                alt={label}
+                width={36}
+                height={24}
+                style={{ borderRadius: 2, display: "block", margin: "0 auto" }}
+              />
+              <div style={{ fontSize: 9, color: "#9A8F84", letterSpacing: "1px", marginTop: 4 }}>{label}</div>
+            </div>
+          ))}
         </div>
       </div>
 
