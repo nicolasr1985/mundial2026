@@ -62,17 +62,17 @@ export default function LoginPage() {
     }}>
       {/* WC2026 Logo */}
       <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <svg width="200" height="160" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
-          <text x="100" y="30" textAnchor="middle" fontSize="11" fill="#9A8F84" fontFamily="Arial" letterSpacing="4">NO APTO PARA SENSIBLES</text>
-          <text x="100" y="52" textAnchor="middle" fontSize="9" fill="#C9A84C" fontFamily="Arial" letterSpacing="2">· · ·</text>
-          <text x="100" y="72" textAnchor="middle" fontSize="38" fill="#C9A84C">🏆</text>
-          <text x="100" y="92" textAnchor="middle" fontSize="8" fill="#9A8F84" fontFamily="Arial" letterSpacing="3">FIFA</text>
-          <text x="100" y="110" textAnchor="middle" fontSize="18" fill="#C9A84C" fontFamily="Arial Black" fontWeight="900" letterSpacing="2">WORLD CUP</text>
-          <text x="100" y="126" textAnchor="middle" fontSize="14" fill="#C9A84C" fontFamily="Arial" letterSpacing="4">2026</text>
-          <text x="100" y="142" textAnchor="middle" fontSize="8" fill="#9A8F84" fontFamily="Arial" letterSpacing="2">HOST NATIONS</text>
-          <text x="60" y="158" textAnchor="middle" fontSize="18">🇺🇸</text>
-          <text x="100" y="158" textAnchor="middle" fontSize="18">🇨🇦</text>
-          <text x="140" y="158" textAnchor="middle" fontSize="18">🇲🇽</text>
+        <svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+          <text x="160" y="22" textAnchor="middle" fontSize="11" fill="#9A8F84" fontFamily="Arial" letterSpacing="4">NO APTO PARA SENSIBLES</text>
+          <text x="160" y="42" textAnchor="middle" fontSize="9" fill="#C9A84C" fontFamily="Arial" letterSpacing="2">· · ·</text>
+          <text x="160" y="88" textAnchor="middle" fontSize="52" fill="#C9A84C">🏆</text>
+          <text x="160" y="108" textAnchor="middle" fontSize="9" fill="#9A8F84" fontFamily="Arial" letterSpacing="4">FIFA</text>
+          <text x="160" y="130" textAnchor="middle" fontSize="20" fill="#C9A84C" fontFamily="Arial Black" fontWeight="900" letterSpacing="3">WORLD CUP</text>
+          <text x="160" y="148" textAnchor="middle" fontSize="14" fill="#C9A84C" fontFamily="Arial" letterSpacing="5">2026</text>
+          <text x="160" y="163" textAnchor="middle" fontSize="9" fill="#9A8F84" fontFamily="Arial" letterSpacing="3">HOST NATIONS</text>
+          <text x="100" y="180" textAnchor="middle" fontSize="20">🇺🇸</text>
+          <text x="160" y="180" textAnchor="middle" fontSize="20">🇨🇦</text>
+          <text x="220" y="180" textAnchor="middle" fontSize="20">🇲🇽</text>
         </svg>
       </div>
 
