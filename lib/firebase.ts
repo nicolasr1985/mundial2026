@@ -16,6 +16,9 @@ import {
   setDoc,
   getDoc,
   getDocs,
+  deleteDoc,
+  updateDoc,
+  writeBatch,
   collection,
   query,
   where,
@@ -411,6 +414,26 @@ export function calculateMatchPoints(
 
 export async function sendUserPasswordReset(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, email);
+}
+
+// Delete user: removes Firestore profile + all picks
+// Note: Firebase Auth account stays but is unusable without a profile
+export async function deleteUserData(uid: string): Promise<void> {
+  const batch = writeBatch(db);
+
+  // Delete user profile
+  batch.delete(doc(db, "users", uid));
+
+  // Delete all picks
+  const picksSnap = await getDocs(query(collection(db, "picks"), where("userId", "==", uid)));
+  picksSnap.docs.forEach(d => batch.delete(d.ref));
+
+  await batch.commit();
+}
+
+// Toggle admin status
+export async function toggleUserAdmin(uid: string, isAdmin: boolean): Promise<void> {
+  await updateDoc(doc(db, "users", uid), { isAdmin: !isAdmin });
 }
 
 export { Timestamp };

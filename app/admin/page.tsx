@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, lockMatch, resetMatch,
   setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers,
-  sendUserPasswordReset, Match, Timestamp, UserProfile
+  sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile
 } from "@/lib/firebase";
 
 const ROUNDS = [
@@ -888,18 +888,9 @@ function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: ()
     setLoading(uid);
     setConfirmDelete(null);
     try {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "delete", uid }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMsg(uid, "✅ Usuario eliminado");
-        onUpdated();
-      } else {
-        setMsg(uid, "❌ " + data.error);
-      }
+      await deleteUserData(uid);
+      setMsg(uid, "✅ Usuario eliminado");
+      onUpdated();
     } catch (e) {
       setMsg(uid, "❌ Error: " + String(e));
     } finally { setLoading(null); }
@@ -908,18 +899,9 @@ function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: ()
   const handleToggleAdmin = async (u: UserProfile) => {
     setLoading(u.uid);
     try {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "toggleAdmin", uid: u.uid }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMsg(u.uid, data.isAdmin ? "✅ Ahora es admin" : "✅ Ya no es admin");
-        onUpdated();
-      } else {
-        setMsg(u.uid, "❌ " + data.error);
-      }
+      await toggleUserAdmin(u.uid, u.isAdmin);
+      setMsg(u.uid, u.isAdmin ? "✅ Ya no es admin" : "✅ Ahora es admin");
+      onUpdated();
     } catch (e) {
       setMsg(u.uid, "❌ Error: " + String(e));
     } finally { setLoading(null); }
