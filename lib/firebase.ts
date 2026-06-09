@@ -50,10 +50,11 @@ export interface UserProfile {
   displayName: string;
   isAdmin: boolean;
   createdAt: Timestamp;
-  champion?: string;   // equipo campeón pronosticado
-  topScorer?: string;  // goleador pronosticado
+  champion?: string;
+  topScorer?: string;
   championLocked?: boolean;
   topScorerLocked?: boolean;
+  showFifaRanking?: boolean;
 }
 
 export interface Match {
@@ -138,6 +139,17 @@ export async function updateChampionPick(uid: string, champion: string, topScore
   const deadline = new Date("2026-06-09T23:59:59");
   if (new Date() > deadline) throw new Error("La fecha límite para estas predicciones ya pasó.");
   await setDoc(doc(db, "users", uid), { champion, topScorer }, { merge: true });
+}
+
+export async function updateUserProfile(
+  uid: string,
+  data: { displayName?: string; showFifaRanking?: boolean }
+): Promise<void> {
+  await updateDoc(doc(db, "users", uid), data);
+  if (data.displayName) {
+    const currentUser = auth.currentUser;
+    if (currentUser) await updateProfile(currentUser, { displayName: data.displayName });
+  }
 }
 
 // ─── PARTIDOS ─────────────────────────────────────────────────────────────────

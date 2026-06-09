@@ -1,7 +1,7 @@
 // app/client-layout.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthChange, logoutUser, getUserProfile, UserProfile } from "@/lib/firebase";
@@ -14,6 +14,17 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      try {
+        const p = await getUserProfile(user.uid);
+        setProfile(p);
+      } catch (err) {
+        console.warn("Profile refresh error:", err);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     const unsub = onAuthChange(async (u) => {
@@ -47,10 +58,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     { href: "/mypicks", label: "Mis Picks" },
     { href: "/standings", label: "Tabla" },
     ...(isAdmin ? [{ href: "/admin", label: "⚙ Admin" }] : []),
+    { href: "/settings", label: "⚙ Config" },
   ];
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading }}>
+    <AuthContext.Provider value={{ user, profile, loading, refreshProfile }}>
       {isAuth && (
         <nav className="nav">
           <div className="nav-inner">

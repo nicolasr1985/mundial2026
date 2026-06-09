@@ -9,7 +9,7 @@ import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
 export default function MyPicksPage() {
   const { user, profile, loading } = useAuth();
-  const showRank = canSeeRanking(user?.email);
+  const showRank = canSeeRanking(user?.email, profile?.showFifaRanking);
   const router = useRouter();
   const [picks, setPicks] = useState<Pick[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);

@@ -709,7 +709,7 @@ function assignThirds(
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 export default function StandingsPage() {
   const { user, loading } = useAuth();
-  const showRank = canSeeRanking(user?.email);
+  const showRank = canSeeRanking(user?.email, profile?.showFifaRanking);
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [userPickMap, setUserPickMap] = useState<Record<string, { homeScore: number; awayScore: number }>>({});

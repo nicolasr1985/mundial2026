@@ -119,7 +119,12 @@ export function getRank(teamName: string): number | null {
 
 const RANKING_EMAIL = "nicolasr9@gmail.com";
 
-export function canSeeRanking(email: string | null | undefined): boolean {
+// showFifaRanking from profile, fallback to email check for nicolasr9
+export function canSeeRanking(
+  email: string | null | undefined,
+  showFifaRanking?: boolean
+): boolean {
+  if (showFifaRanking === true) return true;
   return email === RANKING_EMAIL;
 }
 

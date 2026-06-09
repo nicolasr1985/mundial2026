@@ -8,7 +8,13 @@ export interface AuthCtx {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthCtx>({ user: null, profile: null, loading: true });
+export const AuthContext = createContext<AuthCtx>({
+  user: null,
+  profile: null,
+  loading: true,
+  refreshProfile: async () => {},
+});
 export const useAuth = () => useContext(AuthContext);
