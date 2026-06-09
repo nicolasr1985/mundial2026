@@ -708,7 +708,7 @@ function assignThirds(
 
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 export default function StandingsPage() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const showRank = canSeeRanking(user?.email, profile?.showFifaRanking);
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
