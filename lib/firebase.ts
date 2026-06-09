@@ -411,7 +411,7 @@ export function calculateMatchPoints(
   let pts = 0;
   const predResult = Math.sign(predHome - predAway);
   const realResult = Math.sign(realHome - realAway);
-  if (predResult === realResult) pts += 3; // Resultado correcto
+  if (predResult === realResult) pts += 2; // Resultado correcto
 
   // Goles acertados (1 pt por cada gol del equipo correcto acertado)
   if (predHome === realHome) pts += 1;
@@ -419,7 +419,7 @@ export function calculateMatchPoints(
 
   // Si acertamos marcador exacto ya retornamos 5, aquí los puntos parciales
   // no deben superar 4 (para que el exacto siempre valga más)
-  return Math.min(pts, 4);
+  return pts;
 }
 
 export async function sendUserPasswordReset(email: string): Promise<void> {
