@@ -350,7 +350,7 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
               color: "var(--text)", outline: "none", width: "100%",
             }}
           >
-            <option value="">-- Selecciona --</option>
+            <option value="">🗑 Limpiar selección</option>
             {options.map((o) => (
               <option key={isTeam ? o as string : (o as any).name} value={isTeam ? o as string : (o as any).name}>
                 {isTeam ? o as string : formatScorer(o as any)}
@@ -361,7 +361,7 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
             <button
               className="btn-primary"
               onClick={handleSave}
-              disabled={saving || !value}
+              disabled={saving}
               style={{ padding: "6px 14px", fontSize: 12, flex: 1 }}
             >
               {saving ? "..." : "Guardar"}
