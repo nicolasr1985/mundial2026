@@ -27,6 +27,7 @@ export default function MyPicksPage() {
 
   const loadData = useCallback(async () => {
     if (!user) return;
+    await refreshProfile();
     const [p, m, gp, st, ap, au] = await Promise.all([
       getUserPicks(user.uid),
       getMatches(),
@@ -42,7 +43,7 @@ export default function MyPicksPage() {
     setAllPicks(ap);
     setAllUsers(au);
     setFetching(false);
-  }, [user]);
+  }, [user, refreshProfile]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
