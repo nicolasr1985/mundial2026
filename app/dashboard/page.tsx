@@ -3,14 +3,21 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getRanking, getTournamentSettings, RankingEntry } from "@/lib/firebase";
-import { isDeadlinePassed } from "@/lib/scoring";
+import { getRanking, getTournamentSettings, getAllUsers, RankingEntry } from "@/lib/firebase";
+
+const BET_PER_USER = 200000;
+const SECOND_PRIZE = 200000;
+
+function formatCOP(n: number) {
+  return "$" + n.toLocaleString("es-CO");
+}
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const [totalUsers, setTotalUsers] = useState(0);
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
@@ -21,9 +28,10 @@ export default function DashboardPage() {
     if (!user) return;
     const load = async () => {
       try {
-        const [r, s] = await Promise.all([getRanking(), getTournamentSettings()]);
+        const [r, s, u] = await Promise.all([getRanking(), getTournamentSettings(), getAllUsers()]);
         setRanking(r);
         setSettings(s as Record<string, string>);
+        setTotalUsers(u.filter(x => !x.isAdmin).length);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
@@ -37,6 +45,9 @@ export default function DashboardPage() {
 
   const myPosition = ranking.findIndex((r) => r.uid === user?.uid) + 1;
   const myEntry = ranking.find((r) => r.uid === user?.uid);
+
+  const totalPot = totalUsers * BET_PER_USER;
+  const firstPrize = Math.max(0, totalPot - SECOND_PRIZE);
 
   if (loading || fetching) return <LoadingScreen />;
 
@@ -63,6 +74,36 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Premio */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+        gap: 12, marginBottom: 24,
+      }}>
+        <div style={s.prizeCard}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🏆 1er Puesto</div>
+          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)", lineHeight: 1 }}>
+            {formatCOP(firstPrize)}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+            {totalUsers} participantes × {formatCOP(BET_PER_USER)} − 2°
+          </div>
+        </div>
+        <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥈 2do Puesto</div>
+          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
+            {formatCOP(SECOND_PRIZE)}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Premio fijo</div>
+        </div>
+        <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💰 Pozo total</div>
+          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text)", lineHeight: 1 }}>
+            {formatCOP(totalPot)}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{totalUsers} participantes</div>
+        </div>
+      </div>
+
       {/* Tabla de ranking */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
@@ -76,7 +117,13 @@ export default function DashboardPage() {
         ) : (
           <div>
             {ranking.map((entry, i) => (
-              <RankRow key={entry.uid} entry={entry} position={i + 1} isMe={entry.uid === user?.uid} />
+              <RankRow
+                key={entry.uid}
+                entry={entry}
+                position={i + 1}
+                isMe={entry.uid === user?.uid}
+                prize={i === 0 ? firstPrize : i === 1 ? SECOND_PRIZE : null}
+              />
             ))}
           </div>
         )}
@@ -103,7 +150,9 @@ export default function DashboardPage() {
   );
 }
 
-function RankRow({ entry, position, isMe }: { entry: RankingEntry; position: number; isMe: boolean }) {
+function RankRow({ entry, position, isMe, prize }: {
+  entry: RankingEntry; position: number; isMe: boolean; prize: number | null;
+}) {
   const medal = position === 1 ? "🥇" : position === 2 ? "🥈" : position === 3 ? "🥉" : null;
   return (
     <div style={{
@@ -112,35 +161,34 @@ function RankRow({ entry, position, isMe }: { entry: RankingEntry; position: num
       background: isMe ? "rgba(201,168,76,0.05)" : "transparent",
       transition: "background 0.15s", gap: 10, flexWrap: "wrap",
     }}>
-      {/* Position */}
       <div style={{ width: 32, textAlign: "center", fontFamily: "'Bebas Neue',sans-serif", fontSize: 18,
         color: position <= 3 ? "var(--gold)" : "var(--text-muted)", flexShrink: 0 }}>
         {medal || `#${position}`}
       </div>
 
-      {/* Name + tiebreaker badges */}
       <div style={{ flex: 1, minWidth: 120 }}>
         <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {entry.displayName}
           {isMe && <span className="badge badge-gold" style={{ fontSize: 10, padding: "2px 7px" }}>Tú</span>}
+          {prize !== null && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
+              background: position === 1 ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,0.06)",
+              color: position === 1 ? "var(--gold)" : "var(--text-dim)",
+              border: `1px solid ${position === 1 ? "var(--border-gold)" : "var(--border)"}`,
+            }}>
+              {formatCOP(prize)}
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap", rowGap: 4 }}>
-          <span style={tieStyle("#C9A84C")} title="Marcador exacto (5 pts)">
-            ⭐ {entry.exactCount}
-          </span>
-          <span style={tieStyle("#9B8FD0")} title="Resultado correcto (2 pts)">
-            ✅ {entry.resultCount ?? 0}
-          </span>
-          <span style={tieStyle("#6ABCB0")} title="Goles acertados (1 pt)">
-            ⚽ {entry.partialCount ?? 0}
-          </span>
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-            {entry.picksCount} apuestas
-          </span>
+          <span style={tieStyle("#C9A84C")} title="Marcador exacto (5 pts)">⭐ {entry.exactCount}</span>
+          <span style={tieStyle("#9B8FD0")} title="Resultado correcto (2 pts)">✅ {entry.resultCount ?? 0}</span>
+          <span style={tieStyle("#6ABCB0")} title="Goles acertados (1 pt)">⚽ {entry.partialCount ?? 0}</span>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{entry.picksCount} apuestas</span>
         </div>
       </div>
 
-      {/* Points breakdown */}
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
         {entry.matchPoints > 0 && (
           <div style={{ textAlign: "center" }}>
@@ -174,21 +222,10 @@ function tieStyle(color: string): React.CSSProperties {
   };
 }
 
-function PointsBreakdown({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
-  return (
-    <div style={{ textAlign: "center", display: "none" }} className="pts-detail">
-      <div style={{ fontSize: 14, fontWeight: 600, color: highlight ? "var(--gold)" : "var(--text-dim)" }}>{value}</div>
-      <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{label}</div>
-    </div>
-  );
-}
-
 function LoadingScreen() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 36, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)" }}>Cargando...</div>
-      </div>
+      <div style={{ fontSize: 36, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)" }}>Cargando...</div>
     </div>
   );
 }
@@ -199,17 +236,15 @@ const s: Record<string, React.CSSProperties> = {
     background: "rgba(201,168,76,0.08)", border: "1px solid var(--border-gold)",
     borderRadius: "var(--radius)", padding: "12px 20px", textAlign: "center",
   },
-  resultRow: {
-    marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)",
-    display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center",
+  prizeCard: {
+    background: "var(--surface)", border: "1px solid var(--border-gold)",
+    borderRadius: "var(--radius)", padding: "16px 20px",
   },
   legend: {
-    marginTop: 20, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center",
-    padding: "14px 0",
+    marginTop: 20, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", padding: "14px 0",
   },
   legendItem: {
     background: "var(--surface2)", borderRadius: 6, padding: "5px 10px",
-    fontSize: 12, display: "flex", gap: 6, alignItems: "center",
-    border: "1px solid var(--border)",
+    fontSize: 12, display: "flex", gap: 6, alignItems: "center", border: "1px solid var(--border)",
   },
 };
