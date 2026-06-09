@@ -16,8 +16,8 @@ const ROUNDS = [
 ];
 
 export default function PicksPage() {
-  const { user, loading } = useAuth();
-  const showRank = canSeeRanking(user?.email);
+  const { user, profile, loading } = useAuth();
+  const showRank = canSeeRanking(user?.email, profile?.showFifaRanking);
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [picks, setPicks] = useState<Record<string, Pick>>({});
