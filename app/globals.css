@@ -289,3 +289,39 @@ input, select {
   background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
   margin: 24px 0;
 }
+
+/* ─── LIGHT MODE ─────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --gold: #A67C2E;
+  --gold-light: #C49A3C;
+  --gold-dim: #7A5C1E;
+  --black: #F5F3EF;
+  --surface: #FFFFFF;
+  --surface2: #F0EDE8;
+  --surface3: #E8E4DE;
+  --border: #D8D3CC;
+  --border-gold: rgba(166, 124, 46, 0.3);
+  --text: #1A1A1A;
+  --text-dim: #4A4540;
+  --text-muted: #8A8580;
+  --green: #1A9E52;
+  --red: #C0392B;
+  --blue: #2178B0;
+}
+
+[data-theme="light"] body {
+  background: var(--black);
+  color: var(--text);
+}
+
+[data-theme="light"] .nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme="light"] .gold-text {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dim));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

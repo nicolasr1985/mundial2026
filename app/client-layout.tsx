@@ -15,6 +15,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    const stored = localStorage.getItem("darkMode");
+    const isDark = stored === null ? true : stored === "true";
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     if (user) {
       try {
