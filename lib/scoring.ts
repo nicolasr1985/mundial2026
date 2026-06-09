@@ -19,7 +19,7 @@ export const POINTS = {
   GROUP_THIRD: 1,
   CHAMPION: 15,
   TOP_SCORER: 10,
-  DEADLINE: new Date("2026-06-11T15:00:00-05:00"),
+  DEADLINE: new Date("2026-06-11T14:00:00-05:00"),
 } as const;
 
 export function calculateMatchPoints(
