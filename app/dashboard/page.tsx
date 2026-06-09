@@ -3,22 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getRanking, getTournamentSettings, updateChampionPick, RankingEntry } from "@/lib/firebase";
-import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
-import { isDeadlinePassed, formatDeadline } from "@/lib/scoring";
+import { getRanking, getTournamentSettings, RankingEntry } from "@/lib/firebase";
+import { isDeadlinePassed } from "@/lib/scoring";
 
 export default function DashboardPage() {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [fetching, setFetching] = useState(true);
-  const [champion, setChampion] = useState("");
-  const [topScorer, setTopScorer] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const deadlinePassed = isDeadlinePassed();
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -41,29 +34,6 @@ export default function DashboardPage() {
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
   }, [user]);
-
-  useEffect(() => {
-    if (profile) {
-      setChampion(profile.champion || "");
-      setTopScorer(profile.topScorer || "");
-    }
-  }, [profile]);
-
-  const handleSavePicks = async () => {
-    if (!user || deadlinePassed) return;
-    setSaving(true);
-    setMsg("");
-    try {
-      await updateChampionPick(user.uid, champion, topScorer);
-      setMsg("✅ Predicciones guardadas");
-      setIsEditing(false);
-    } catch {
-      setMsg("❌ Error al guardar");
-    } finally {
-      setSaving(false);
-      setTimeout(() => setMsg(""), 3000);
-    }
-  };
 
   const myPosition = ranking.findIndex((r) => r.uid === user?.uid) + 1;
   const myEntry = ranking.find((r) => r.uid === user?.uid);
@@ -89,121 +59,6 @@ export default function DashboardPage() {
               #{myPosition}
             </div>
             <div style={{ fontSize: 13, color: "var(--text-dim)" }}>{myEntry.totalPoints} pts</div>
-          </div>
-        )}
-      </div>
-
-      {/* Predicciones especiales */}
-      <div className="card-gold" style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-          <div>
-            <h2 style={{ fontSize: 20, color: "var(--text)" }}>🏆 Predicciones Especiales</h2>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-              {deadlinePassed
-                ? "🔒 Cerradas — pitazo inicial del Mundial"
-                : `⏰ Fecha límite: ${formatDeadline()} (pitazo inicial)`}
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <span className="badge badge-gold">Campeón = 15 pts</span>
-            <span className="badge badge-gold">Goleador = 10 pts</span>
-          </div>
-        </div>
-
-        {/* Already submitted — show read-only confirmation unless editing */}
-        {(champion || topScorer) && !isEditing ? (
-          <div style={{ background: "rgba(46,204,113,0.08)", border: "1px solid rgba(46,204,113,0.25)", borderRadius: "var(--radius-sm)", padding: "16px 20px" }}>
-            <div style={{ fontSize: 13, color: "var(--green)", fontWeight: 600, marginBottom: 12 }}>
-              ✅ Predicciones registradas {deadlinePassed ? "— ya no se pueden modificar" : "— puedes cambiarlas antes del pitazo"}
-            </div>
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>🥇 CAMPEÓN</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{champion || "—"}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>⚽ GOLEADOR</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{topScorer || "—"}</div>
-              </div>
-            </div>
-            {!deadlinePassed && (
-              <button
-                className="btn-ghost"
-                style={{ marginTop: 12, fontSize: 12, padding: "6px 14px" }}
-                onClick={() => setIsEditing(true)}
-              >
-                ✏ Modificar predicciones
-              </button>
-            )}
-          </div>
-        ) : deadlinePassed ? (
-          <div style={{ background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.2)", borderRadius: "var(--radius-sm)", padding: "16px 20px", color: "var(--text-muted)", fontSize: 14 }}>
-            🔒 No enviaste predicciones especiales antes del pitazo. No acumularás puntos de campeón/goleador.
-          </div>
-        ) : (
-          <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label className="label">🥇 Campeón del Mundial</label>
-                <select
-                  className="input"
-                  value={champion}
-                  onChange={(e) => setChampion(e.target.value)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <option value="">— Selecciona un equipo —</option>
-                  {WC2026_TEAMS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">⚽ Goleador del Torneo</label>
-                <select
-                  className="input"
-                  value={topScorer}
-                  onChange={(e) => setTopScorer(e.target.value)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <option value="">— Selecciona un jugador —</option>
-                  {WC2026_SCORERS.map((s, i) => (
-                    <option key={i} value={formatScorer(s)}>{formatScorer(s)}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-              <button
-                className="btn-primary"
-                onClick={handleSavePicks}
-                disabled={saving || !champion.trim() || !topScorer.trim()}
-                style={{ padding: "10px 24px", opacity: (!champion.trim() || !topScorer.trim()) ? 0.4 : 1 }}
-              >
-                {saving ? "Guardando..." : isEditing ? "Actualizar predicciones" : "Enviar predicciones"}
-              </button>
-              {isEditing && (
-                <button
-                  className="btn-ghost"
-                  style={{ fontSize: 12, padding: "8px 14px" }}
-                  onClick={() => {
-                    setChampion(profile?.champion || "");
-                    setTopScorer(profile?.topScorer || "");
-                    setIsEditing(false);
-                  }}
-                >
-                  Cancelar
-                </button>
-              )}
-              {msg && <span style={{ fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
-            </div>
-          </>
-        )}
-
-        {settings.champion && (
-          <div style={{ ...s.resultRow, marginTop: 16 }}>
-            <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Resultado oficial:</span>
-            <span style={{ color: "var(--gold)", fontWeight: 600 }}>🏆 {settings.champion}</span>
-            {settings.topScorer && <span style={{ color: "var(--gold)", fontWeight: 600 }}>⚽ {settings.topScorer}</span>}
           </div>
         )}
       </div>
