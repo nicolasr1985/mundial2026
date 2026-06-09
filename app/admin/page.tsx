@@ -540,7 +540,7 @@ function SpecialTab({ settings, users, onUpdated }: {
           <h2 style={{ fontSize: 18, color: "var(--text)" }}>📋 Picks de los Participantes</h2>
           {!deadlinePassed && (
             <span className="badge badge-red" style={{ fontSize: 11 }}>
-              🔒 Visible solo después del pitazo inicial (Jun 11, 3pm)
+              🔒 Visible solo después del pitazo inicial (Jun 11, 2pm)
             </span>
           )}
         </div>
@@ -549,7 +549,7 @@ function SpecialTab({ settings, users, onUpdated }: {
           <div className="card" style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>⏰</div>
             <p>Los picks de los participantes serán visibles aquí cuando empiece el primer partido del Mundial.</p>
-            <p style={{ fontSize: 12, marginTop: 8 }}>Junio 11, 2026 — 3:00 pm (hora Bogotá)</p>
+            <p style={{ fontSize: 12, marginTop: 8 }}>Junio 11, 2026 — 2:00 pm (hora Bogotá)</p>
           </div>
         ) : (
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
