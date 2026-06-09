@@ -84,23 +84,18 @@ export default function DashboardPage() {
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)", lineHeight: 1 }}>
             {formatCOP(firstPrize)}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-            {totalUsers} participantes × {formatCOP(BET_PER_USER)} − 2°
-          </div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥈 2do Puesto</div>
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
             {formatCOP(SECOND_PRIZE)}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Premio fijo</div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💰 Pozo total</div>
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text)", lineHeight: 1 }}>
             {formatCOP(totalPot)}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{totalUsers} participantes</div>
         </div>
       </div>
 
