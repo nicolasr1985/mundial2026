@@ -366,7 +366,7 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
     picksIndex[p.matchId][p.userId] = p;
   }
 
-  const nonAdminUsers = allUsers.filter(u => !u.isAdmin);
+  const nonAdminUsers = allUsers;
 
   if (matches.length === 0) return (
     <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
