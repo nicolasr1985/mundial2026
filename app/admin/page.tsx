@@ -6,7 +6,7 @@ import { isDeadlinePassed } from "@/lib/scoring";
 import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch,
+  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks,
   setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers,
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile
 } from "@/lib/firebase";
@@ -26,7 +26,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [fetching, setFetching] = useState(true);
-  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special" | "whatsapp" | "usuarios">("matches");
+  const [activeTab, setActiveTab] = useState<"matches" | "results" | "groups" | "special" | "whatsapp" | "usuarios" | "export">("matches");
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -66,6 +66,7 @@ export default function AdminPage() {
           { id: "groups", label: "🏅 Clasificación Grupos" },
           { id: "special", label: "🏆 Campeón / Goleador" },
           { id: "whatsapp", label: "📱 WhatsApp" },
+          { id: "export", label: "📊 Exportar" },
           { id: "usuarios", label: "👥 Usuarios" },
         ] as const).map((t) => (
           <button
@@ -89,6 +90,7 @@ export default function AdminPage() {
       {activeTab === "special" && <SpecialTab settings={settings} users={users} onUpdated={loadData} />}
       {activeTab === "whatsapp" && <WhatsAppTab matches={matches} users={users} settings={settings} />}
       {activeTab === "usuarios" && <UsuariosTab users={users} onUpdated={loadData} />}
+      {activeTab === "export" && <ExportTab matches={matches} users={users} />}
     </div>
   );
 }
@@ -1086,6 +1088,115 @@ function Loading() {
   return (
     <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 28 }}>Cargando...</div>
+    </div>
+  );
+}
+
+
+// ─── EXPORT TAB ───────────────────────────────────────────────────────────────
+function ExportTab({ matches, users }: { matches: Match[]; users: UserProfile[] }) {
+  const [exporting, setExporting] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const exportToCSV = async () => {
+    setExporting(true);
+    setMsg("");
+    try {
+      const allPicksSnap = await getAllPicks();
+
+      // Build rows: one per user per match
+      const rows: string[][] = [];
+      const header = ["Partido", "Fecha", "Local", "Visitante", "Usuario", "Pick Local", "Pick Visitante", "Resultado", "Puntos"];
+      rows.push(header);
+
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
+
+      // Filter matches played today or before
+      const relevantMatches = matches.filter((m) => {
+        const d = m.matchDate?.toDate?.();
+        return d && d <= today;
+      }).sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0));
+
+      for (const match of relevantMatches) {
+        const matchPicks = allPicksSnap.filter((p) => p.matchId === match.id);
+        const dateStr = match.matchDate?.toDate?.()?.toLocaleString("es-CO", {
+          day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+        }) ?? "";
+        const result = match.homeScore !== null && match.awayScore !== null
+          ? `${match.homeScore}-${match.awayScore}` : "";
+
+        const nonAdminUsers = users.filter((u) => !u.isAdmin);
+        for (const u of nonAdminUsers) {
+          const pick = matchPicks.find((p) => p.userId === u.uid);
+          rows.push([
+            `${match.homeTeam} vs ${match.awayTeam}`,
+            dateStr,
+            match.homeTeam,
+            match.awayTeam,
+            u.displayName,
+            pick ? String(pick.homeScore) : "",
+            pick ? String(pick.awayScore) : "",
+            result,
+            pick?.points !== null && pick?.points !== undefined ? String(pick.points) : "",
+          ]);
+        }
+      }
+
+      // Convert to CSV
+      const csv = rows.map((r) =>
+        r.map((cell) => `"${String(cell).replace(/"/g, '\"')}"`)
+          .join(",")
+      ).join("\n");
+
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `picks_${todayStr}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMsg("✅ Exportado");
+    } catch {
+      setMsg("❌ Error al exportar");
+    } finally {
+      setExporting(false);
+      setTimeout(() => setMsg(""), 3000);
+    }
+  };
+
+  const today = new Date();
+  const matchesToday = matches.filter((m) => {
+    const d = m.matchDate?.toDate?.();
+    if (!d) return false;
+    return d.toDateString() === today.toDateString();
+  });
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ fontSize: 16, marginBottom: 8, color: "var(--text)" }}>📊 Exportar apuestas a CSV</h3>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
+          Exporta todas las apuestas de partidos jugados hasta hoy. Abre el archivo con Excel o Google Sheets.
+        </p>
+        {matchesToday.length > 0 && (
+          <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(201,168,76,0.06)", border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)", fontSize: 13, color: "var(--text-muted)" }}>
+            📅 Hoy hay <strong style={{ color: "var(--gold)" }}>{matchesToday.length} partido(s)</strong>:{" "}
+            {matchesToday.map((m) => `${m.homeTeam} vs ${m.awayTeam}`).join(", ")}
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            className="btn-primary"
+            onClick={exportToCSV}
+            disabled={exporting}
+            style={{ padding: "10px 24px" }}
+          >
+            {exporting ? "Exportando..." : "📥 Descargar CSV"}
+          </button>
+          {msg && <span style={{ fontSize: 13, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
+        </div>
+      </div>
     </div>
   );
 }

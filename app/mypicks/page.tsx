@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, getAllPicks, getAllUsers, Pick, Match, GroupPick, UserProfile } from "@/lib/firebase";
+import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, getAllPicks, getAllUsers, updateChampionPick, Pick, Match, GroupPick, UserProfile } from "@/lib/firebase";
+import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { getPointsBreakdown } from "@/lib/scoring";
 import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
 export default function MyPicksPage() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const showRank = canSeeRanking(user?.email, profile?.showFifaRanking);
   const router = useRouter();
   const [picks, setPicks] = useState<Pick[]>([]);
@@ -130,12 +131,20 @@ export default function MyPicksPage() {
             myPick={profile?.champion}
             official={settings.champion}
             points={15}
+            field="champion"
+            uid={user?.uid}
+            currentTopScorer={profile?.topScorer}
+            onSaved={refreshProfile}
           />
           <SpecialPickRow
             label="Goleador del Torneo"
             myPick={profile?.topScorer}
             official={settings.topScorer}
             points={10}
+            field="topScorer"
+            uid={user?.uid}
+            currentChampion={profile?.champion}
+            onSaved={refreshProfile}
           />
         </div>
 
@@ -290,17 +299,106 @@ function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; sh
   );
 }
 
-function SpecialPickRow({ label, myPick, official, points }: { label: string; myPick?: string; official?: string; points: number }) {
+function SpecialPickRow({ label, myPick, official, points, field, uid, currentChampion, currentTopScorer, onSaved }: {
+  label: string; myPick?: string; official?: string; points: number;
+  field?: "champion" | "topScorer"; uid?: string;
+  currentChampion?: string; currentTopScorer?: string;
+  onSaved?: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(myPick || "");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  // Sync value when myPick changes (after save/refresh)
+  useEffect(() => { setValue(myPick || ""); }, [myPick]);
+
   const hit = official && myPick === official;
+  const isTeam = field === "champion";
+  const options = isTeam ? WC2026_TEAMS : WC2026_SCORERS;
+
+  const handleSave = async () => {
+    if (!uid || !field) return;
+    setSaving(true);
+    try {
+      const champion = field === "champion" ? value : (currentChampion || "");
+      const topScorer = field === "topScorer" ? value : (currentTopScorer || "");
+      await updateChampionPick(uid, champion, topScorer);
+      setMsg("✅ Guardado");
+      setEditing(false);
+      if (onSaved) await onSaved();
+    } catch {
+      setMsg("❌ Error al guardar");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setMsg(""), 3000);
+    }
+  };
+
   return (
     <div style={{ background: "var(--surface2)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>{label}</div>
-      <div style={{ fontWeight: 600, fontSize: 15, color: hit ? "var(--gold)" : "var(--text)" }}>
-        {myPick || <span style={{ color: "var(--text-muted)" }}>Sin predicción</span>}
-        {hit && <span style={{ marginLeft: 6 }}>✅ +{points} pts</span>}
-      </div>
-      {official && !hit && (
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>Oficial: {official}</div>
+      {editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <select
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            style={{
+              background: "var(--surface)", border: "1px solid var(--border-gold)",
+              borderRadius: "var(--radius-sm)", padding: "8px 10px", fontSize: 13,
+              color: "var(--text)", outline: "none", width: "100%",
+            }}
+          >
+            <option value="">-- Selecciona --</option>
+            {options.map((o) => (
+              <option key={isTeam ? o as string : (o as any).name} value={isTeam ? o as string : (o as any).name}>
+                {isTeam ? o as string : formatScorer(o as any)}
+              </option>
+            ))}
+          </select>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              className="btn-primary"
+              onClick={handleSave}
+              disabled={saving || !value}
+              style={{ padding: "6px 14px", fontSize: 12, flex: 1 }}
+            >
+              {saving ? "..." : "Guardar"}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setValue(myPick || ""); }}
+              style={{ padding: "6px 10px", fontSize: 12, background: "var(--surface3)",
+                border: "1px solid var(--border)", borderRadius: "var(--radius-sm)",
+                color: "var(--text-muted)", cursor: "pointer" }}
+            >
+              Cancelar
+            </button>
+          </div>
+          {msg && <span style={{ fontSize: 12, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <div style={{ fontWeight: 600, fontSize: 15, color: hit ? "var(--gold)" : "var(--text)" }}>
+              {myPick || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin predicción</span>}
+              {hit && <span style={{ marginLeft: 6 }}>✅ +{points} pts</span>}
+            </div>
+            {!official && (
+              <button
+                onClick={() => setEditing(true)}
+                style={{ fontSize: 11, padding: "3px 10px", background: "rgba(201,168,76,0.1)",
+                  border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)",
+                  color: "var(--gold)", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+              >
+                {myPick ? "Cambiar" : "Escoger"}
+              </button>
+            )}
+          </div>
+          {official && !hit && (
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>Oficial: {official}</div>
+          )}
+          {msg && <span style={{ fontSize: 12, color: "var(--green)" }}>{msg}</span>}
+        </>
       )}
     </div>
   );
