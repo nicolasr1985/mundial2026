@@ -117,15 +117,15 @@ export function getRank(teamName: string): number | null {
   return entry ? entry.rank : null;
 }
 
-const RANKING_EMAIL = "nicolasr9@gmail.com";
-
-// showFifaRanking from profile, fallback to email check for nicolasr9
 export function canSeeRanking(
-  email: string | null | undefined,
+  email?: string | null,
   showFifaRanking?: boolean
 ): boolean {
   if (showFifaRanking === true) return true;
-  return email === RANKING_EMAIL;
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("showFifaRanking") === "true";
+  }
+  return false;
 }
 
 export function teamWithRank(

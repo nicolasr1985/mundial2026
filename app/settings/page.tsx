@@ -23,7 +23,8 @@ export default function SettingsPage() {
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.displayName ?? "");
-      setShowFifaRanking(profile.showFifaRanking ?? false);
+      const storedRanking = localStorage.getItem("showFifaRanking");
+      setShowFifaRanking(storedRanking !== null ? storedRanking === "true" : (profile.showFifaRanking ?? false));
     }
     const stored = localStorage.getItem("darkMode");
     setDarkMode(stored === null ? true : stored === "true");
@@ -40,6 +41,7 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveMsg("");
     try {
+      localStorage.setItem("showFifaRanking", String(showFifaRanking));
       await updateUserProfile(user.uid, {
         displayName: displayName.trim() || profile?.displayName,
         showFifaRanking,
