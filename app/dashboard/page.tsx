@@ -30,7 +30,7 @@ export default function DashboardPage() {
         const [r, s, u] = await Promise.all([getRanking(), getTournamentSettings(), getAllUsers()]);
         setRanking(r);
         setSettings(s as Record<string, string>);
-        setTotalUsers(u.filter(x => !x.isAdmin).length);
+        setTotalUsers(u.length);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
