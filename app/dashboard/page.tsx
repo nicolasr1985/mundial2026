@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getRanking, getTournamentSettings, getAllUsers, RankingEntry } from "@/lib/firebase";
 
-const BET_PER_USER = 150000;
+const BET_PER_USER = 200000;
+const SECOND_PRIZE = 200000;
 
 function formatCOP(n: number) {
   return "$" + n.toLocaleString("es-CO");
@@ -30,7 +31,7 @@ export default function DashboardPage() {
         const [r, s, u] = await Promise.all([getRanking(), getTournamentSettings(), getAllUsers()]);
         setRanking(r);
         setSettings(s as Record<string, string>);
-        setTotalUsers(u.length);
+        setTotalUsers(u.filter(x => !x.isAdmin).length);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
@@ -46,9 +47,7 @@ export default function DashboardPage() {
   const myEntry = ranking.find((r) => r.uid === user?.uid);
 
   const totalPot = totalUsers * BET_PER_USER;
-  const firstPrize = Math.round(totalPot * 0.70);
-  const secondPrize = Math.round(totalPot * 0.20);
-  const thirdPrize = Math.round(totalPot * 0.10);
+  const firstPrize = Math.max(0, totalPot - SECOND_PRIZE);
 
   if (loading || fetching) return <LoadingScreen />;
 
@@ -77,7 +76,7 @@ export default function DashboardPage() {
 
       {/* Premio */}
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
         gap: 12, marginBottom: 24,
       }}>
         <div style={s.prizeCard}>
@@ -85,21 +84,12 @@ export default function DashboardPage() {
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)", lineHeight: 1 }}>
             {formatCOP(firstPrize)}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>70%</div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥈 2do Puesto</div>
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
-            {formatCOP(secondPrize)}
+            {formatCOP(SECOND_PRIZE)}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>20%</div>
-        </div>
-        <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥉 3er Puesto</div>
-          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
-            {formatCOP(thirdPrize)}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>10%</div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💰 Pozo total</div>
@@ -120,17 +110,11 @@ export default function DashboardPage() {
             Aún no hay participantes registrados
           </div>
         ) : (
-          <div>
-            {ranking.map((entry, i) => (
-              <RankRow
-                key={entry.uid}
-                entry={entry}
-                position={i + 1}
-                isMe={entry.uid === user?.uid}
-                prize={i === 0 ? firstPrize : i === 1 ? secondPrize : i === 2 ? thirdPrize : null}
-              />
-            ))}
-          </div>
+          <RankingTable
+            ranking={ranking}
+            userId={user?.uid ?? ""}
+            prizes={[firstPrize, secondPrize, thirdPrize]}
+          />
         )}
       </div>
 
@@ -151,6 +135,98 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function RankingTable({ ranking, userId, prizes }: {
+  ranking: RankingEntry[]; userId: string; prizes: number[];
+}) {
+  const allPaid = ranking.every(e => e.hasPaid);
+  const showPaid = !allPaid;
+
+  const th: React.CSSProperties = {
+    fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase",
+    letterSpacing: "0.06em", textAlign: "center" as const, padding: "10px 8px",
+    whiteSpace: "nowrap" as const, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+    borderBottom: "1px solid var(--border)", background: "var(--surface2)",
+  };
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
+        <thead>
+          <tr>
+            <th style={{ ...th, textAlign: "left", paddingLeft: 14, width: 36 }}>#</th>
+            <th style={{ ...th, textAlign: "left" }}>Participante</th>
+            <th style={th}>Partidos</th>
+            <th style={th}>Tabla</th>
+            <th style={th}>Especial</th>
+            <th style={{ ...th, color: "var(--gold)" }}>Total</th>
+            {showPaid && <th style={{ ...th, color: "var(--green)" }}>💰 Pago</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {ranking.map((entry, i) => {
+            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+            const isMe = entry.uid === userId;
+            const prize = i < prizes.length ? prizes[i] : null;
+            return (
+              <tr key={entry.uid} style={{
+                borderBottom: "1px solid var(--border)",
+                background: isMe ? "rgba(201,168,76,0.05)" : "transparent",
+              }}>
+                <td style={{ padding: "10px 8px 10px 14px", fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: i < 3 ? "var(--gold)" : "var(--text-muted)", textAlign: "center" }}>
+                  {medal || `#${i + 1}`}
+                </td>
+                <td style={{ padding: "10px 8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.displayName}</span>
+                    {isMe && <span className="badge badge-gold" style={{ fontSize: 10, padding: "1px 6px" }}>Tú</span>}
+                    {prize !== null && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
+                        background: i === 0 ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,0.06)",
+                        color: i === 0 ? "var(--gold)" : "var(--text-dim)",
+                        border: `1px solid ${i === 0 ? "var(--border-gold)" : "var(--border)"}`,
+                      }}>{formatCOP(prize)}</span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
+                    <span style={tieStyle("#C9A84C")}>⭐ {entry.exactCount}</span>
+                    <span style={tieStyle("#9B8FD0")}>✅ {entry.resultCount ?? 0}</span>
+                    <span style={tieStyle("#6ABCB0")}>⚽ {entry.partialCount ?? 0}</span>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{entry.picksCount} apuestas</span>
+                  </div>
+                </td>
+                <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: entry.matchPoints > 0 ? "var(--text)" : "var(--text-muted)" }}>{entry.matchPoints}</div>
+                  <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                </td>
+                <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: entry.groupPoints > 0 ? "var(--text)" : "var(--text-muted)" }}>{entry.groupPoints}</div>
+                  <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                </td>
+                <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: (entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
+                    {entry.championPoints + entry.topScorerPoints}
+                  </div>
+                  <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                </td>
+                <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: isMe ? "var(--gold)" : "var(--text)" }}>{entry.totalPoints}</div>
+                  <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", marginTop: -2 }}>pts</div>
+                </td>
+                {showPaid && (
+                  <td style={{ padding: "10px 8px", textAlign: "center", fontSize: 18 }}>
+                    {entry.hasPaid ? "✅" : "❌"}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

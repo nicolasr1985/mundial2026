@@ -55,6 +55,7 @@ export interface UserProfile {
   championLocked?: boolean;
   topScorerLocked?: boolean;
   showFifaRanking?: boolean;
+  hasPaid?: boolean;
 }
 
 export interface Match {
@@ -139,6 +140,10 @@ export async function updateChampionPick(uid: string, champion: string, topScore
   const deadline = new Date("2026-06-11T14:00:00-05:00");
   if (new Date() > deadline) throw new Error("La fecha límite para estas predicciones ya pasó.");
   await setDoc(doc(db, "users", uid), { champion, topScorer }, { merge: true });
+}
+
+export async function setUserPaid(uid: string, paid: boolean): Promise<void> {
+  await updateDoc(doc(db, "users", uid), { hasPaid: paid });
 }
 
 export async function updateUserProfile(
@@ -331,6 +336,7 @@ export interface RankingEntry {
   exactCount: number;   // picks worth 5 pts (exact score)
   resultCount: number;  // picks worth 3 pts (correct result)
   partialCount: number; // picks worth 1 pt (correct goals only)
+  hasPaid: boolean;
 }
 
 export async function getRanking(): Promise<RankingEntry[]> {
@@ -369,6 +375,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
         exactCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) >= 5).length,
         resultCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 2).length,
         partialCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 1).length,
+        hasPaid: u.hasPaid ?? false,
       };
     })
     .sort((a, b) => {

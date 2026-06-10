@@ -6,7 +6,7 @@ import { isDeadlinePassed } from "@/lib/scoring";
 import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile,
+  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
   setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers,
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile
 } from "@/lib/firebase";
@@ -924,6 +924,17 @@ function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: ()
     } finally { setLoading(null); }
   };
 
+  const handleTogglePaid = async (u: UserProfile) => {
+    setLoading(u.uid);
+    try {
+      await setUserPaid(u.uid, !u.hasPaid);
+      setMsg(u.uid, !u.hasPaid ? "✅ Pago registrado" : "✅ Pago removido");
+      onUpdated();
+    } catch (e) {
+      setMsg(u.uid, "❌ Error: " + String(e));
+    } finally { setLoading(null); }
+  };
+
   const filtered = users.filter(u =>
     u.displayName?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
@@ -984,6 +995,22 @@ function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: ()
 
       {/* Actions */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
+        {/* Pago */}
+        <button
+          onClick={() => handleTogglePaid(u)}
+          disabled={loading === u.uid}
+          style={{
+            fontSize: 12, padding: "6px 10px", borderRadius: "var(--radius-sm)", cursor: "pointer",
+            border: u.hasPaid ? "1px solid rgba(46,204,113,0.4)" : "1px solid var(--border)",
+            background: u.hasPaid ? "rgba(46,204,113,0.12)" : "var(--surface2)",
+            color: u.hasPaid ? "var(--green)" : "var(--text-muted)",
+            fontWeight: 600,
+          }}
+          title={u.hasPaid ? "Marcar como no pagado" : "Marcar como pagado"}
+        >
+          {u.hasPaid ? "💰 Pagó ✓" : "💰 Sin pago"}
+        </button>
+
         {/* Reset password */}
         <button
           className="btn-ghost"
