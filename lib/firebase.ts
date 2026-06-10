@@ -137,7 +137,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 }
 
 export async function updateChampionPick(uid: string, champion: string, topScorer: string) {
-  const deadline = new Date("2026-06-11T14:00:00-05:00");
+  const deadline = new Date("2026-06-09T23:59:59");
   if (new Date() > deadline) throw new Error("La fecha límite para estas predicciones ya pasó.");
   await setDoc(doc(db, "users", uid), { champion, topScorer }, { merge: true });
 }
@@ -337,17 +337,20 @@ export interface RankingEntry {
   resultCount: number;  // picks worth 3 pts (correct result)
   partialCount: number; // picks worth 1 pt (correct goals only)
   hasPaid: boolean;
+  phasePoints: Record<string, number>;
 }
 
 export async function getRanking(): Promise<RankingEntry[]> {
-  const [users, picks, groupPicks] = await Promise.all([
+  const [users, picks, groupPicks, matchesSnap] = await Promise.all([
     getAllUsers(),
     getDocs(collection(db, "picks")),
     getDocs(collection(db, "groupPicks")),
+    getDocs(collection(db, "matches")),
   ]);
 
   const allPicks = picks.docs.map((d) => d.data() as Pick);
   const allGroupPicks = groupPicks.docs.map((d) => d.data() as GroupPick);
+  const allMatches = matchesSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Match));
 
   // Leer resultados de campeón/goleador
   const settingsSnap = await getDoc(doc(db, "settings", "tournament"));
@@ -363,6 +366,25 @@ export async function getRanking(): Promise<RankingEntry[]> {
       const championPoints = settings.champion && u.champion === settings.champion ? 15 : 0;
       const topScorerPoints = settings.topScorer && u.topScorer === settings.topScorer ? 10 : 0;
 
+      const PHASES: [string, string][] = [
+        ["Grupos", "Fase de Grupos"],
+        ["Octavos", "Octavos de Final"],
+        ["Cuartos", "Cuartos de Final"],
+        ["Semis", "Semifinal"],
+        ["Final", "Final"],
+        ["3er Puesto", "Tercer Puesto"],
+      ];
+      const phasePoints: Record<string, number> = {};
+      for (const [label, roundStr] of PHASES) {
+        const pts = userPicks
+          .filter((p) => {
+            const match = allMatches.find((m) => m.id === p.matchId);
+            return match && (match.round === roundStr || (match.round as string).startsWith(roundStr));
+          })
+          .reduce((s, p) => s + (p.points ?? 0), 0);
+        if (pts > 0) phasePoints[label] = pts;
+      }
+
       return {
         uid: u.uid,
         displayName: u.displayName,
@@ -376,6 +398,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
         resultCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 2).length,
         partialCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 1).length,
         hasPaid: u.hasPaid ?? false,
+        phasePoints,
       };
     })
     .sort((a, b) => {

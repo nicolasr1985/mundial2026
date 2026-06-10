@@ -139,11 +139,19 @@ export default function DashboardPage() {
   );
 }
 
+
+const PHASE_ORDER = ["Grupos", "Octavos", "Cuartos", "Semis", "Final", "3er Puesto"];
+
 function RankingTable({ ranking, userId, prizes }: {
   ranking: RankingEntry[]; userId: string; prizes: number[];
 }) {
   const allPaid = ranking.every(e => e.hasPaid);
   const showPaid = !allPaid;
+  const activePhases = PHASE_ORDER.filter(phase =>
+    ranking.some(e => (e.phasePoints?.[phase] ?? 0) > 0)
+  );
+  const showEspecial = ranking.some(e => (e.championPoints + e.topScorerPoints) > 0);
+  const showTabla = ranking.some(e => e.groupPoints > 0);
 
   const th: React.CSSProperties = {
     fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase",
@@ -154,15 +162,15 @@ function RankingTable({ ranking, userId, prizes }: {
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 400 }}>
         <thead>
           <tr>
             <th style={{ ...th, textAlign: "left", paddingLeft: 14, width: 36 }}>#</th>
             <th style={{ ...th, textAlign: "left" }}>Participante</th>
-            <th style={th}>Partidos</th>
-            <th style={th}>Tabla</th>
-            <th style={th}>Especial</th>
-            <th style={{ ...th, color: "var(--gold)" }}>Total</th>
+            {activePhases.map(p => <th key={p} style={th}>{p}</th>)}
+            {showTabla && <th style={th}>Tabla</th>}
+            {showEspecial && <th style={{ ...th, color: "var(--gold)" }}>Especial</th>}
+            <th style={{ ...th, color: "var(--gold)", fontWeight: 700 }}>Total</th>
             {showPaid && <th style={{ ...th, color: "var(--green)" }}>💰 Pago</th>}
           </tr>
         </thead>
@@ -199,20 +207,28 @@ function RankingTable({ ranking, userId, prizes }: {
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{entry.picksCount} apuestas</span>
                   </div>
                 </td>
-                <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: entry.matchPoints > 0 ? "var(--text)" : "var(--text-muted)" }}>{entry.matchPoints}</div>
-                  <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
-                </td>
-                <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: entry.groupPoints > 0 ? "var(--text)" : "var(--text-muted)" }}>{entry.groupPoints}</div>
-                  <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
-                </td>
-                <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: (entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
-                    {entry.championPoints + entry.topScorerPoints}
-                  </div>
-                  <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
-                </td>
+                {activePhases.map(phase => (
+                  <td key={phase} style={{ padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: (entry.phasePoints?.[phase] ?? 0) > 0 ? "var(--text)" : "var(--text-muted)" }}>
+                      {entry.phasePoints?.[phase] ?? 0}
+                    </div>
+                    <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                  </td>
+                ))}
+                {showTabla && (
+                  <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: entry.groupPoints > 0 ? "var(--text)" : "var(--text-muted)" }}>{entry.groupPoints}</div>
+                    <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                  </td>
+                )}
+                {showEspecial && (
+                  <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: (entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
+                      {entry.championPoints + entry.topScorerPoints}
+                    </div>
+                    <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                  </td>
+                )}
                 <td style={{ padding: "10px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: isMe ? "var(--gold)" : "var(--text)" }}>{entry.totalPoints}</div>
                   <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", marginTop: -2 }}>pts</div>
