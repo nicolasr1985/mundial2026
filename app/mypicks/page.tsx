@@ -120,7 +120,7 @@ export default function MyPicksPage() {
         <StatCard label="Exactos" value={exactCount} unit="⭐" />
         <StatCard label="Correctos" value={correctCount} unit="✅" />
         <StatCard label="Precisión" value={accuracy} unit="%" />
-        <StatCard label="Apuestas" value={finishedPicks.length} unit="/" extra={picks.length} />
+        <StatCard label="Apuestas" value={finishedPicks.length} unit="" extra={picks.length} />
       </div>
 
       {/* Special picks */}
