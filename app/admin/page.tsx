@@ -16,7 +16,7 @@ const ROUNDS = [
   "Fase de Grupos - Grupo D", "Fase de Grupos - Grupo E", "Fase de Grupos - Grupo F",
   "Fase de Grupos - Grupo G", "Fase de Grupos - Grupo H", "Fase de Grupos - Grupo I",
   "Fase de Grupos - Grupo J", "Fase de Grupos - Grupo K", "Fase de Grupos - Grupo L",
-  "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
+  "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
 ];
 
 const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
