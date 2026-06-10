@@ -6,7 +6,7 @@ import { isDeadlinePassed } from "@/lib/scoring";
 import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks,
+  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile,
   setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers,
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile
 } from "@/lib/firebase";
@@ -870,6 +870,8 @@ function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: ()
   const [loading, setLoading] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
 
   const setMsg = (uid: string, msg: string) => {
     setMsgs(prev => ({ ...prev, [uid]: msg }));
@@ -909,6 +911,19 @@ function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: ()
     } finally { setLoading(null); }
   };
 
+  const handleRename = async (u: UserProfile) => {
+    if (!nameInput.trim() || nameInput.trim() === u.displayName) { setEditingName(null); return; }
+    setLoading(u.uid);
+    try {
+      await updateUserProfile(u.uid, { displayName: nameInput.trim() });
+      setMsg(u.uid, "✅ Nombre actualizado");
+      setEditingName(null);
+      onUpdated();
+    } catch (e) {
+      setMsg(u.uid, "❌ Error: " + String(e));
+    } finally { setLoading(null); }
+  };
+
   const filtered = users.filter(u =>
     u.displayName?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
@@ -936,8 +951,25 @@ function UsuariosTab({ users, onUpdated }: { users: UserProfile[]; onUpdated: ()
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 120 }}>
-        <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-          {u.displayName}
+        <div style={{ fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {editingName === u.uid ? (
+            <>
+              <input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleRename(u); if (e.key === "Escape") setEditingName(null); }}
+                style={{ background: "var(--surface2)", border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)", padding: "4px 8px", fontSize: 13, color: "var(--text)", outline: "none", width: 140 }}
+                autoFocus
+              />
+              <button onClick={() => handleRename(u)} disabled={loading === u.uid} style={{ fontSize: 11, padding: "3px 8px", background: "var(--gold)", color: "#000", border: "none", borderRadius: 4, cursor: "pointer" }}>✓</button>
+              <button onClick={() => setEditingName(null)} style={{ fontSize: 11, padding: "3px 8px", background: "var(--surface2)", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: 4, cursor: "pointer" }}>✕</button>
+            </>
+          ) : (
+            <>
+              {u.displayName}
+              <button onClick={() => { setEditingName(u.uid); setNameInput(u.displayName); }} style={{ fontSize: 10, padding: "2px 6px", background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: 4, cursor: "pointer" }}>✏</button>
+            </>
+          )}
           {u.isAdmin && (
             <span className="badge badge-gold" style={{ fontSize: 10 }}>Admin</span>
           )}
