@@ -6,8 +6,6 @@ import { useAuth } from "@/lib/auth-context";
 import { getRanking, getTournamentSettings, getAllUsers, RankingEntry } from "@/lib/firebase";
 
 const BET_PER_USER = 200000;
-const SECOND_PRIZE = 200000;
-
 function formatCOP(n: number) {
   return "$" + n.toLocaleString("es-CO");
 }
@@ -47,7 +45,9 @@ export default function DashboardPage() {
   const myEntry = ranking.find((r) => r.uid === user?.uid);
 
   const totalPot = totalUsers * BET_PER_USER;
-  const firstPrize = Math.max(0, totalPot - SECOND_PRIZE);
+  const firstPrize = Math.round(totalPot * 0.70);
+  const secondPrize = Math.round(totalPot * 0.20);
+  const thirdPrize = Math.round(totalPot * 0.10);
 
   if (loading || fetching) return <LoadingScreen />;
 
@@ -88,7 +88,7 @@ export default function DashboardPage() {
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥈 2do Puesto</div>
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
-            {formatCOP(SECOND_PRIZE)}
+            {formatCOP(secondPrize)}
           </div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
