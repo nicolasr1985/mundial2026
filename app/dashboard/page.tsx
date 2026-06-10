@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getRanking, getTournamentSettings, getAllUsers, RankingEntry } from "@/lib/firebase";
 
-const BET_PER_USER = 200000;
-const SECOND_PRIZE = 200000;
+const BET_PER_USER = 150000;
 
 function formatCOP(n: number) {
   return "$" + n.toLocaleString("es-CO");
@@ -31,7 +30,7 @@ export default function DashboardPage() {
         const [r, s, u] = await Promise.all([getRanking(), getTournamentSettings(), getAllUsers()]);
         setRanking(r);
         setSettings(s as Record<string, string>);
-        setTotalUsers(u.filter(x => !x.isAdmin).length);
+        setTotalUsers(u.length);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
@@ -47,7 +46,9 @@ export default function DashboardPage() {
   const myEntry = ranking.find((r) => r.uid === user?.uid);
 
   const totalPot = totalUsers * BET_PER_USER;
-  const firstPrize = Math.max(0, totalPot - SECOND_PRIZE);
+  const firstPrize = Math.round(totalPot * 0.70);
+  const secondPrize = Math.round(totalPot * 0.20);
+  const thirdPrize = Math.round(totalPot * 0.10);
 
   if (loading || fetching) return <LoadingScreen />;
 
@@ -76,7 +77,7 @@ export default function DashboardPage() {
 
       {/* Premio */}
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
         gap: 12, marginBottom: 24,
       }}>
         <div style={s.prizeCard}>
@@ -84,12 +85,21 @@ export default function DashboardPage() {
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)", lineHeight: 1 }}>
             {formatCOP(firstPrize)}
           </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>70%</div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥈 2do Puesto</div>
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
-            {formatCOP(SECOND_PRIZE)}
+            {formatCOP(secondPrize)}
           </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>20%</div>
+        </div>
+        <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥉 3er Puesto</div>
+          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
+            {formatCOP(thirdPrize)}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>10%</div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💰 Pozo total</div>
@@ -117,7 +127,7 @@ export default function DashboardPage() {
                 entry={entry}
                 position={i + 1}
                 isMe={entry.uid === user?.uid}
-                prize={i === 0 ? firstPrize : i === 1 ? SECOND_PRIZE : null}
+                prize={i === 0 ? firstPrize : i === 1 ? secondPrize : i === 2 ? thirdPrize : null}
               />
             ))}
           </div>
