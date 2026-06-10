@@ -76,7 +76,7 @@ export default function DashboardPage() {
 
       {/* Premio */}
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+        display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
         gap: 12, marginBottom: 24,
       }}>
         <div style={s.prizeCard}>
@@ -84,12 +84,21 @@ export default function DashboardPage() {
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--gold)", lineHeight: 1 }}>
             {formatCOP(firstPrize)}
           </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>70%</div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥈 2do Puesto</div>
           <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
             {formatCOP(secondPrize)}
           </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>20%</div>
+        </div>
+        <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>🥉 3er Puesto</div>
+          <div style={{ fontSize: 26, fontFamily: "'Bebas Neue',sans-serif", color: "var(--text-dim)", lineHeight: 1 }}>
+            {formatCOP(thirdPrize)}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>10%</div>
         </div>
         <div style={{ ...s.prizeCard, borderColor: "var(--border)" }}>
           <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>💰 Pozo total</div>
