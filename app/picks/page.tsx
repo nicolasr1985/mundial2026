@@ -129,8 +129,7 @@ export default function PicksPage() {
                 borderBottom: `2px solid ${activeRound === r ? "var(--gold)" : "transparent"}`,
               }}
             >
-              {r.replace("Fase de Grupos",
-  "Ronda de 32", "Grupos").replace(" de Final", "")}
+              {r.replace("Fase de Grupos", "Grupos").replace(" de Final", "")}
               {count > 0 && (
                 <span style={{ background: "var(--surface3)", color: "var(--text-muted)", borderRadius: 10, fontSize: 10, padding: "1px 6px" }}>
                   {count}
