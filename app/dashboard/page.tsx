@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getRanking, getTournamentSettings, getAllUsers, RankingEntry } from "@/lib/firebase";
 
-const BET_PER_USER = 200000;
+const BET_PER_USER = 150000;
 function formatCOP(n: number) {
   return "$" + n.toLocaleString("es-CO");
 }
@@ -29,7 +29,7 @@ export default function DashboardPage() {
         const [r, s, u] = await Promise.all([getRanking(), getTournamentSettings(), getAllUsers()]);
         setRanking(r);
         setSettings(s as Record<string, string>);
-        setTotalUsers(u.filter(x => !x.isAdmin).length);
+        setTotalUsers(u.length);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
