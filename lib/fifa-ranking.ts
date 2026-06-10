@@ -97,8 +97,8 @@ export const FIFA_RANKINGS: FifaEntry[] = [
   { rank: 87, name: "Bulgaria", code: "BUL" },
   { rank: 88, name: "Uganda", code: "UGA" },
   { rank: 89, name: "Angola", code: "ANG" },
-  { rank: 90, name: "Benin", code: "BEN" },
-  { rank: 91, name: "Zambia", code: "ZAM" },
+  { rank: 90, name: "Zambia", code: "ZAM" },
+  { rank: 91, name: "Benin", code: "BEN" },
   { rank: 92, name: "China PR", code: "CHN" },
   { rank: 93, name: "Bahrain", code: "BHR" },
   { rank: 94, name: "Thailand", code: "THA" },
@@ -107,7 +107,7 @@ export const FIFA_RANKINGS: FifaEntry[] = [
   { rank: 97, name: "Guatemala", code: "GUA" },
   { rank: 98, name: "Luxembourg", code: "LUX" },
   { rank: 99, name: "Vietnam", code: "VIE" },
-  { rank: 100, name: "Tajikistan", code: "TJK" },
+  { rank: 100, name: "El Salvador", code: "SLV" },
 ];
 
 export function getRank(teamName: string): number | null {
