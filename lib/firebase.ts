@@ -137,7 +137,7 @@ export async function getAllUsers(): Promise<UserProfile[]> {
 }
 
 export async function updateChampionPick(uid: string, champion: string, topScorer: string) {
-  const deadline = new Date("2026-06-09T23:59:59");
+  const deadline = new Date("2026-06-11T14:00:00-05:00");
   if (new Date() > deadline) throw new Error("La fecha límite para estas predicciones ya pasó.");
   await setDoc(doc(db, "users", uid), { champion, topScorer }, { merge: true });
 }
