@@ -1181,8 +1181,8 @@ function ExportTab({ matches, users }: { matches: Match[]; users: UserProfile[] 
         const result = match.homeScore !== null && match.awayScore !== null
           ? `${match.homeScore}-${match.awayScore}` : "";
 
-        const nonAdminUsers = users.filter((u) => !u.isAdmin);
-        for (const u of nonAdminUsers) {
+        const allParticipants = users;
+        for (const u of allParticipants) {
           const pick = matchPicks.find((p) => p.userId === u.uid);
           rows.push([
             `${match.homeTeam} vs ${match.awayTeam}`,
