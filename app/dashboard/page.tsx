@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getRanking, getTournamentSettings, getAllUsers, RankingEntry } from "@/lib/firebase";
+import { getRanking, getTournamentSettings, getAllUsers, RankingEntry, UserProfile } from "@/lib/firebase";
+import { isDeadlinePassed } from "@/lib/scoring";
 
 const BET_PER_USER = 150000;
 function formatCOP(n: number) {
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [totalUsers, setTotalUsers] = useState(0);
   const [fetching, setFetching] = useState(true);
+  const [users, setUsers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -30,6 +32,7 @@ export default function DashboardPage() {
         setRanking(r);
         setSettings(s as Record<string, string>);
         setTotalUsers(u.length);
+        setUsers(u);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
@@ -126,6 +129,45 @@ export default function DashboardPage() {
           />
         )}
       </div>
+
+      {/* Predicciones especiales de todos */}
+      {isDeadlinePassed() && users.filter(u => u.champion || u.topScorer).length > 0 && (
+        <div className="card" style={{ marginTop: 20, padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)" }}>
+            <h2 style={{ fontSize: 18, color: "var(--text)" }}>🏆 Predicciones Especiales</h2>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 400 }}>
+              <thead>
+                <tr style={{ background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+                  <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "'Rajdhani',sans-serif", fontWeight: 600 }}>Participante</th>
+                  <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "'Rajdhani',sans-serif", fontWeight: 600 }}>🥇 Campeón</th>
+                  <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: "'Rajdhani',sans-serif", fontWeight: 600 }}>⚽ Goleador</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users
+                  .filter(u => !u.isAdmin || u.champion || u.topScorer)
+                  .sort((a, b) => a.displayName.localeCompare(b.displayName))
+                  .map(u => (
+                    <tr key={u.uid} style={{ borderBottom: "1px solid var(--border)", background: u.uid === user?.uid ? "rgba(201,168,76,0.05)" : "transparent" }}>
+                      <td style={{ padding: "10px 16px", fontWeight: 600, fontSize: 14 }}>
+                        {u.displayName}
+                        {u.uid === user?.uid && <span className="badge badge-gold" style={{ fontSize: 10, padding: "1px 6px", marginLeft: 6 }}>Tú</span>}
+                      </td>
+                      <td style={{ padding: "10px 16px", fontSize: 13, color: u.champion ? "var(--text)" : "var(--text-muted)" }}>
+                        {u.champion || "—"}
+                      </td>
+                      <td style={{ padding: "10px 16px", fontSize: 13, color: u.topScorer ? "var(--text)" : "var(--text-muted)" }}>
+                        {u.topScorer || "—"}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Leyenda de puntos */}
       <div style={s.legend}>

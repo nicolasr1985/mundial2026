@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, getAllPicks, getAllUsers, updateChampionPick, Pick, Match, GroupPick, UserProfile } from "@/lib/firebase";
 import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
-import { getPointsBreakdown } from "@/lib/scoring";
+import { getPointsBreakdown, isDeadlinePassed } from "@/lib/scoring";
 import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
 export default function MyPicksPage() {
@@ -339,7 +339,7 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
   return (
     <div style={{ background: "var(--surface2)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>{label}</div>
-      {editing ? (
+      {editing && !isDeadlinePassed() ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <select
             value={value}
@@ -384,7 +384,7 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
               {myPick || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin predicción</span>}
               {hit && <span style={{ marginLeft: 6 }}>✅ +{points} pts</span>}
             </div>
-            {!official && (
+            {!official && !isDeadlinePassed() && (
               <button
                 onClick={() => setEditing(true)}
                 style={{ fontSize: 11, padding: "3px 10px", background: "rgba(201,168,76,0.1)",
