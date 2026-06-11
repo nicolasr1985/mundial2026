@@ -193,6 +193,30 @@ export default function DashboardPage() {
 
 const PHASE_ORDER = ["Grupos", "Octavos", "Cuartos", "Semis", "Final", "3er Puesto"];
 
+function isTied(a: RankingEntry, b: RankingEntry): boolean {
+  return a.totalPoints === b.totalPoints &&
+    a.exactCount === b.exactCount &&
+    (a.resultCount ?? 0) === (b.resultCount ?? 0) &&
+    (a.partialCount ?? 0) === (b.partialCount ?? 0);
+}
+
+function buildTieGroups(ranking: RankingEntry[], prizes: number[]): { pos: number; prize: number | null }[] {
+  const out: { pos: number; prize: number | null }[] = [];
+  let i = 0;
+  while (i < ranking.length) {
+    let j = i + 1;
+    while (j < ranking.length && isTied(ranking[i], ranking[j])) j++;
+    const groupSize = j - i;
+    const pos = i + 1;
+    const groupPrizes = prizes.slice(i, j);
+    const total = groupPrizes.reduce((s, p) => s + (p ?? 0), 0);
+    const split = groupPrizes.some(p => p !== undefined && p > 0) ? Math.round(total / groupSize) : null;
+    for (let k = 0; k < groupSize; k++) out.push({ pos, prize: split });
+    i = j;
+  }
+  return out;
+}
+
 function RankingTable({ ranking, userId, prizes }: {
   ranking: RankingEntry[]; userId: string; prizes: number[];
 }) {
@@ -203,6 +227,7 @@ function RankingTable({ ranking, userId, prizes }: {
   );
   const showEspecial = ranking.some(e => (e.championPoints + e.topScorerPoints) > 0);
   const showTabla = ranking.some(e => e.groupPoints > 0);
+  const tieGroups = buildTieGroups(ranking, prizes);
 
   const th: React.CSSProperties = {
     fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase",
@@ -227,27 +252,27 @@ function RankingTable({ ranking, userId, prizes }: {
         </thead>
         <tbody>
           {ranking.map((entry, i) => {
-            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+            const { pos, prize } = tieGroups[i];
+            const medal = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : null;
             const isMe = entry.uid === userId;
-            const prize = i < prizes.length ? prizes[i] : null;
             return (
               <tr key={entry.uid} style={{
                 borderBottom: "1px solid var(--border)",
                 background: isMe ? "rgba(201,168,76,0.05)" : "transparent",
               }}>
-                <td style={{ padding: "10px 8px 10px 14px", fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: i < 3 ? "var(--gold)" : "var(--text-muted)", textAlign: "center" }}>
-                  {medal || `#${i + 1}`}
+                <td style={{ padding: "10px 8px 10px 14px", fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: pos <= 3 ? "var(--gold)" : "var(--text-muted)", textAlign: "center" }}>
+                  {medal || `#${pos}`}
                 </td>
                 <td style={{ padding: "10px 8px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.displayName}</span>
                     {isMe && <span className="badge badge-gold" style={{ fontSize: 10, padding: "1px 6px" }}>Tú</span>}
-                    {prize !== null && (
+                    {prize !== null && prize > 0 && (
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
-                        background: i === 0 ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,0.06)",
-                        color: i === 0 ? "var(--gold)" : "var(--text-dim)",
-                        border: `1px solid ${i === 0 ? "var(--border-gold)" : "var(--border)"}`,
+                        background: pos === 1 ? "rgba(201,168,76,0.15)" : "rgba(255,255,255,0.06)",
+                        color: pos === 1 ? "var(--gold)" : "var(--text-dim)",
+                        border: `1px solid ${pos === 1 ? "var(--border-gold)" : "var(--border)"}`,
                       }}>{formatCOP(prize)}</span>
                     )}
                   </div>
