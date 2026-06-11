@@ -193,28 +193,37 @@ export default function DashboardPage() {
 
 const PHASE_ORDER = ["Grupos", "Octavos", "Cuartos", "Semis", "Final", "3er Puesto"];
 
-function isTied(a: RankingEntry, b: RankingEntry): boolean {
-  return a.totalPoints === b.totalPoints &&
-    a.exactCount === b.exactCount &&
-    (a.resultCount ?? 0) === (b.resultCount ?? 0) &&
-    (a.partialCount ?? 0) === (b.partialCount ?? 0);
+function tieScore(e: RankingEntry): string {
+  return `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
 }
 
 function buildTieGroups(ranking: RankingEntry[], prizes: number[]): { pos: number; prize: number | null }[] {
-  const out: { pos: number; prize: number | null }[] = [];
-  let i = 0;
-  while (i < ranking.length) {
-    let j = i + 1;
-    while (j < ranking.length && isTied(ranking[i], ranking[j])) j++;
-    const groupSize = j - i;
-    const pos = i + 1;
-    const groupPrizes = prizes.slice(i, j);
-    const total = groupPrizes.reduce((s, p) => s + (p ?? 0), 0);
-    const split = groupPrizes.some(p => p !== undefined && p > 0) ? Math.round(total / groupSize) : null;
-    for (let k = 0; k < groupSize; k++) out.push({ pos, prize: split });
-    i = j;
-  }
-  return out;
+  // Group by tie score key
+  const keys = ranking.map(e => tieScore(e));
+  // For each entry, find how many entries have a strictly better score
+  // Since ranking is already sorted, entries with same key form a block
+  // We use a stable approach: assign position = index of first occurrence of same key
+  const firstIndex: Record<string, number> = {};
+  keys.forEach((k, i) => { if (!(k in firstIndex)) firstIndex[k] = i; });
+
+  // Compute group sizes
+  const groupSize: Record<string, number> = {};
+  keys.forEach(k => { groupSize[k] = (groupSize[k] ?? 0) + 1; });
+
+  // Compute split prize per group
+  const groupPrizeTotal: Record<string, number> = {};
+  keys.forEach((k, i) => {
+    if (i < prizes.length) groupPrizeTotal[k] = (groupPrizeTotal[k] ?? 0) + (prizes[i] ?? 0);
+  });
+
+  return ranking.map((_, i) => {
+    const k = keys[i];
+    const pos = firstIndex[k] + 1;
+    const total = groupPrizeTotal[k] ?? 0;
+    const size = groupSize[k];
+    const prize = total > 0 ? Math.round(total / size) : null;
+    return { pos, prize };
+  });
 }
 
 function RankingTable({ ranking, userId, prizes }: {
