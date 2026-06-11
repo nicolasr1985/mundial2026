@@ -241,7 +241,8 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, c
   onSubmit: () => void; compact?: boolean;
   showRank?: boolean;
 }) {
-  const locked = match.locked;
+  const matchTime = match.matchDate?.toDate ? match.matchDate.toDate() : null;
+  const locked = match.locked || (matchTime !== null && new Date() >= matchTime);
   const hasResult = match.homeScore !== null && match.awayScore !== null;
   const hasPick = !!pick;
 
