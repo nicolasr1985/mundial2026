@@ -334,7 +334,7 @@ export interface RankingEntry {
   topScorerPoints: number;
   picksCount: number;
   exactCount: number;   // picks worth 5 pts (exact score)
-  resultCount: number;  // picks worth 3 pts (correct result)
+  resultCount: number;  // picks with correct result (2-4 pts, non-exact)
   partialCount: number; // picks worth 1 pt (correct goals only)
   hasPaid: boolean;
   phasePoints: Record<string, number>;
@@ -395,7 +395,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
         totalPoints: matchPoints + groupPoints + championPoints + topScorerPoints,
         picksCount: userPicks.length,
         exactCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) >= 5).length,
-        resultCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 2).length,
+        resultCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) >= 2 && (p.points ?? 0) < 5).length,
         partialCount: userPicks.filter((p) => p.points !== null && p.points !== undefined && (p.points ?? 0) === 1).length,
         hasPaid: u.hasPaid ?? false,
         phasePoints,
