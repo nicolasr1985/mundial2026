@@ -181,6 +181,7 @@ export default function PicksPage() {
                       setScores((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: val } }))
                     }
                     onSubmit={handleSubmitPick}
+                    onDelete={handleDeletePick}
                     showRank={showRank}
                   />
                 ))}
@@ -214,11 +215,11 @@ export default function PicksPage() {
 }
 
 // ─── SIMPLE GROUP SECTION ─────────────────────────────────────────────────────
-function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onScoreChange, onSubmit, showRank }: {
+function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onScoreChange, onSubmit, onDelete, showRank }: {
   group: string; matches: Match[]; picks: Record<string, Pick>;
   scores: Record<string, { home: string; away: string }>; saving: string | null;
   msgs: Record<string, string>; onScoreChange: (matchId: string, side: "home" | "away", val: string) => void;
-  onSubmit: (matchId: string) => void; showRank?: boolean;
+  onSubmit: (matchId: string) => void; onDelete: (matchId: string) => void; showRank?: boolean;
 }) {
   return (
     <div style={{ marginBottom: 20 }}>
@@ -239,6 +240,7 @@ function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onSco
             msg={msgs[match.id]}
             onScoreChange={(side, val) => onScoreChange(match.id, side, val)}
             onSubmit={() => onSubmit(match.id)}
+            onDelete={() => onDelete(match.id)}
             compact
             showRank={showRank}
           />
@@ -358,6 +360,18 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
             >
               {saving ? "..." : hasPick ? "✏" : "✓"}
             </button>
+            {hasPick && onDelete && (
+              <button
+                onClick={onDelete}
+                disabled={saving}
+                title="Borrar apuesta"
+                style={{ background: "transparent", border: "1px solid rgba(231,76,60,0.4)", borderRadius: "var(--radius-sm)",
+                  padding: compact ? "6px 8px" : "8px 10px", cursor: "pointer", fontSize: 13, color: "var(--red)",
+                  opacity: saving ? 0.5 : 1 }}
+              >
+                🗑
+              </button>
+            )}
             {msg && (
               <span style={{ fontSize: 12, color: msg.startsWith("✅") ? "var(--green)" : msg.startsWith("🔒") ? "var(--text-muted)" : "var(--red)" }}>
                 {msg}
