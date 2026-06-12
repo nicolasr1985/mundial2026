@@ -44,8 +44,9 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [user]);
 
-  const myPosition = ranking.findIndex((r) => r.uid === user?.uid) + 1;
   const myEntry = ranking.find((r) => r.uid === user?.uid);
+  const myIndex = ranking.findIndex((r) => r.uid === user?.uid);
+  const myPosition = myEntry ? (ranking.filter(r => r.totalPoints > myEntry.totalPoints).length + 1) : 0;
 
   const totalPot = totalUsers * BET_PER_USER;
   const firstPrize = Math.round(totalPot * 0.70);
