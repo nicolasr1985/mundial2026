@@ -7,8 +7,8 @@ import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
-  setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers,
-  sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile
+  setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
+  sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry
 } from "@/lib/firebase";
 
 const ROUNDS = [
@@ -612,6 +612,26 @@ function WhatsAppTab({ matches, users, settings }: {
 }) {
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<"today" | "general" | "matchday">("today");
+  const [rankedUsers, setRankedUsers] = useState<{ pos: number; name: string; pts: number }[]>([]);
+
+  useEffect(() => {
+    getRanking().then((ranking) => {
+      // Same tiebreaker as dashboard: totalPoints → exactCount → resultCount → partialCount
+      const nonAdmin = ranking.filter(e => !e.isAdmin);
+
+      // Assign positions with tie awareness (same logic as buildTieGroups)
+      const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
+      const firstIndex: Record<string, number> = {};
+      nonAdmin.forEach((e, i) => { const k = tieKey(e); if (!(k in firstIndex)) firstIndex[k] = i; });
+
+      const result = nonAdmin.map((e, i) => ({
+        pos: firstIndex[tieKey(e)] + 1,
+        name: e.displayName || e.uid,
+        pts: e.totalPoints,
+      }));
+      setRankedUsers(result);
+    }).catch(() => {});
+  }, [users]);
 
   // ── scoring helpers ──────────────────────────────────────────────
   function calcMatchPts(ph: number, pa: number, rh: number, ra: number): number {
@@ -682,11 +702,18 @@ function WhatsAppTab({ matches, users, settings }: {
       lines.push(`⚽ *POLLA MUNDIAL 2026*`);
       lines.push(`🏆 *Tabla General — ${dateHeaderCap}*`);
       lines.push("");
-      lines.push("_Posiciones actualizadas:_");
-      lines.push("");
 
-      // We don't have total points per user here without getAllPicks,
-      // so we show a prompt to check the app
+      if (rankedUsers.length > 0) {
+        const medals = ["🥇","🥈","🥉"];
+        rankedUsers.forEach((u) => {
+          const prefix = medals[u.pos - 1] ?? `${u.pos}.`;
+          lines.push(`${prefix} ${u.name} — *${u.pts} pts*`);
+        });
+      } else {
+        lines.push("_Posiciones actualizadas:_");
+      }
+
+      lines.push("");
       lines.push("🔗 *Ver tabla completa:*");
       lines.push("mundial2026-kappa.vercel.app/dashboard");
       lines.push("");
@@ -717,7 +744,6 @@ function WhatsAppTab({ matches, users, settings }: {
     }
 
     lines.push("");
-    lines.push("_No apto para sensibles_ 🔥");
     return lines.join("\n");
   }
 
