@@ -617,7 +617,8 @@ function WhatsAppTab({ matches, users, settings }: {
   useEffect(() => {
     getRanking().then((ranking) => {
       // Same tiebreaker as dashboard: totalPoints → exactCount → resultCount → partialCount
-      const nonAdmin = ranking.filter(e => !e.isAdmin);
+      const adminUids = new Set(users.filter(u => u.isAdmin).map(u => u.uid));
+      const nonAdmin = ranking.filter(e => !adminUids.has(e.uid));
 
       // Assign positions with tie awareness (same logic as buildTieGroups)
       const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
