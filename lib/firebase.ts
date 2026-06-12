@@ -273,6 +273,15 @@ async function recalculatePicksForMatch(
 }
 
 // ─── STANDINGS DE GRUPO ───────────────────────────────────────────────────────
+export async function deletePick(userId: string, matchId: string): Promise<void> {
+  const existing = await getDocs(
+    query(collection(db, "picks"), where("userId", "==", userId), where("matchId", "==", matchId))
+  );
+  if (!existing.empty) {
+    await deleteDoc(doc(db, "picks", existing.docs[0].id));
+  }
+}
+
 export async function submitGroupPick(
   userId: string,
   group: string,

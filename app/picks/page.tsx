@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getMatches, getUserPicks, submitPick, Match, Pick } from "@/lib/firebase";
+import { getMatches, getUserPicks, submitPick, deletePick, Match, Pick } from "@/lib/firebase";
 import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
 
 const ROUNDS = [
@@ -76,6 +76,22 @@ export default function PicksPage() {
       setMsgs((m) => ({ ...m, [matchId]: "✅ Guardado" }));
     } catch {
       setMsgs((m) => ({ ...m, [matchId]: "🔒 Partido cerrado" }));
+    } finally {
+      setSaving(null);
+      setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[matchId]; return n; }), 3000);
+    }
+  };
+
+  const handleDeletePick = async (matchId: string) => {
+    if (!user) return;
+    setSaving(matchId);
+    try {
+      await deletePick(user.uid, matchId);
+      setPicks((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
+      setScores((prev) => ({ ...prev, [matchId]: { home: "", away: "" } }));
+      setMsgs((m) => ({ ...m, [matchId]: "✅ Apuesta eliminada" }));
+    } catch {
+      setMsgs((m) => ({ ...m, [matchId]: "❌ Error al eliminar" }));
     } finally {
       setSaving(null);
       setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[matchId]; return n; }), 3000);
@@ -185,6 +201,7 @@ export default function PicksPage() {
                     setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], [side]: val } }))
                   }
                   onSubmit={() => handleSubmitPick(match.id)}
+                  onDelete={() => handleDeletePick(match.id)}
                   showRank={showRank}
                 />
               ))}
