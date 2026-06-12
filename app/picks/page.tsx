@@ -252,10 +252,10 @@ function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onSco
 }
 
 // ─── MATCH CARD ───────────────────────────────────────────────────────────────
-function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, compact, showRank }: {
+function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, onDelete, compact, showRank }: {
   match: Match; pick?: Pick; score: { home: string; away: string };
   saving: boolean; msg?: string; onScoreChange: (side: "home" | "away", val: string) => void;
-  onSubmit: () => void; compact?: boolean;
+  onSubmit: () => void; onDelete?: () => void; compact?: boolean;
   showRank?: boolean;
 }) {
   const matchTime = match.matchDate?.toDate ? match.matchDate.toDate() : null;
