@@ -809,7 +809,6 @@ export default function StandingsPage() {
           { id: "thirds", label: "🏅 Tabla de Terceros" },
           { id: "r32", label: "⚔️ Ronda de 32" },
           { id: "fifa", label: "🌍 Ranking FIFA" },
-          { id: "r32",    label: "⚔️ Ronda de 32" },
         ] as const).map((t) => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
             padding: "10px 16px", fontSize: 13, cursor: "pointer", border: "none",
@@ -1189,6 +1188,7 @@ function FifaRankingTab() {
           <tr style={{ borderBottom: "1px solid var(--border-gold)" }}>
             <th style={{ ...s.th, width: 60 }}>RK</th>
             <th style={{ ...s.th, textAlign: "left" }}>Equipo</th>
+            <th style={{ ...s.th, width: 110 }}>Puntos FIFA</th>
           </tr>
         </thead>
         <tbody>
@@ -1201,6 +1201,7 @@ function FifaRankingTab() {
                 {e.rank}
               </td>
               <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>{e.name}</td>
+              <td style={{ ...s.td, color: "var(--text-muted)" }}>{e.pts?.toFixed(2) ?? "—"}</td>
             </tr>
           ))}
         </tbody>
