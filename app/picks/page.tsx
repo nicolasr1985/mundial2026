@@ -1,4 +1,4 @@
-﻿// app/picks/page.tsx
+// app/picks/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -55,15 +55,15 @@ export default function PicksPage() {
     const homeNum = parseInt(homeVal);
     const awayNum = parseInt(awayVal);
     if (homeVal === "" || awayVal === "") {
-      setMsgs((m) => ({ ...m, [matchId]: "ΓÜá Ingresa ambos marcadores" }));
+      setMsgs((m) => ({ ...m, [matchId]: "Ingresa ambos marcadores" }));
       return;
     }
     if (isNaN(homeNum) || isNaN(awayNum)) {
-      setMsgs((m) => ({ ...m, [matchId]: "ΓÜá Solo se permiten n├║meros" }));
+      setMsgs((m) => ({ ...m, [matchId]: "Solo se permiten numeros" }));
       return;
     }
     if (homeNum < 0 || homeNum > 20 || awayNum < 0 || awayNum > 20) {
-      setMsgs((m) => ({ ...m, [matchId]: "ΓÜá Marcador debe ser entre 0 y 20" }));
+      setMsgs((m) => ({ ...m, [matchId]: "Marcador debe ser entre 0 y 20" }));
       return;
     }
     setSaving(matchId);
@@ -73,9 +73,9 @@ export default function PicksPage() {
         ...prev,
         [matchId]: { ...prev[matchId], homeScore: homeNum, awayScore: awayNum, matchId, userId: user.uid, id: matchId, createdAt: prev[matchId]?.createdAt, points: undefined },
       }));
-      setMsgs((m) => ({ ...m, [matchId]: "Γ£à Guardado" }));
+      setMsgs((m) => ({ ...m, [matchId]: "Guardado" }));
     } catch {
-      setMsgs((m) => ({ ...m, [matchId]: "≡ƒöÆ Partido cerrado" }));
+      setMsgs((m) => ({ ...m, [matchId]: "Partido cerrado" }));
     } finally {
       setSaving(null);
       setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[matchId]; return n; }), 3000);
@@ -89,9 +89,9 @@ export default function PicksPage() {
       await deletePick(user.uid, matchId);
       setPicks((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
       setScores((prev) => ({ ...prev, [matchId]: { home: "", away: "" } }));
-      setMsgs((m) => ({ ...m, [matchId]: "Γ£à Apuesta eliminada" }));
+      setMsgs((m) => ({ ...m, [matchId]: "Apuesta eliminada" }));
     } catch {
-      setMsgs((m) => ({ ...m, [matchId]: "Γ¥î Error al eliminar" }));
+      setMsgs((m) => ({ ...m, [matchId]: "Error al eliminar" }));
     } finally {
       setSaving(null);
       setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[matchId]; return n; }), 3000);
@@ -124,7 +124,6 @@ export default function PicksPage() {
         </p>
       </div>
 
-      {/* Round tabs */}
       <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 24, overflowX: "auto" }}>
         {ROUNDS.map((r) => {
           const count = matches.filter((m) =>
@@ -158,9 +157,9 @@ export default function PicksPage() {
 
       {roundMatches.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>≡ƒôà</div>
-          <p>No hay partidos en esta ronda a├║n.</p>
-          <p style={{ fontSize: 13, marginTop: 6 }}>El administrador los agregar├í pronto.</p>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>📅</div>
+          <p>No hay partidos en esta ronda aun.</p>
+          <p style={{ fontSize: 13, marginTop: 6 }}>El administrador los agregara pronto.</p>
         </div>
       ) : (
         <>
@@ -214,7 +213,6 @@ export default function PicksPage() {
   );
 }
 
-// ΓöÇΓöÇΓöÇ SIMPLE GROUP SECTION ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onScoreChange, onSubmit, onDelete, showRank }: {
   group: string; matches: Match[]; picks: Record<string, Pick>;
   scores: Record<string, { home: string; away: string }>; saving: string | null;
@@ -253,12 +251,10 @@ function SimpleGroupSection({ group, matches, picks, scores, saving, msgs, onSco
   );
 }
 
-// ΓöÇΓöÇΓöÇ MATCH CARD ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, onDelete, compact, showRank }: {
   match: Match; pick?: Pick; score: { home: string; away: string };
   saving: boolean; msg?: string; onScoreChange: (side: "home" | "away", val: string) => void;
-  onSubmit: () => void; onDelete?: () => void; compact?: boolean;
-  showRank?: boolean;
+  onSubmit: () => void; onDelete?: () => void; compact?: boolean; showRank?: boolean;
 }) {
   const matchTime = match.matchDate?.toDate ? match.matchDate.toDate() : null;
   const locked = match.locked || (matchTime !== null && new Date() >= matchTime);
@@ -267,7 +263,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
 
   const dateStr = match.matchDate?.toDate
     ? match.matchDate.toDate().toLocaleString("es-CO", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
-    : "ΓÇö";
+    : "—";
 
   const canSubmit = score.home !== "" && score.away !== "";
 
@@ -289,7 +285,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
           <span style={{ fontWeight: 600, fontSize: compact ? 13 : 15 }}>{teamWithRank(match.homeTeam, showRank ?? false)}</span>
           {hasResult ? (
             <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: compact ? 16 : 20, color: "var(--gold)", padding: "0 4px" }}>
-              {match.homeScore} ΓÇô {match.awayScore}
+              {match.homeScore} - {match.awayScore}
             </span>
           ) : (
             <span style={{ color: "var(--text-muted)", fontSize: 13 }}>vs</span>
@@ -305,14 +301,14 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Tu pick:</span>
               <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--text)" }}>
-                {pick.homeScore} ΓÇô {pick.awayScore}
+                {pick.homeScore} - {pick.awayScore}
               </span>
               {pick.points !== null && pick.points !== undefined && (
                 <span className="badge badge-gold" style={{ fontSize: 11 }}>{pick.points} pts</span>
               )}
             </div>
           ) : (
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>≡ƒöÆ Sin apuesta</span>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Sin apuesta</span>
           )
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -321,7 +317,7 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
               type="number"
               min={0}
               max={20}
-              placeholder="ΓÇô"
+              placeholder="-"
               value={score.home}
               onChange={(e) => {
                 const v = e.target.value;
@@ -333,13 +329,13 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
               style={{ width: compact ? 44 : 52, fontSize: compact ? 16 : 20,
                 borderColor: score.home === "" ? "rgba(231,76,60,0.4)" : "var(--border)" }}
             />
-            <span style={{ color: "var(--text-muted)", fontFamily: "'Bebas Neue',sans-serif" }}>ΓÇô</span>
+            <span style={{ color: "var(--text-muted)", fontFamily: "'Bebas Neue',sans-serif" }}>-</span>
             <input
               className="score-input"
               type="number"
               min={0}
               max={20}
-              placeholder="ΓÇô"
+              placeholder="-"
               value={score.away}
               onChange={(e) => {
                 const v = e.target.value;
@@ -355,10 +351,9 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
               className="btn-primary"
               onClick={onSubmit}
               disabled={saving || !canSubmit}
-              style={{ padding: compact ? "7px 12px" : "9px 16px", fontSize: 13,
-                opacity: !canSubmit ? 0.35 : 1 }}
+              style={{ padding: compact ? "7px 12px" : "9px 16px", fontSize: 13, opacity: !canSubmit ? 0.35 : 1 }}
             >
-              {saving ? "..." : hasPick ? "Γ£Å" : "Γ£ô"}
+              {saving ? "..." : hasPick ? "Editar" : "Guardar"}
             </button>
             {hasPick && onDelete && (
               <button
@@ -369,13 +364,11 @@ function MatchCard({ match, pick, score, saving, msg, onScoreChange, onSubmit, o
                   padding: compact ? "6px 8px" : "8px 10px", cursor: "pointer", fontSize: 13, color: "var(--red)",
                   opacity: saving ? 0.5 : 1 }}
               >
-                ≡ƒùæ
+                🗑
               </button>
             )}
             {msg && (
-              <span style={{ fontSize: 12, color: msg.startsWith("Γ£à") ? "var(--green)" : msg.startsWith("≡ƒöÆ") ? "var(--text-muted)" : "var(--red)" }}>
-                {msg}
-              </span>
+              <span style={{ fontSize: 12, color: "var(--green)" }}>{msg}</span>
             )}
           </div>
         )}
