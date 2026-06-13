@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, Match } from "@/lib/firebase";
-import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
+import { teamWithRank, canSeeRanking, FIFA_RANKINGS } from "@/lib/fifa-ranking";
+import { WC2026_TEAMS } from "@/lib/wc2026-data";
 
 interface TeamStat {
   team: string;
@@ -733,7 +734,7 @@ export default function StandingsPage() {
   const [userPickMap, setUserPickMap] = useState<Record<string, { homeScore: number; awayScore: number }>>({});
   const [activeGroup, setActiveGroup] = useState("A");
   const [viewMode, setViewMode] = useState<"real" | "predicted">("real");
-  const [activeTab, setActiveTab] = useState<"groups" | "thirds" | "r32">("groups");
+  const [activeTab, setActiveTab] = useState<"groups" | "thirds" | "r32" | "fifa">("groups");
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
@@ -806,6 +807,8 @@ export default function StandingsPage() {
         {([
           { id: "groups", label: "📋 Grupos" },
           { id: "thirds", label: "🏅 Tabla de Terceros" },
+          { id: "r32", label: "⚔️ Ronda de 32" },
+          { id: "fifa", label: "🌍 Ranking FIFA" },
           { id: "r32",    label: "⚔️ Ronda de 32" },
         ] as const).map((t) => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
@@ -836,6 +839,8 @@ export default function StandingsPage() {
         />
       ) : activeTab === "thirds" ? (
         <ThirdsTab displayThirds={displayThirds} viewMode={viewMode} showRank={showRank} />
+      ) : activeTab === "fifa" ? (
+        <FifaRankingTab />
       ) : (
         <R32Tab r32={displayR32} viewMode={viewMode} showRank={showRank} />
       )}
@@ -1171,3 +1176,35 @@ const s: Record<string, React.CSSProperties> = {
   th: { padding: "10px 8px", fontSize: 11, color: "var(--text-muted)", textAlign: "center", fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" },
   td: { padding: "12px 8px", fontSize: 14, textAlign: "center", color: "var(--text)" },
 };
+
+// ─── FIFA RANKING TAB ─────────────────────────────────────────────────────────
+function FifaRankingTab() {
+  const participatingTeams = new Set(WC2026_TEAMS as string[]);
+  const filtered = FIFA_RANKINGS.filter(e => participatingTeams.has(e.name));
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid var(--border-gold)" }}>
+            <th style={{ ...s.th, width: 60 }}>RK</th>
+            <th style={{ ...s.th, textAlign: "left" }}>Equipo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map((e, i) => (
+            <tr key={e.code} style={{
+              borderBottom: "1px solid var(--border)",
+              background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+            }}>
+              <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)" }}>
+                {e.rank}
+              </td>
+              <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>{e.name}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
