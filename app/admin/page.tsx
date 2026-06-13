@@ -611,20 +611,16 @@ function WhatsAppTab({ matches, users, settings }: {
   settings: Record<string, string>;
 }) {
   const [copied, setCopied] = useState(false);
-  const [mode, setMode] = useState<"today" | "general" | "matchday">("today");
+  const [mode, setMode] = useState<"today" | "general">("today");
   const [rankedUsers, setRankedUsers] = useState<{ pos: number; name: string; pts: number }[]>([]);
+  const [dailyPts, setDailyPts] = useState<{ name: string; pts: number }[]>([]);
 
   useEffect(() => {
     getRanking().then((ranking) => {
-      // Same tiebreaker as dashboard: totalPoints → exactCount → resultCount → partialCount
-      const nonAdmin = ranking;
-
-      // Assign positions with tie awareness (same logic as buildTieGroups)
       const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
       const firstIndex: Record<string, number> = {};
-      nonAdmin.forEach((e, i) => { const k = tieKey(e); if (!(k in firstIndex)) firstIndex[k] = i; });
-
-      const result = nonAdmin.map((e, i) => ({
+      ranking.forEach((e, i) => { const k = tieKey(e); if (!(k in firstIndex)) firstIndex[k] = i; });
+      const result = ranking.map((e) => ({
         pos: firstIndex[tieKey(e)] + 1,
         name: e.displayName || e.uid,
         pts: e.totalPoints,
@@ -632,6 +628,24 @@ function WhatsAppTab({ matches, users, settings }: {
       setRankedUsers(result);
     }).catch(() => {});
   }, [users]);
+
+  useEffect(() => {
+    if (todayMatches.length === 0) { setDailyPts([]); return; }
+    const todayMatchIds = new Set(todayMatches.map(m => m.id));
+    getAllPicks().then((allPicks) => {
+      const ptsByUser: Record<string, number> = {};
+      for (const u of users) { ptsByUser[u.uid] = 0; }
+      for (const p of allPicks) {
+        if (todayMatchIds.has(p.matchId) && p.points != null && ptsByUser[p.userId] !== undefined) {
+          ptsByUser[p.userId] += p.points;
+        }
+      }
+      const sorted = users
+        .map(u => ({ name: u.displayName || u.uid, pts: ptsByUser[u.uid] ?? 0 }))
+        .sort((a, b) => b.pts - a.pts);
+      setDailyPts(sorted);
+    }).catch(() => {});
+  }, [users, todayMatches.length]);
 
   // ── scoring helpers ──────────────────────────────────────────────
   function calcMatchPts(ph: number, pa: number, rh: number, ra: number): number {
@@ -679,24 +693,33 @@ function WhatsAppTab({ matches, users, settings }: {
 
     if (mode === "today") {
       lines.push(`⚽ *POLLA MUNDIAL 2026*`);
-      lines.push(`📅 ${dateHeaderCap}`);
+      lines.push(`📅 *Resultados del día — ${dateHeaderCap}*`);
       lines.push("");
 
       if (todayMatches.length === 0) {
         lines.push("_No hubo partidos hoy_");
+        lines.push("");
         return lines.join("\n");
       }
 
-      lines.push(`*Resultados de hoy (${todayMatches.length} partido${todayMatches.length !== 1 ? "s" : ""}):*`);
+      lines.push(`*Partidos de hoy:*`);
       todayMatches.forEach(m => {
         lines.push(`• ${m.homeTeam} ${m.homeScore}–${m.awayScore} ${m.awayTeam}`);
       });
       lines.push("");
       lines.push("━━━━━━━━━━━━━━━━━");
-      lines.push("*Puntos de hoy:*");
-      lines.push("_Actualiza la app para ver tus puntos_");
+      lines.push("*Puntos del día:*");
+
+      if (dailyPts.length > 0) {
+        dailyPts.forEach(u => {
+          lines.push(`• ${u.name}: *+${u.pts} pts*`);
+        });
+      } else {
+        lines.push("_Calculando..._");
+      }
+
       lines.push("");
-      lines.push("🔗 mundial2026-kappa.vercel.app");
+      lines.push("🔗 http://mundial2026-kappa.vercel.app");
 
     } else if (mode === "general") {
       lines.push(`⚽ *POLLA MUNDIAL 2026*`);
@@ -715,32 +738,9 @@ function WhatsAppTab({ matches, users, settings }: {
 
       lines.push("");
       lines.push("🔗 *Ver tabla completa:*");
-      lines.push("mundial2026-kappa.vercel.app/dashboard");
+      lines.push("http://mundial2026-kappa.vercel.app/dashboard");
       lines.push("");
       lines.push("_Ingresa para ver tu posición y puntos 👆_");
-
-    } else if (mode === "matchday") {
-      // Show all today's matches with results
-      lines.push(`⚽ *POLLA MUNDIAL 2026*`);
-      lines.push(`📅 *Jornada del ${dateHeaderCap}*`);
-      lines.push("");
-
-      if (todayMatches.length === 0) {
-        lines.push("_No hay partidos finalizados hoy todavía_");
-      } else {
-        lines.push("*📊 Resultados:*");
-        todayMatches.forEach((m, i) => {
-          const hScore = m.homeScore ?? 0;
-          const aScore = m.awayScore ?? 0;
-          const winner = hScore > aScore ? m.homeTeam : hScore < aScore ? m.awayTeam : "Empate";
-          const emoji = hScore > aScore ? "🟢" : hScore < aScore ? "🔴" : "🟡";
-          lines.push(`${emoji} ${m.homeTeam} *${hScore}–${aScore}* ${m.awayTeam}`);
-        });
-        lines.push("");
-        lines.push("━━━━━━━━━━━━━━━━━");
-        lines.push("👉 ¿Acertaste? Revisa tus puntos:");
-        lines.push("mundial2026-kappa.vercel.app");
-      }
     }
 
     lines.push("");
@@ -776,8 +776,8 @@ function WhatsAppTab({ matches, users, settings }: {
       {/* Mode selector */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         {([
-          { id: "matchday", label: "📊 Resultados del día" },
-          { id: "today", label: "⚡ Resumen corto" },
+          { id: "today", label: "📅 Resultados del día" },
+          { id: "general", label: "🏆 Tabla general" },
           { id: "general", label: "🏆 Tabla general" },
         ] as const).map((m) => (
           <button key={m.id} onClick={() => setMode(m.id)} style={{
