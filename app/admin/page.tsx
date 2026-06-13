@@ -615,6 +615,16 @@ function WhatsAppTab({ matches, users, settings }: {
   const [rankedUsers, setRankedUsers] = useState<{ pos: number; name: string; pts: number }[]>([]);
   const [dailyPts, setDailyPts] = useState<{ name: string; pts: number }[]>([]);
 
+  const finishedMatches = matches.filter(m => m.status === "finished" && m.homeScore !== null);
+  const nowBogota = new Date(Date.now() - 5 * 3600 * 1000);
+  const todayStr = nowBogota.toISOString().slice(0, 10);
+  const todayMatches = finishedMatches.filter(m => {
+    if (!m.matchDate?.toDate) return false;
+    const d = m.matchDate.toDate();
+    const bogota = new Date(d.getTime() - 5 * 3600 * 1000);
+    return bogota.toISOString().slice(0, 10) === todayStr;
+  });
+
   useEffect(() => {
     getRanking().then((ranking) => {
       const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
@@ -660,26 +670,6 @@ function WhatsAppTab({ matches, users, settings }: {
     if (pa === ra) pts += 1;
     return pts;
   }
-
-  // ── build ranking from picks stored in user profiles via getRanking ──
-  // We use what's available: matches + users
-  // For simplicity we compute from match results only (not group picks / special)
-  // since we have matches and can cross-reference picks via getAllPicks
-  // Instead we use the users array which has champion/topScorer
-  // and rely on existing pick points stored per pick document
-  // We'll use a simpler approach: compute from match data that is already loaded
-
-  const finishedMatches = matches.filter(m => m.status === "finished" && m.homeScore !== null);
-
-  // Today's finished matches (Bogotá UTC-5)
-  const nowBogota = new Date(Date.now() - 5 * 3600 * 1000);
-  const todayStr = nowBogota.toISOString().slice(0, 10);
-  const todayMatches = finishedMatches.filter(m => {
-    if (!m.matchDate?.toDate) return false;
-    const d = m.matchDate.toDate();
-    const bogota = new Date(d.getTime() - 5 * 3600 * 1000);
-    return bogota.toISOString().slice(0, 10) === todayStr;
-  });
 
   const nonAdminUsers = users.filter(u => !u.isAdmin);
 
