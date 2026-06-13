@@ -74,8 +74,7 @@ export default function MyPicksPage() {
     + (settings.topScorer && profile?.topScorer === settings.topScorer ? 10 : 0);
   const exactCount = finishedPicks.filter((e) => e.pick.points === 5).length;
   const correctCount = finishedPicks.filter((e) => (e.pick.points ?? 0) >= 2 && e.pick.points !== 5).length;
-  const maxPossiblePts = finishedPicks.length * 5;
-  const accuracy = maxPossiblePts > 0 ? Math.round(totalPts / maxPossiblePts * 100) : 0;
+  const accuracy = finishedPicks.length > 0 ? Math.round((exactCount + correctCount) / finishedPicks.length * 100) : 0;
 
   if (loading || fetching) return <Loading />;
 
