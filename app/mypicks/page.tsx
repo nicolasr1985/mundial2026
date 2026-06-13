@@ -1,4 +1,4 @@
-// app/mypicks/page.tsx
+﻿// app/mypicks/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -61,7 +61,7 @@ export default function MyPicksPage() {
     if (filter === "pending") return match.status !== "finished";
     if (match.status !== "finished") return false;
     if (filter === "exact") return pick.points === 5;
-    if (filter === "correct") return (pick.points ?? 0) >= 2 && pick.points !== 5;
+    if (filter === "correct") return (pick.points ?? 0) > 0 && pick.points !== 5;
     if (filter === "wrong") return (pick.points ?? 0) === 0;
     return true;
   });
@@ -73,7 +73,7 @@ export default function MyPicksPage() {
     + (settings.champion && profile?.champion === settings.champion ? 15 : 0)
     + (settings.topScorer && profile?.topScorer === settings.topScorer ? 10 : 0);
   const exactCount = finishedPicks.filter((e) => e.pick.points === 5).length;
-  const correctCount = finishedPicks.filter((e) => (e.pick.points ?? 0) >= 2 && e.pick.points !== 5).length;
+  const correctCount = finishedPicks.filter((e) => (e.pick.points ?? 0) > 0 && e.pick.points !== 5).length;
   const maxPossiblePts = finishedPicks.length * 5;
   const accuracy = maxPossiblePts > 0 ? Math.round(totalPts / maxPossiblePts * 100) : 0;
 
@@ -89,8 +89,8 @@ export default function MyPicksPage() {
       {/* View toggle */}
       <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginBottom: 24, overflowX: "auto", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         {([
-          { id: "mine", label: "📋 Mis Picks" },
-          { id: "community", label: "👥 Todos los Picks" },
+          { id: "mine", label: "≡ƒôï Mis Picks" },
+          { id: "community", label: "≡ƒæÑ Todos los Picks" },
         ] as const).map((t) => (
           <button key={t.id} onClick={() => setActiveView(t.id)} style={{
             padding: "10px 18px", fontSize: 13, cursor: "pointer", border: "none",
@@ -113,102 +113,103 @@ export default function MyPicksPage() {
       )}
 
       {activeView === "mine" && (
-        <div>
-          {/* Stats row */}
-          <div style={s.statsGrid}>
-            <StatCard label="Puntos totales" value={totalPts} unit="pts" highlight />
-            <StatCard label="Exactos" value={exactCount} unit="⭐" />
-            <StatCard label="Correctos" value={correctCount} unit="✅" />
-            <StatCard label="Precisión" value={accuracy} unit="%" />
-            <StatCard label="Apuestas" value={finishedPicks.length} unit="" extra={picks.length} />
-          </div>
+      <div>
 
-          {/* Special picks */}
-          <div className="card-gold" style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 18, marginBottom: 14, color: "var(--text)" }}>🏆 Predicciones Especiales</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <SpecialPickRow
-                label="Campeón del Mundial"
-                myPick={profile?.champion}
-                official={settings.champion}
-                points={15}
-                field="champion"
-                uid={user?.uid}
-                currentTopScorer={profile?.topScorer}
-                onSaved={refreshProfile}
-              />
-              <SpecialPickRow
-                label="Goleador del Torneo"
-                myPick={profile?.topScorer}
-                official={settings.topScorer}
-                points={10}
-                field="topScorer"
-                uid={user?.uid}
-                currentChampion={profile?.champion}
-                onSaved={refreshProfile}
-              />
-            </div>
+      {/* Stats row */}
+      <div style={s.statsGrid}>
+        <StatCard label="Puntos totales" value={totalPts} unit="pts" highlight />
+        <StatCard label="Exactos" value={exactCount} unit="Γ¡É" />
+        <StatCard label="Correctos" value={correctCount} unit="Γ£à" />
+        <StatCard label="Precisi├│n" value={accuracy} unit="%" />
+        <StatCard label="Apuestas" value={finishedPicks.length} unit="" extra={picks.length} />
+      </div>
 
-            {groupPicks.length > 0 && (
-              <>
-                <div className="divider" />
-                <h3 style={{ fontSize: 15, color: "var(--text)", marginBottom: 10 }}>Clasificaciones de Grupo</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
-                  {groupPicks.map((gp) => (
-                    <GroupPickRow key={gp.group} gp={gp} />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+      {/* Special picks */}
+      <div className="card-gold" style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 14, color: "var(--text)" }}>≡ƒÅå Predicciones Especiales</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <SpecialPickRow
+            label="Campe├│n del Mundial"
+            myPick={profile?.champion}
+            official={settings.champion}
+            points={15}
+            field="champion"
+            uid={user?.uid}
+            currentTopScorer={profile?.topScorer}
+            onSaved={refreshProfile}
+          />
+          <SpecialPickRow
+            label="Goleador del Torneo"
+            myPick={profile?.topScorer}
+            official={settings.topScorer}
+            points={10}
+            field="topScorer"
+            uid={user?.uid}
+            currentChampion={profile?.champion}
+            onSaved={refreshProfile}
+          />
+        </div>
 
-          {/* Filter tabs */}
-          <div style={s.filterRow}>
-            {(["all", "pending", "exact", "correct", "wrong"] as const).map((f) => {
-              const labels = { all: "Todos", pending: "Pendientes", exact: "Exactos ⭐", correct: "Correctos ✅", wrong: "Fallados ❌" };
-              const counts = {
-                all: enrichedPicks.length,
-                pending: enrichedPicks.filter((e) => e.match.status !== "finished").length,
-                exact: enrichedPicks.filter((e) => e.pick.points === 5).length,
-                correct: enrichedPicks.filter((e) => (e.pick.points ?? 0) >= 2 && e.pick.points !== 5).length,
-                wrong: enrichedPicks.filter((e) => e.match.status === "finished" && (e.pick.points ?? 0) === 0).length,
-              };
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  style={{
-                    ...s.filterBtn,
-                    background: filter === f ? "rgba(201,168,76,0.15)" : "var(--surface2)",
-                    color: filter === f ? "var(--gold)" : "var(--text-muted)",
-                    border: `1px solid ${filter === f ? "var(--border-gold)" : "var(--border)"}`,
-                  }}
-                >
-                  {labels[f]} <span style={{ opacity: 0.6, fontSize: 11 }}>({counts[f]})</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Picks list */}
-          {filteredPicks.length === 0 ? (
-            <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
-              No hay apuestas en esta categoría
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {filteredPicks.map(({ pick, match }) => (
-                <PickResultRow key={pick.id} pick={pick} match={match} showRank={showRank} />
+        {groupPicks.length > 0 && (
+          <>
+            <div className="divider" />
+            <h3 style={{ fontSize: 15, color: "var(--text)", marginBottom: 10 }}>Clasificaciones de Grupo</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+              {groupPicks.map((gp) => (
+                <GroupPickRow key={gp.group} gp={gp} />
               ))}
             </div>
-          )}
+          </>
+        )}
+      </div>
+
+      {/* Filter tabs */}
+      <div style={s.filterRow}>
+        {(["all", "pending", "exact", "correct", "wrong"] as const).map((f) => {
+          const labels = { all: "Todos", pending: "Pendientes", exact: "Exactos Γ¡É", correct: "Correctos Γ£à", wrong: "Fallados Γ¥î" };
+          const counts = {
+            all: enrichedPicks.length,
+            pending: enrichedPicks.filter((e) => e.match.status !== "finished").length,
+            exact: enrichedPicks.filter((e) => e.pick.points === 5).length,
+            correct: enrichedPicks.filter((e) => (e.pick.points ?? 0) > 0 && e.pick.points !== 5).length,
+            wrong: enrichedPicks.filter((e) => e.match.status === "finished" && (e.pick.points ?? 0) === 0).length,
+          };
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                ...s.filterBtn,
+                background: filter === f ? "rgba(201,168,76,0.15)" : "var(--surface2)",
+                color: filter === f ? "var(--gold)" : "var(--text-muted)",
+                border: `1px solid ${filter === f ? "var(--border-gold)" : "var(--border)"}`,
+              }}
+            >
+              {labels[f]} <span style={{ opacity: 0.6, fontSize: 11 }}>({counts[f]})</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Picks list */}
+      {filteredPicks.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
+          No hay apuestas en esta categor├¡a
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {filteredPicks.map(({ pick, match }) => (
+            <PickResultRow key={pick.id} pick={pick} match={match} showRank={showRank} />
+          ))}
+        </div>
+      )}
         </div>
       )}
     </div>
   );
 }
 
-// ─── PICK RESULT ROW ──────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ PICK RESULT ROW ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; showRank: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const finished = match.status === "finished";
@@ -224,7 +225,7 @@ function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; sh
 
   const dateStr = match.matchDate?.toDate
     ? match.matchDate.toDate().toLocaleString("es-CO", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
-    : "—";
+    : "ΓÇö";
 
   return (
     <div style={{
@@ -255,7 +256,7 @@ function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; sh
         <div style={{ textAlign: "center", flexShrink: 0 }}>
           <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Mi pick</div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18 }}>
-            {pick.homeScore} – {pick.awayScore}
+            {pick.homeScore} ΓÇô {pick.awayScore}
           </div>
         </div>
 
@@ -264,10 +265,10 @@ function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; sh
           <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Resultado</div>
           {hasResult ? (
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)" }}>
-              {match.homeScore} – {match.awayScore}
+              {match.homeScore} ΓÇô {match.awayScore}
             </div>
           ) : (
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>—</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>ΓÇö</div>
           )}
         </div>
 
@@ -282,7 +283,7 @@ function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; sh
             </>
           ) : (
             <span className="badge badge-blue" style={{ fontSize: 10 }}>
-              {match.status === "live" ? "🔴 LIVE" : "📅"}
+              {match.status === "live" ? "≡ƒö┤ LIVE" : "≡ƒôà"}
             </span>
           )}
         </div>
@@ -311,6 +312,7 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
+  // Sync value when myPick changes (after save/refresh)
   useEffect(() => { setValue(myPick || ""); }, [myPick]);
 
   const hit = official && myPick === official;
@@ -324,11 +326,11 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
       const champion = field === "champion" ? value : (currentChampion || "");
       const topScorer = field === "topScorer" ? value : (currentTopScorer || "");
       await updateChampionPick(uid, champion, topScorer);
-      setMsg("✅ Guardado");
+      setMsg("Γ£à Guardado");
       setEditing(false);
       if (onSaved) await onSaved();
     } catch {
-      setMsg("❌ Error al guardar");
+      setMsg("Γ¥î Error al guardar");
     } finally {
       setSaving(false);
       setTimeout(() => setMsg(""), 3000);
@@ -349,7 +351,7 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
               color: "var(--text)", outline: "none", width: "100%",
             }}
           >
-            <option value="">🗑 Limpiar selección</option>
+            <option value="">≡ƒùæ Limpiar selecci├│n</option>
             {options.map((o) => (
               <option key={isTeam ? o as string : (o as any).name} value={isTeam ? o as string : (o as any).name}>
                 {isTeam ? o as string : formatScorer(o as any)}
@@ -357,31 +359,39 @@ function SpecialPickRow({ label, myPick, official, points, field, uid, currentCh
             ))}
           </select>
           <div style={{ display: "flex", gap: 6 }}>
-            <button className="btn-primary" onClick={handleSave} disabled={saving}
-              style={{ padding: "6px 14px", fontSize: 12, flex: 1 }}>
+            <button
+              className="btn-primary"
+              onClick={handleSave}
+              disabled={saving}
+              style={{ padding: "6px 14px", fontSize: 12, flex: 1 }}
+            >
               {saving ? "..." : "Guardar"}
             </button>
-            <button onClick={() => { setEditing(false); setValue(myPick || ""); }}
+            <button
+              onClick={() => { setEditing(false); setValue(myPick || ""); }}
               style={{ padding: "6px 10px", fontSize: 12, background: "var(--surface3)",
                 border: "1px solid var(--border)", borderRadius: "var(--radius-sm)",
-                color: "var(--text-muted)", cursor: "pointer" }}>
+                color: "var(--text-muted)", cursor: "pointer" }}
+            >
               Cancelar
             </button>
           </div>
-          {msg && <span style={{ fontSize: 12, color: msg.startsWith("✅") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
+          {msg && <span style={{ fontSize: 12, color: msg.startsWith("Γ£à") ? "var(--green)" : "var(--red)" }}>{msg}</span>}
         </div>
       ) : (
         <>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div style={{ fontWeight: 600, fontSize: 15, color: hit ? "var(--gold)" : "var(--text)" }}>
-              {myPick || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin predicción</span>}
-              {hit && <span style={{ marginLeft: 6 }}>✅ +{points} pts</span>}
+              {myPick || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Sin predicci├│n</span>}
+              {hit && <span style={{ marginLeft: 6 }}>Γ£à +{points} pts</span>}
             </div>
             {!official && !isDeadlinePassed() && (
-              <button onClick={() => setEditing(true)}
+              <button
+                onClick={() => setEditing(true)}
                 style={{ fontSize: 11, padding: "3px 10px", background: "rgba(201,168,76,0.1)",
                   border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)",
-                  color: "var(--gold)", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                  color: "var(--gold)", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+              >
                 {myPick ? "Cambiar" : "Escoger"}
               </button>
             )}
@@ -406,8 +416,8 @@ function GroupPickRow({ gp }: { gp: GroupPick }) {
         )}
       </div>
       <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
-        1°: {gp.firstPlace} · 2°: {gp.secondPlace}
-        {gp.thirdPlace ? ` · 3°: ${gp.thirdPlace}` : ""}
+        1┬░: {gp.firstPlace} ┬╖ 2┬░: {gp.secondPlace}
+        {gp.thirdPlace ? ` ┬╖ 3┬░: ${gp.thirdPlace}` : ""}
       </div>
     </div>
   );
@@ -427,7 +437,7 @@ function StatCard({ label, value, unit, highlight, extra }: { label: string; val
   );
 }
 
-// ─── COMMUNITY PICKS VIEW ────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ COMMUNITY PICKS VIEW ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
   matches: Match[];
   allPicks: Pick[];
@@ -437,9 +447,11 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
 }) {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
 
+  // All matches sorted by date
   const relevantMatches = matches
     .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0));
 
+  // Group by round
   const byGroup = relevantMatches.reduce((acc, m) => {
     const g = m.group ? `Grupo ${m.group}` : (m.round || "Otros");
     if (!acc[g]) acc[g] = [];
@@ -447,6 +459,7 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
     return acc;
   }, {} as Record<string, Match[]>);
 
+  // Build picks index: matchId -> userId -> pick
   const picksIndex: Record<string, Record<string, Pick>> = {};
   for (const p of allPicks) {
     if (!picksIndex[p.matchId]) picksIndex[p.matchId] = {};
@@ -457,14 +470,14 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
 
   if (matches.length === 0) return (
     <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
-      <p>No hay partidos cargados aún.</p>
+      <p>No hay partidos cargados a├║n.</p>
     </div>
   );
 
   return (
     <div>
       <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20, padding: "10px 14px", background: "rgba(201,168,76,0.06)", border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)" }}>
-        💡 Puedes ver si alguien apostó en un partido. El marcador exacto se revela solo cuando el partido haya comenzado y las apuestas estén cerradas.
+        ≡ƒÆí Puedes ver si alguien apost├│ en un partido. El marcador exacto se revela solo cuando el partido haya comenzado y las apuestas est├⌐n cerradas.
       </p>
 
       {Object.entries(byGroup).sort(([a],[b]) => {
@@ -486,7 +499,7 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
               const isLocked = kickoffPassed || match.locked || match.status === "finished" || match.status === "live";
               const dateStr = match.matchDate?.toDate?.()?.toLocaleString("es-CO", {
                 weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
-              }) ?? "—";
+              }) ?? "ΓÇö";
               const isExpanded = selectedMatch === match.id;
 
               return (
@@ -496,40 +509,50 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
                   borderRadius: "var(--radius-sm)",
                   overflow: "hidden",
                 }}>
+                  {/* Match header row */}
                   <div
                     onClick={() => setSelectedMatch(isExpanded ? null : match.id)}
                     style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
                   >
+                    {/* Status dot */}
                     <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
                       background: match.status === "live" ? "var(--green)" : match.status === "finished" ? "var(--text-muted)" : "var(--gold)",
                       boxShadow: match.status === "live" ? "0 0 8px var(--green)" : "none",
                     }} />
+
+                    {/* Teams */}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>
                         {teamWithRank(match.homeTeam, showRank)} <span style={{ color: "var(--text-muted)" }}>vs</span> {teamWithRank(match.awayTeam, showRank)}
                       </div>
                       <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{dateStr}</div>
                     </div>
+
+                    {/* Official result if finished */}
                     {match.homeScore !== null && match.awayScore !== null && (
                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "var(--gold)" }}>
-                        {match.homeScore} – {match.awayScore}
+                        {match.homeScore} ΓÇô {match.awayScore}
                       </div>
                     )}
+
+                    {/* Pick count badge */}
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
                         {Object.keys(matchPicks).length}/{nonAdminUsers.length} apostaron
                       </span>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{isExpanded ? "▲" : "▼"}</span>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{isExpanded ? "Γû▓" : "Γû╝"}</span>
                     </div>
                   </div>
 
+                  {/* Expanded picks grid */}
                   {isExpanded && (
                     <div style={{ borderTop: "1px solid var(--border)", padding: "12px 16px" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
                         {nonAdminUsers.map((u) => {
                           const pick = matchPicks[u.uid];
                           const isMe = u.uid === myUid;
-                          const showScore = isLocked || isMe;
+                          const showScore = isLocked || isMe; // show score if locked OR it's my own pick
+
                           return (
                             <div key={u.uid} style={{
                               background: isMe ? "rgba(201,168,76,0.08)" : "var(--surface2)",
@@ -539,13 +562,13 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
                             }}>
                               <div style={{ fontSize: 12, fontWeight: 600, color: isMe ? "var(--gold)" : "var(--text)", marginBottom: 6, display: "flex", alignItems: "center", gap: 4 }}>
                                 {u.displayName}
-                                {isMe && <span style={{ fontSize: 10, background: "rgba(201,168,76,0.2)", color: "var(--gold)", padding: "1px 5px", borderRadius: 3 }}>Tú</span>}
+                                {isMe && <span style={{ fontSize: 10, background: "rgba(201,168,76,0.2)", color: "var(--gold)", padding: "1px 5px", borderRadius: 3 }}>T├║</span>}
                               </div>
                               {pick ? (
                                 showScore ? (
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--text)" }}>
-                                      {pick.homeScore} – {pick.awayScore}
+                                      {pick.homeScore} ΓÇô {pick.awayScore}
                                     </span>
                                     {pick.points !== null && pick.points !== undefined && (
                                       <span className="badge badge-gold" style={{ fontSize: 10 }}>{pick.points} pts</span>
@@ -553,7 +576,7 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
                                   </div>
                                 ) : (
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    <span style={{ fontSize: 13, color: "var(--green)" }}>✓ Apostó</span>
+                                    <span style={{ fontSize: 13, color: "var(--green)" }}>Γ£ô Apost├│</span>
                                     <span style={{ fontSize: 10, color: "var(--text-muted)" }}>(se revela al inicio)</span>
                                   </div>
                                 )
