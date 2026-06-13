@@ -768,7 +768,6 @@ function WhatsAppTab({ matches, users, settings }: {
         {([
           { id: "today", label: "📅 Resultados del día" },
           { id: "general", label: "🏆 Tabla general" },
-          { id: "general", label: "🏆 Tabla general" },
         ] as const).map((m) => (
           <button key={m.id} onClick={() => setMode(m.id)} style={{
             padding: "8px 14px", borderRadius: "var(--radius-sm)", fontSize: 13, cursor: "pointer",
