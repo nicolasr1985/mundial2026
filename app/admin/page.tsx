@@ -343,31 +343,43 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
 
                   {/* Cards inputs - only show for group stage */}
                   {match.round.startsWith("Fase de Grupos") && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 8, padding: "4px 8px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>🟨</span>
-                      <input type="number" min={0} max={20} placeholder="0"
-                        value={cards[match.id]?.homeY ?? "0"}
-                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeY: e.target.value } }))}
-                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
-                      />
-                      <span style={{ fontSize: 10, color: "var(--text-muted)" }}>-</span>
-                      <input type="number" min={0} max={20} placeholder="0"
-                        value={cards[match.id]?.awayY ?? "0"}
-                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayY: e.target.value } }))}
-                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
-                      />
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}>🟥</span>
-                      <input type="number" min={0} max={20} placeholder="0"
-                        value={cards[match.id]?.homeR ?? "0"}
-                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeR: e.target.value } }))}
-                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
-                      />
-                      <span style={{ fontSize: 10, color: "var(--text-muted)" }}>-</span>
-                      <input type="number" min={0} max={20} placeholder="0"
-                        value={cards[match.id]?.awayR ?? "0"}
-                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayR: e.target.value } }))}
-                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
-                      />
+                    <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
+                      {/* Home team cards */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3, padding: "4px 8px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+                        <div style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>{match.homeTeam}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <span style={{ fontSize: 11 }}>🟨</span>
+                          <input type="number" min={0} max={20} placeholder="0"
+                            value={cards[match.id]?.homeY ?? "0"}
+                            onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeY: e.target.value } }))}
+                            style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                          />
+                          <span style={{ fontSize: 11 }}>🟥</span>
+                          <input type="number" min={0} max={20} placeholder="0"
+                            value={cards[match.id]?.homeR ?? "0"}
+                            onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeR: e.target.value } }))}
+                            style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                          />
+                        </div>
+                      </div>
+                      {/* Away team cards */}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3, padding: "4px 8px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+                        <div style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>{match.awayTeam}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <span style={{ fontSize: 11 }}>🟨</span>
+                          <input type="number" min={0} max={20} placeholder="0"
+                            value={cards[match.id]?.awayY ?? "0"}
+                            onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayY: e.target.value } }))}
+                            style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                          />
+                          <span style={{ fontSize: 11 }}>🟥</span>
+                          <input type="number" min={0} max={20} placeholder="0"
+                            value={cards[match.id]?.awayR ?? "0"}
+                            onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayR: e.target.value } }))}
+                            style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
                   <button
