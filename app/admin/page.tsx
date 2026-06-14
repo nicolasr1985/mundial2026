@@ -719,14 +719,16 @@ function WhatsAppTab({ matches, users, settings }: {
   const [rankedUsers, setRankedUsers] = useState<{ pos: number; name: string; pts: number }[]>([]);
   const [dailyPts, setDailyPts] = useState<{ name: string; pts: number }[]>([]);
 
-  const finishedMatches = matches.filter(m => m.status === "finished" && m.homeScore !== null);
   const nowBogota = new Date(Date.now() - 5 * 3600 * 1000);
   const todayStr = nowBogota.toISOString().slice(0, 10);
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  const finishedMatches = matches.filter(m => m.status === "finished" && m.homeScore !== null);
   const todayMatches = finishedMatches.filter(m => {
     if (!m.matchDate?.toDate) return false;
     const d = m.matchDate.toDate();
     const bogota = new Date(d.getTime() - 5 * 3600 * 1000);
-    return bogota.toISOString().slice(0, 10) === todayStr;
+    return bogota.toISOString().slice(0, 10) === selectedDate;
   });
 
   useEffect(() => {
@@ -778,7 +780,8 @@ function WhatsAppTab({ matches, users, settings }: {
   const nonAdminUsers = users.filter(u => !u.isAdmin);
 
   // Date header
-  const dateHeader = nowBogota.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const selectedDateObj = new Date(selectedDate + "T12:00:00");
+  const dateHeader = selectedDateObj.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
   const dateHeaderCap = dateHeader.charAt(0).toUpperCase() + dateHeader.slice(1);
 
   // ── Generate message ─────────────────────────────────────────────
@@ -882,6 +885,30 @@ function WhatsAppTab({ matches, users, settings }: {
           }}>{m.label}</button>
         ))}
       </div>
+
+      {/* Date picker - only show for "today" mode */}
+      {mode === "today" && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, padding: "10px 14px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>📅 Fecha:</span>
+          <input
+            type="date"
+            value={selectedDate}
+            max={todayStr}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{
+              background: "var(--surface)", border: "1px solid var(--border-gold)",
+              borderRadius: "var(--radius-sm)", padding: "6px 10px", fontSize: 13,
+              color: "var(--text)", outline: "none", cursor: "pointer",
+            }}
+          />
+          <button onClick={() => setSelectedDate(todayStr)}
+            style={{ fontSize: 12, padding: "5px 10px", background: "rgba(201,168,76,0.1)",
+              border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)",
+              color: "var(--gold)", cursor: "pointer" }}>
+            Hoy
+          </button>
+        </div>
+      )}
 
       {/* Message preview */}
       <div style={{ position: "relative" }}>
