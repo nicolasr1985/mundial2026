@@ -18,6 +18,8 @@ interface TeamStat {
   ga: number;
   gd: number;
   points: number;
+  yellow: number;
+  red: number;
 }
 
 interface R32Match {
@@ -63,8 +65,8 @@ function computeGroupStandings(
     if (!m.group) continue;
     const g = m.group;
     if (!standings[g]) standings[g] = {};
-    if (!standings[g][m.homeTeam]) standings[g][m.homeTeam] = { team: m.homeTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
-    if (!standings[g][m.awayTeam]) standings[g][m.awayTeam] = { team: m.awayTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+    if (!standings[g][m.homeTeam]) standings[g][m.homeTeam] = { team: m.homeTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, yellow: 0, red: 0 };
+    if (!standings[g][m.awayTeam]) standings[g][m.awayTeam] = { team: m.awayTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, yellow: 0, red: 0 };
   }
   for (const m of matches) {
     if (!m.group || m.homeScore === null || m.awayScore === null) continue;
@@ -81,6 +83,9 @@ function computeGroupStandings(
     if (hs > as_)      { home.won++; home.points += 3; away.lost++; }
     else if (hs < as_) { away.won++; away.points += 3; home.lost++; }
     else               { home.drawn++; away.drawn++; home.points++; away.points++; }
+    // Accumulate cards (conduct score: yellow=1pt, red=3pts, yellow+red=4pts per FIFA)
+    home.yellow += m.homeYellow ?? 0; home.red += m.homeRed ?? 0;
+    away.yellow += m.awayYellow ?? 0; away.red += m.awayRed ?? 0;
   }
   const result: Record<string, TeamStat[]> = {};
   for (const g in standings) {
@@ -88,7 +93,8 @@ function computeGroupStandings(
       b.points - a.points ||          // 1. Points
       b.gd - a.gd ||                  // 2. Goal difference
       b.gf - a.gf ||                  // 3. Goals scored
-      // 4. Conduct score — not tracked
+      // 4. Conduct: lower is better (yellow=1, red=3, yellow+red=4 per FIFA)
+      ((a.yellow + a.red * 3) - (b.yellow + b.red * 3)) ||
       fifaRankOf(a.team) - fifaRankOf(b.team)  // 5-6. FIFA ranking
     );
   }

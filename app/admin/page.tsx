@@ -177,6 +177,7 @@ function CreateMatchTab({ onCreated }: { onCreated: () => void }) {
 // ─── RESULTS TAB ──────────────────────────────────────────────────────────────
 function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => void }) {
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
+  const [cards, setCards] = useState<Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
@@ -216,7 +217,12 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
 
     setSaving(match.id);
     try {
-      await updateMatchResult(match.id, parseInt(homeVal), parseInt(awayVal));
+      await updateMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), {
+        homeYellow: parseInt(cards[match.id]?.homeY || "0") || 0,
+        awayYellow: parseInt(cards[match.id]?.awayY || "0") || 0,
+        homeRed: parseInt(cards[match.id]?.homeR || "0") || 0,
+        awayRed: parseInt(cards[match.id]?.awayR || "0") || 0,
+      });
       setMsgs((m) => ({ ...m, [match.id]: "✅ Resultado guardado + puntos recalculados" }));
       onUpdated();
     } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
@@ -255,6 +261,14 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
               home: match.homeScore !== null ? String(match.homeScore) : "",
               away: match.awayScore !== null ? String(match.awayScore) : "",
             };
+            if (!cards[match.id]) {
+              cards[match.id] = {
+                homeY: String(match.homeYellow ?? 0),
+                awayY: String(match.awayYellow ?? 0),
+                homeR: String(match.homeRed ?? 0),
+                awayR: String(match.awayRed ?? 0),
+              };
+            }
             const hasChanged = isFinished && (
               sc.home !== String(match.homeScore) || sc.away !== String(match.awayScore)
             );
@@ -298,7 +312,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                 )}
 
                 {/* Score inputs */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
                   <input
                     className="score-input"
                     type="number" min={0} max={20}
@@ -326,6 +340,36 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     onKeyDown={(e) => { if (["-","e","E","+","."].includes(e.key)) e.preventDefault(); }}
                     style={{ width: 48, borderColor: hasChanged ? "rgba(231,76,60,0.5)" : undefined }}
                   />
+
+                  {/* Cards inputs - only show for group stage */}
+                  {match.round.startsWith("Fase de Grupos") && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 8, padding: "4px 8px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>🟨</span>
+                      <input type="number" min={0} max={20} placeholder="0"
+                        value={cards[match.id]?.homeY ?? "0"}
+                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeY: e.target.value } }))}
+                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                      />
+                      <span style={{ fontSize: 10, color: "var(--text-muted)" }}>-</span>
+                      <input type="number" min={0} max={20} placeholder="0"
+                        value={cards[match.id]?.awayY ?? "0"}
+                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayY: e.target.value } }))}
+                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                      />
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}>🟥</span>
+                      <input type="number" min={0} max={20} placeholder="0"
+                        value={cards[match.id]?.homeR ?? "0"}
+                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeR: e.target.value } }))}
+                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                      />
+                      <span style={{ fontSize: 10, color: "var(--text-muted)" }}>-</span>
+                      <input type="number" min={0} max={20} placeholder="0"
+                        value={cards[match.id]?.awayR ?? "0"}
+                        onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayR: e.target.value } }))}
+                        style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                      />
+                    </div>
+                  )}
                   <button
                     className={isFinished && bothBlank ? "btn-danger" : hasChanged ? "btn-danger" : "btn-primary"}
                     onClick={() => handleResult(match)}

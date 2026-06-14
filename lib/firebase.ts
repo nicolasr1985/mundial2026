@@ -64,11 +64,15 @@ export interface Match {
   awayTeam: string;
   homeScore: number | null;
   awayScore: number | null;
+  homeYellow?: number;
+  awayYellow?: number;
+  homeRed?: number;
+  awayRed?: number;
   matchDate: Timestamp;
-  round: string; // "Fase de Grupos - Grupo A", "Octavos", "Cuartos", etc.
-  group?: string; // Solo para fase de grupos
+  round: string;
+  group?: string;
   status: "upcoming" | "live" | "finished";
-  locked: boolean; // true = no más apuestas
+  locked: boolean;
 }
 
 export interface Pick {
@@ -177,13 +181,18 @@ export async function createMatch(data: Omit<Match, "id">) {
 export async function updateMatchResult(
   matchId: string,
   homeScore: number,
-  awayScore: number
+  awayScore: number,
+  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number }
 ) {
   await updateDoc(doc(db, "matches", matchId), {
     homeScore,
     awayScore,
     status: "finished",
     locked: true,
+    homeYellow: cards?.homeYellow ?? 0,
+    awayYellow: cards?.awayYellow ?? 0,
+    homeRed: cards?.homeRed ?? 0,
+    awayRed: cards?.awayRed ?? 0,
   });
   await recalculatePicksForMatch(matchId, homeScore, awayScore);
 }
