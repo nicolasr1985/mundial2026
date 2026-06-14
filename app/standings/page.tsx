@@ -1,9 +1,11 @@
 // app/standings/page.tsx
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, Match } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { teamWithRank, canSeeRanking, FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { WC2026_TEAMS } from "@/lib/wc2026-data";
 
@@ -746,24 +748,32 @@ export default function StandingsPage() {
 
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
-  const loadData = useCallback(async () => {
+  // Real-time listener for matches
+  useEffect(() => {
     if (!user) return;
-    try {
-      const [m, up] = await Promise.all([getMatches(), getUserPicks(user.uid)]);
+    const q = query(collection(db, "matches"), orderBy("matchDate", "asc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const m = snap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
       setMatches(m);
+      setFetching(false);
+    }, (e) => { console.warn(e); setFetching(false); });
+    return () => unsub();
+  }, [user]);
+
+  // Load user picks once
+  useEffect(() => {
+    if (!user) return;
+    getUserPicks(user.uid).then((up) => {
       const pickMap: Record<string, { homeScore: number; awayScore: number }> = {};
       up.forEach((p) => { pickMap[p.matchId] = { homeScore: p.homeScore, awayScore: p.awayScore }; });
       setUserPickMap(pickMap);
-    } catch (e) { console.warn(e); }
-    finally { setFetching(false); }
+    }).catch(console.warn);
   }, [user]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   const groupMatches = matches.filter((m) => m.round?.startsWith("Fase de Grupos"));
   const availableGroups = Array.from(new Set(groupMatches.map((m) => m.group).filter(Boolean) as string[])).sort();
 
-  const realFinished = groupMatches.filter((m) => m.status === "finished" && m.homeScore !== null);
+  const realFinished = groupMatches.filter((m) => (m.status === "finished" || m.status === "live") && m.homeScore !== null);
   const realStandings = computeGroupStandings(realFinished, groupMatches);
   const realThirds = getThirdPlaceTable(realStandings);
   const realR32 = buildR32(realStandings, groupMatches);
