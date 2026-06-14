@@ -215,8 +215,8 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
 
   const handleResult = async (match: Match) => {
     const sc = scores[match.id];
-    const homeVal = sc?.home ?? "";
-    const awayVal = sc?.away ?? "";
+    const homeVal = sc?.home !== "" ? sc?.home : (match.homeScore !== null ? String(match.homeScore) : "");
+    const awayVal = sc?.away !== "" ? sc?.away : (match.awayScore !== null ? String(match.awayScore) : "");
     const bothBlank = homeVal === "" && awayVal === "";
     const bothFilled = homeVal !== "" && awayVal !== "";
 
@@ -294,7 +294,8 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
               sc.home !== String(match.homeScore) || sc.away !== String(match.awayScore)
             );
             const bothBlank = sc.home === "" && sc.away === "";
-            const canSave = (sc.home !== "" && sc.away !== "") || (isFinished && bothBlank);
+            const hasExistingScore = match.homeScore !== null && match.awayScore !== null;
+            const canSave = (sc.home !== "" && sc.away !== "") || (isFinished && bothBlank) || (match.status === "live" && hasExistingScore);
 
             return (
               <div key={match.id} style={{
@@ -416,8 +417,8 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     <button
                       className="btn-primary"
                       onClick={async () => {
-                        const homeVal = sc.home;
-                        const awayVal = sc.away;
+                        const homeVal = sc.home !== "" ? sc.home : (match.homeScore !== null ? String(match.homeScore) : "");
+                        const awayVal = sc.away !== "" ? sc.away : (match.awayScore !== null ? String(match.awayScore) : "");
                         if (!homeVal || !awayVal) return;
                         setSaving(match.id);
                         try {
