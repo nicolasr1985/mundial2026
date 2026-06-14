@@ -412,6 +412,33 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     {saving === match.id ? "..." : isFinished && bothBlank ? "↩ Eliminar resultado" : isFinished ? (hasChanged ? "⚠ Corregir" : "✏ Editar") : "✓ Guardar"}
                   </button>
 
+                  {match.status === "live" && (
+                    <button
+                      className="btn-primary"
+                      onClick={async () => {
+                        const homeVal = sc.home;
+                        const awayVal = sc.away;
+                        if (!homeVal || !awayVal) return;
+                        setSaving(match.id);
+                        try {
+                          await updateMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), {
+                            homeYellow: parseInt(cards[match.id]?.homeY || "0") || 0,
+                            awayYellow: parseInt(cards[match.id]?.awayY || "0") || 0,
+                            homeRed: parseInt(cards[match.id]?.homeR || "0") || 0,
+                            awayRed: parseInt(cards[match.id]?.awayR || "0") || 0,
+                          });
+                          setMsgs((m) => ({ ...m, [match.id]: "✅ Partido finalizado" }));
+                          onUpdated();
+                        } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
+                        finally { setSaving(null); setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 4000); }
+                      }}
+                      disabled={saving === match.id || !canSave}
+                      style={{ fontSize: 13, padding: "8px 14px", background: "var(--green)", borderColor: "var(--green)", opacity: !canSave ? 0.4 : 1 }}
+                    >
+                      ✅ Finalizar
+                    </button>
+                  )}
+
                   {/* Undo button when modified */}
                   {hasChanged && (
                     <button className="btn-ghost" style={{ fontSize: 12, padding: "6px 10px" }}
