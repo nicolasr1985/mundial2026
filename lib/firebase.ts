@@ -197,6 +197,24 @@ export async function updateMatchResult(
   await recalculatePicksForMatch(matchId, homeScore, awayScore);
 }
 
+export async function updateLiveMatchResult(
+  matchId: string,
+  homeScore: number,
+  awayScore: number,
+  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number }
+) {
+  // Updates score and recalculates picks without changing status to "finished"
+  await updateDoc(doc(db, "matches", matchId), {
+    homeScore,
+    awayScore,
+    homeYellow: cards?.homeYellow ?? 0,
+    awayYellow: cards?.awayYellow ?? 0,
+    homeRed: cards?.homeRed ?? 0,
+    awayRed: cards?.awayRed ?? 0,
+  });
+  await recalculatePicksForMatch(matchId, homeScore, awayScore);
+}
+
 export async function lockMatch(matchId: string) {
   await updateDoc(doc(db, "matches", matchId), { locked: true, status: "live" });
 }

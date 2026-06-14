@@ -7,7 +7,7 @@ import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
+  getMatches, createMatch, updateMatchResult, updateLiveMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
   setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry
 } from "@/lib/firebase";
@@ -240,13 +240,19 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
 
     setSaving(match.id);
     try {
-      await updateMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), {
+      const cardData = {
         homeYellow: parseInt(cards[match.id]?.homeY || "0") || 0,
         awayYellow: parseInt(cards[match.id]?.awayY || "0") || 0,
         homeRed: parseInt(cards[match.id]?.homeR || "0") || 0,
         awayRed: parseInt(cards[match.id]?.awayR || "0") || 0,
-      });
-      setMsgs((m) => ({ ...m, [match.id]: "✅ Resultado guardado + puntos recalculados" }));
+      };
+      if (match.status === "live") {
+        await updateLiveMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), cardData);
+        setMsgs((m) => ({ ...m, [match.id]: "🔄 Marcador actualizado + puntos recalculados" }));
+      } else {
+        await updateMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), cardData);
+        setMsgs((m) => ({ ...m, [match.id]: "✅ Resultado guardado + puntos recalculados" }));
+      }
       onUpdated();
     } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
     finally { setSaving(null); setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 4000); }
