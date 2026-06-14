@@ -178,6 +178,19 @@ function CreateMatchTab({ onCreated }: { onCreated: () => void }) {
 function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => void }) {
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
   const [cards, setCards] = useState<Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }>>({});
+
+  useEffect(() => {
+    const init: Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }> = {};
+    matches.forEach(m => {
+      init[m.id] = {
+        homeY: String(m.homeYellow ?? 0),
+        awayY: String(m.awayYellow ?? 0),
+        homeR: String(m.homeRed ?? 0),
+        awayR: String(m.awayRed ?? 0),
+      };
+    });
+    setCards(init);
+  }, [matches]);
   const [saving, setSaving] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
@@ -261,14 +274,6 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
               home: match.homeScore !== null ? String(match.homeScore) : "",
               away: match.awayScore !== null ? String(match.awayScore) : "",
             };
-            if (!cards[match.id]) {
-              cards[match.id] = {
-                homeY: String(match.homeYellow ?? 0),
-                awayY: String(match.awayYellow ?? 0),
-                homeR: String(match.homeRed ?? 0),
-                awayR: String(match.awayRed ?? 0),
-              };
-            }
             const hasChanged = isFinished && (
               sc.home !== String(match.homeScore) || sc.away !== String(match.awayScore)
             );
