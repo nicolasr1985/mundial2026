@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isDeadlinePassed } from "@/lib/scoring";
 import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
+import { FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
@@ -175,6 +176,10 @@ function CreateMatchTab({ onCreated }: { onCreated: () => void }) {
 }
 
 // ─── RESULTS TAB ──────────────────────────────────────────────────────────────
+function teamCode(name: string): string {
+  return FIFA_RANKINGS.find(e => e.name === name)?.code ?? name.slice(0, 3).toUpperCase();
+}
+
 function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => void }) {
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
   const [cards, setCards] = useState<Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }>>({});
@@ -356,7 +361,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     <div style={{ display: "flex", gap: 8, marginLeft: 8 }}>
                       {/* Home team cards */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 3, padding: "4px 8px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                        <div style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>{match.homeTeam}</div>
+                        <div style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>{teamCode(match.homeTeam)}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                           <span style={{ fontSize: 11 }}>🟨</span>
                           <input type="number" min={0} max={20} placeholder="0"
@@ -374,7 +379,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                       </div>
                       {/* Away team cards */}
                       <div style={{ display: "flex", flexDirection: "column", gap: 3, padding: "4px 8px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }}>
-                        <div style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>{match.awayTeam}</div>
+                        <div style={{ fontSize: 10, color: "var(--gold)", fontWeight: 600, textAlign: "center", whiteSpace: "nowrap" }}>{teamCode(match.awayTeam)}</div>
                         <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                           <span style={{ fontSize: 11 }}>🟨</span>
                           <input type="number" min={0} max={20} placeholder="0"
