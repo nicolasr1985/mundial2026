@@ -180,16 +180,21 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
   const [cards, setCards] = useState<Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }>>({});
 
   useEffect(() => {
-    const init: Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }> = {};
-    matches.forEach(m => {
-      init[m.id] = {
-        homeY: String(m.homeYellow ?? 0),
-        awayY: String(m.awayYellow ?? 0),
-        homeR: String(m.homeRed ?? 0),
-        awayR: String(m.awayRed ?? 0),
-      };
+    setCards(prev => {
+      const init: Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }> = { ...prev };
+      matches.forEach(m => {
+        // Only initialize if not already set by user interaction
+        if (!init[m.id]) {
+          init[m.id] = {
+            homeY: String(m.homeYellow ?? 0),
+            awayY: String(m.awayYellow ?? 0),
+            homeR: String(m.homeRed ?? 0),
+            awayR: String(m.awayRed ?? 0),
+          };
+        }
+      });
+      return init;
     });
-    setCards(init);
   }, [matches]);
   const [saving, setSaving] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Record<string, string>>({});
