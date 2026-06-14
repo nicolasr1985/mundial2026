@@ -110,6 +110,7 @@ function getThirdPlaceTable(standings: Record<string, TeamStat[]>): (TeamStat & 
     b.points - a.points ||
     b.gd - a.gd ||
     b.gf - a.gf ||
+    ((a.yellow + a.red * 3) - (b.yellow + b.red * 3)) ||
     fifaRankOf(a.team) - fifaRankOf(b.team)
   );
   return sorted.map((t, i) => ({ ...t, qualifies: i < 8 }));
