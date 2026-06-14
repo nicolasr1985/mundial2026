@@ -263,14 +263,14 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         {(["upcoming", "live", "finished"] as const).map((f) => {
           const c = matches.filter((m) => m.status === f).length;
-          const labels = { upcoming: "Próximos", live: "🔴 En Juego", finished: "Finalizados" };
+          const labels = { upcoming: "Próximos", live: "🟢 En Juego", finished: "Finalizados" };
           return (
             <button key={f} onClick={() => setFilter(f)} style={{
               padding: "7px 14px", borderRadius: "var(--radius-sm)", fontSize: 13, cursor: "pointer",
               fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, transition: "all 0.15s",
-              background: filter === f ? "rgba(201,168,76,0.15)" : "var(--surface2)",
-              color: filter === f ? "var(--gold)" : "var(--text-muted)",
-              border: `1px solid ${filter === f ? "var(--border-gold)" : "var(--border)"}`,
+              background: filter === f ? (f === "live" ? "rgba(46,204,113,0.15)" : "rgba(201,168,76,0.15)") : "var(--surface2)",
+              color: filter === f ? (f === "live" ? "var(--green)" : "var(--gold)") : "var(--text-muted)",
+              border: `1px solid ${filter === f ? (f === "live" ? "rgba(46,204,113,0.4)" : "var(--border-gold)") : "var(--border)"}`,
             }}>
               {labels[f]} ({c})
             </button>
