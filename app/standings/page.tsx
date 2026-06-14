@@ -1206,7 +1206,7 @@ const s: Record<string, React.CSSProperties> = {
 // ─── FIFA RANKING TAB ─────────────────────────────────────────────────────────
 function FifaRankingTab() {
   const participatingTeams = new Set(WC2026_TEAMS as string[]);
-  const filtered = FIFA_RANKINGS.filter(e => participatingTeams.has(e.name));
+  const filtered = FIFA_RANKINGS.filter(e => participatingTeams.has(e.name)).sort((a, b) => a.rank - b.rank);
 
   return (
     <div style={{ overflowX: "auto" }}>
