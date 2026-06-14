@@ -773,7 +773,17 @@ export default function StandingsPage() {
     if (!p) return null;
     const hs = Number(p.homeScore), as_ = Number(p.awayScore);
     if (isNaN(hs) || isNaN(as_)) return null;
-    return { ...m, homeScore: hs, awayScore: as_, status: "finished" as const };
+    return {
+      ...m,
+      homeScore: hs,
+      awayScore: as_,
+      status: "finished" as const,
+      // Inherit real cards for tiebreaker
+      homeYellow: m.homeYellow ?? 0,
+      awayYellow: m.awayYellow ?? 0,
+      homeRed: m.homeRed ?? 0,
+      awayRed: m.awayRed ?? 0,
+    };
   }).filter(Boolean) as Match[];
   const predictedStandings = computeGroupStandings(predictedMatches, groupMatches);
   const predictedThirds = getThirdPlaceTable(predictedStandings);
