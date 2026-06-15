@@ -280,8 +280,8 @@ function PickResultRow({ pick, match, showRank }: { pick: Pick; match: Match; sh
               <div style={{ fontSize: 10, color: "var(--text-muted)" }}>pts</div>
             </>
           ) : (
-            <span className="badge badge-blue" style={{ fontSize: 10 }}>
-              {match.status === "live" ? "🔴 LIVE" : "📅"}
+            <span className={match.status === "live" ? "badge badge-green" : "badge badge-blue"} style={{ fontSize: 10 }}>
+              {match.status === "live" ? "🟢 LIVE" : "📅"}
             </span>
           )}
         </div>
