@@ -205,7 +205,14 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
   const [msgs, setMsgs] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
 
-  const filtered = matches.filter((m) => m.status === filter).slice(0, 50);
+  const filtered = matches
+    .filter((m) => m.status === filter)
+    .sort((a, b) => {
+      const aTime = a.matchDate?.toDate?.()?.getTime() ?? 0;
+      const bTime = b.matchDate?.toDate?.()?.getTime() ?? 0;
+      return filter === "finished" ? bTime - aTime : aTime - bTime;
+    })
+    .slice(0, 50);
 
   const handleLock = async (matchId: string) => {
     await lockMatch(matchId);
