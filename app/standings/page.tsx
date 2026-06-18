@@ -120,7 +120,7 @@ function computeGroupStandings(
   const result: Record<string, TeamStat[]> = {};
   for (const g in standings) {
     const teams = Object.values(standings[g]);
-    const groupFinishedMatches = (allGroupMatches ?? []).filter(m => m.group === g && m.homeScore !== null);
+    const groupFinishedMatches = allMatches.filter(m => m.group === g && m.homeScore !== null);
 
     // FIFA sort with full tiebreaker
     result[g] = teams.sort((a, b) => {
