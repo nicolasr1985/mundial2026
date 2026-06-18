@@ -182,23 +182,24 @@ function teamCode(name: string): string {
 
 function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => void }) {
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
-  const [cards, setCards] = useState<Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }>>({});
+  const [cards, setCards] = useState<Record<string, { homeY: string; awayY: string; homeR: string; awayR: string; homeYR: string; awayYR: string }>>({});
 
   useEffect(() => {
     setCards(prev => {
-      const init: Record<string, { homeY: string; awayY: string; homeR: string; awayR: string }> = { ...prev };
+      const next: Record<string, { homeY: string; awayY: string; homeR: string; awayR: string; homeYR: string; awayYR: string }> = { ...prev };
       matches.forEach(m => {
-        // Only initialize if not already set by user interaction
-        if (!init[m.id]) {
-          init[m.id] = {
+        if (!next[m.id]) {
+          next[m.id] = {
             homeY: String(m.homeYellow ?? 0),
             awayY: String(m.awayYellow ?? 0),
             homeR: String(m.homeRed ?? 0),
             awayR: String(m.awayRed ?? 0),
+            homeYR: String(m.homeYellowRed ?? 0),
+            awayYR: String(m.awayYellowRed ?? 0),
           };
         }
       });
-      return init;
+      return next;
     });
   }, [matches]);
   const [saving, setSaving] = useState<string | null>(null);
@@ -256,6 +257,8 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
         awayYellow: parseInt(cards[match.id]?.awayY || "0") || 0,
         homeRed: parseInt(cards[match.id]?.homeR || "0") || 0,
         awayRed: parseInt(cards[match.id]?.awayR || "0") || 0,
+        homeYellowRed: parseInt(cards[match.id]?.homeYR || "0") || 0,
+        awayYellowRed: parseInt(cards[match.id]?.awayYR || "0") || 0,
       };
       if (match.status === "live") {
         await updateLiveMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), cardData);
@@ -393,6 +396,12 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                             onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeR: e.target.value } }))}
                             style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
                           />
+                          <span title="Roja indirecta (2ª amarilla)" style={{ fontSize: 11 }}>🟨🟥</span>
+                          <input type="number" min={0} max={20} placeholder="0"
+                            value={cards[match.id]?.homeYR ?? "0"}
+                            onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], homeYR: e.target.value } }))}
+                            style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                          />
                         </div>
                       </div>
                       {/* Away team cards */}
@@ -409,6 +418,12 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                           <input type="number" min={0} max={20} placeholder="0"
                             value={cards[match.id]?.awayR ?? "0"}
                             onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayR: e.target.value } }))}
+                            style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
+                          />
+                          <span title="Roja indirecta (2ª amarilla)" style={{ fontSize: 11 }}>🟨🟥</span>
+                          <input type="number" min={0} max={20} placeholder="0"
+                            value={cards[match.id]?.awayYR ?? "0"}
+                            onChange={(e) => setCards(p => ({ ...p, [match.id]: { ...p[match.id], awayYR: e.target.value } }))}
                             style={{ width: 32, fontSize: 12, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text)", padding: "3px 4px" }}
                           />
                         </div>

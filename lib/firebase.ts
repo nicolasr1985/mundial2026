@@ -68,6 +68,8 @@ export interface Match {
   awayYellow?: number;
   homeRed?: number;
   awayRed?: number;
+  homeYellowRed?: number;  // indirect red (2nd yellow)
+  awayYellowRed?: number;
   matchDate: Timestamp;
   round: string;
   group?: string;
@@ -182,7 +184,7 @@ export async function updateMatchResult(
   matchId: string,
   homeScore: number,
   awayScore: number,
-  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number }
+  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number }
 ) {
   await updateDoc(doc(db, "matches", matchId), {
     homeScore,
@@ -193,6 +195,8 @@ export async function updateMatchResult(
     awayYellow: cards?.awayYellow ?? 0,
     homeRed: cards?.homeRed ?? 0,
     awayRed: cards?.awayRed ?? 0,
+    homeYellowRed: cards?.homeYellowRed ?? 0,
+    awayYellowRed: cards?.awayYellowRed ?? 0,
   });
   await recalculatePicksForMatch(matchId, homeScore, awayScore);
 }
@@ -201,7 +205,7 @@ export async function updateLiveMatchResult(
   matchId: string,
   homeScore: number,
   awayScore: number,
-  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number }
+  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number }
 ) {
   // Updates score and recalculates picks without changing status to "finished"
   await updateDoc(doc(db, "matches", matchId), {
@@ -211,6 +215,8 @@ export async function updateLiveMatchResult(
     awayYellow: cards?.awayYellow ?? 0,
     homeRed: cards?.homeRed ?? 0,
     awayRed: cards?.awayRed ?? 0,
+    homeYellowRed: cards?.homeYellowRed ?? 0,
+    awayYellowRed: cards?.awayYellowRed ?? 0,
   });
   await recalculatePicksForMatch(matchId, homeScore, awayScore);
 }
