@@ -25,7 +25,6 @@ export default function PicksPage() {
   const [activeRound, setActiveRound] = useState("Fase de Grupos");
   const [groupView, setGroupView] = useState<"byGroup" | "byDate">("byGroup");
   const [hideFinished, setHideFinished] = useState(false);
-  const [hideFinished, setHideFinished] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Record<string, string>>({});
