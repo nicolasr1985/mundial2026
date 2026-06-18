@@ -21,7 +21,8 @@ interface TeamStat {
   gd: number;
   points: number;
   yellow: number;
-  red: number;
+  red: number;       // direct red
+  yellowRed: number; // indirect red (2nd yellow)
 }
 
 interface R32Match {
@@ -38,8 +39,35 @@ interface R32Match {
 }
 
 // ─── STANDINGS CALCULATOR ────────────────────────────────────────────────────
-// FIFA tiebreaker order:
-// 1) Points  2) Goal difference  3) Goals scored
+// FIFA fair play score: yellow=-1, indirect red (2nd yellow)=-3, direct red=-4, yellow+direct red=-5
+// We track: yellow, yellowRed (indirect), red (direct)
+// yellow+red direct = player got yellow then direct red in same match — stored as yellow=1,red=1
+// For simplicity: conductScore = yellow*(-1) + yellowRed*(-3) + red*(-4)
+// Higher is better (less negative)
+function conductScore(s: TeamStat): number {
+  return s.yellow * (-1) + s.yellowRed * (-3) + s.red * (-4);
+}
+
+// Head-to-head stats between a subset of teams using only matches among them
+function headToHead(teams: string[], allMatches: Match[]): Record<string, { pts: number; gd: number; gf: number }> {
+  const teamSet = new Set(teams);
+  const h2h: Record<string, { pts: number; gd: number; gf: number }> = {};
+  for (const t of teams) h2h[t] = { pts: 0, gd: 0, gf: 0 };
+  for (const m of allMatches) {
+    if (!teamSet.has(m.homeTeam) || !teamSet.has(m.awayTeam)) continue;
+    if (m.homeScore === null || m.awayScore === null) continue;
+    const hs = m.homeScore, as_ = m.awayScore;
+    h2h[m.homeTeam].gf += hs; h2h[m.homeTeam].gd += hs - as_;
+    h2h[m.awayTeam].gf += as_; h2h[m.awayTeam].gd += as_ - hs;
+    if (hs > as_)      { h2h[m.homeTeam].pts += 3; }
+    else if (hs < as_) { h2h[m.awayTeam].pts += 3; }
+    else               { h2h[m.homeTeam].pts += 1; h2h[m.awayTeam].pts += 1; }
+  }
+  return h2h;
+}
+
+// FIFA tiebreaker order (group stage):
+// 1) Points  2-4) Head-to-head pts/GD/GF  5) GD  6) GF  7) Fair play  8) FIFA ranking
 // 4) Conduct score (not tracked — skipped)
 // 5-6) FIFA ranking (lower rank number = better)
 function fifaRankOf(team: string): number {
@@ -67,8 +95,8 @@ function computeGroupStandings(
     if (!m.group) continue;
     const g = m.group;
     if (!standings[g]) standings[g] = {};
-    if (!standings[g][m.homeTeam]) standings[g][m.homeTeam] = { team: m.homeTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, yellow: 0, red: 0 };
-    if (!standings[g][m.awayTeam]) standings[g][m.awayTeam] = { team: m.awayTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, yellow: 0, red: 0 };
+    if (!standings[g][m.homeTeam]) standings[g][m.homeTeam] = { team: m.homeTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, yellow: 0, red: 0, yellowRed: 0 };
+    if (!standings[g][m.awayTeam]) standings[g][m.awayTeam] = { team: m.awayTeam, group: g, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, yellow: 0, red: 0, yellowRed: 0 };
   }
   for (const m of matches) {
     if (!m.group || m.homeScore === null || m.awayScore === null) continue;
@@ -85,20 +113,40 @@ function computeGroupStandings(
     if (hs > as_)      { home.won++; home.points += 3; away.lost++; }
     else if (hs < as_) { away.won++; away.points += 3; home.lost++; }
     else               { home.drawn++; away.drawn++; home.points++; away.points++; }
-    // Accumulate cards (conduct score: yellow=1pt, red=3pts, yellow+red=4pts per FIFA)
-    home.yellow += m.homeYellow ?? 0; home.red += m.homeRed ?? 0;
-    away.yellow += m.awayYellow ?? 0; away.red += m.awayRed ?? 0;
+    // Accumulate cards: yellow, yellowRed (indirect/2nd yellow), red (direct)
+    home.yellow += m.homeYellow ?? 0; home.red += m.homeRed ?? 0; home.yellowRed += (m as any).homeYellowRed ?? 0;
+    away.yellow += m.awayYellow ?? 0; away.red += m.awayRed ?? 0; away.yellowRed += (m as any).awayYellowRed ?? 0;
   }
   const result: Record<string, TeamStat[]> = {};
   for (const g in standings) {
-    result[g] = Object.values(standings[g]).sort((a, b) =>
-      b.points - a.points ||          // 1. Points
-      b.gd - a.gd ||                  // 2. Goal difference
-      b.gf - a.gf ||                  // 3. Goals scored
-      // 4. Conduct: lower is better (yellow=1, red=3, yellow+red=4 per FIFA)
-      ((a.yellow + a.red * 3) - (b.yellow + b.red * 3)) ||
-      fifaRankOf(a.team) - fifaRankOf(b.team)  // 5-6. FIFA ranking
-    );
+    const teams = Object.values(standings[g]);
+    const groupFinishedMatches = finishedMatches.filter(m => m.group === g);
+
+    // FIFA sort with full tiebreaker
+    result[g] = teams.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      // Head-to-head among tied teams
+      const tiedWithA = teams.filter(t => t.team !== a.team && t.points === a.points);
+      const tiedWithB = teams.filter(t => t.team !== b.team && t.points === b.points);
+      const tiedGroup = teams.filter(t => t.points === a.points).map(t => t.team);
+      if (tiedGroup.includes(b.team)) {
+        const h2h = headToHead(tiedGroup, groupFinishedMatches);
+        const h2hPts = h2h[b.team].pts - h2h[a.team].pts;
+        if (h2hPts !== 0) return h2hPts;
+        const h2hGD = h2h[b.team].gd - h2h[a.team].gd;
+        if (h2hGD !== 0) return h2hGD;
+        const h2hGF = h2h[b.team].gf - h2h[a.team].gf;
+        if (h2hGF !== 0) return h2hGF;
+      }
+      // Overall GD, GF
+      if (b.gd !== a.gd) return b.gd - a.gd;
+      if (b.gf !== a.gf) return b.gf - a.gf;
+      // Fair play
+      const fpDiff = conductScore(b) - conductScore(a);
+      if (fpDiff !== 0) return fpDiff;
+      // FIFA ranking
+      return fifaRankOf(a.team) - fifaRankOf(b.team);
+    });
   }
   return result;
 }
@@ -112,7 +160,7 @@ function getThirdPlaceTable(standings: Record<string, TeamStat[]>): (TeamStat & 
     b.points - a.points ||
     b.gd - a.gd ||
     b.gf - a.gf ||
-    ((a.yellow + a.red * 3) - (b.yellow + b.red * 3)) ||
+    conductScore(b) - conductScore(a) ||
     fifaRankOf(a.team) - fifaRankOf(b.team)
   );
   return sorted.map((t, i) => ({ ...t, qualifies: i < 8 }));
