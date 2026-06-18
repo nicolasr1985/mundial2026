@@ -23,6 +23,7 @@ export default function PicksPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [picks, setPicks] = useState<Record<string, Pick>>({});
   const [activeRound, setActiveRound] = useState("Fase de Grupos");
+  const [groupView, setGroupView] = useState<"byGroup" | "byDate">("byGroup");
   const [fetching, setFetching] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Record<string, string>>({});
@@ -165,7 +166,22 @@ export default function PicksPage() {
         <>
           {activeRound === "Fase de Grupos" && groupedByGroup && (
             <div style={{ marginBottom: 24 }}>
-              {Object.entries(groupedByGroup)
+              {/* Toggle */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                {(["byGroup", "byDate"] as const).map((v) => (
+                  <button key={v} onClick={() => setGroupView(v)} style={{
+                    padding: "6px 14px", borderRadius: 20, fontSize: 12,
+                    fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, cursor: "pointer",
+                    background: groupView === v ? "rgba(201,168,76,0.15)" : "var(--surface2)",
+                    color: groupView === v ? "var(--gold)" : "var(--text-muted)",
+                    border: `1px solid ${groupView === v ? "var(--border-gold)" : "var(--border)"}`,
+                  }}>
+                    {v === "byGroup" ? "📋 Por Grupo" : "📅 Por Fecha"}
+                  </button>
+                ))}
+              </div>
+
+              {groupView === "byGroup" && Object.entries(groupedByGroup)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([group, gMatches]) => (
                   <SimpleGroupSection
@@ -184,6 +200,29 @@ export default function PicksPage() {
                     showRank={showRank}
                   />
                 ))}
+
+              {groupView === "byDate" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {roundMatches
+                    .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0))
+                    .map((match) => (
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        pick={picks[match.id]}
+                        score={scores[match.id] || { home: "", away: "" }}
+                        saving={saving === match.id}
+                        msg={msgs[match.id]}
+                        onScoreChange={(side, val) =>
+                          setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], [side]: val } }))
+                        }
+                        onSubmit={() => handleSubmitPick(match.id)}
+                        onDelete={() => handleDeletePick(match.id)}
+                        showRank={showRank}
+                      />
+                    ))}
+                </div>
+              )}
             </div>
           )}
 
