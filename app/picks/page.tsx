@@ -24,6 +24,8 @@ export default function PicksPage() {
   const [picks, setPicks] = useState<Record<string, Pick>>({});
   const [activeRound, setActiveRound] = useState("Fase de Grupos");
   const [groupView, setGroupView] = useState<"byGroup" | "byDate">("byGroup");
+  const [hideFinished, setHideFinished] = useState(false);
+  const [hideFinished, setHideFinished] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Record<string, string>>({});
@@ -201,28 +203,44 @@ export default function PicksPage() {
                   />
                 ))}
 
-              {groupView === "byDate" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {roundMatches
-                    .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0))
-                    .map((match) => (
-                      <MatchCard
-                        key={match.id}
-                        match={match}
-                        pick={picks[match.id]}
-                        score={scores[match.id] || { home: "", away: "" }}
-                        saving={saving === match.id}
-                        msg={msgs[match.id]}
-                        onScoreChange={(side, val) =>
-                          setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], [side]: val } }))
-                        }
-                        onSubmit={() => handleSubmitPick(match.id)}
-                        onDelete={() => handleDeletePick(match.id)}
-                        showRank={showRank}
-                      />
-                    ))}
-                </div>
-              )}
+              {groupView === "byDate" && (() => {
+                const sorted = roundMatches
+                  .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0));
+                const visible = hideFinished ? sorted.filter(m => m.status !== "finished") : sorted;
+                const finishedCount = sorted.filter(m => m.status === "finished").length;
+                return (
+                  <div>
+                    {finishedCount > 0 && (
+                      <button onClick={() => setHideFinished(h => !h)} style={{
+                        marginBottom: 12, padding: "5px 12px", borderRadius: 20, fontSize: 12,
+                        fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, cursor: "pointer",
+                        background: "var(--surface2)", color: "var(--text-muted)",
+                        border: "1px solid var(--border)",
+                      }}>
+                        {hideFinished ? `👁 Mostrar finalizados (${finishedCount})` : `🙈 Ocultar finalizados (${finishedCount})`}
+                      </button>
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {visible.map((match) => (
+                        <MatchCard
+                          key={match.id}
+                          match={match}
+                          pick={picks[match.id]}
+                          score={scores[match.id] || { home: "", away: "" }}
+                          saving={saving === match.id}
+                          msg={msgs[match.id]}
+                          onScoreChange={(side, val) =>
+                            setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], [side]: val } }))
+                          }
+                          onSubmit={() => handleSubmitPick(match.id)}
+                          onDelete={() => handleDeletePick(match.id)}
+                          showRank={showRank}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
