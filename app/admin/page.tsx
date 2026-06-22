@@ -227,8 +227,9 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
       home: match.homeScore !== null ? String(match.homeScore) : "",
       away: match.awayScore !== null ? String(match.awayScore) : "",
     };
-    const homeVal = sc.home;
-    const awayVal = sc.away;
+    // Fallback: if one field is empty but match already has a score, use the existing score for that field
+    const homeVal = sc.home !== "" ? sc.home : (match.homeScore !== null ? String(match.homeScore) : "");
+    const awayVal = sc.away !== "" ? sc.away : (match.awayScore !== null ? String(match.awayScore) : "");
     const bothBlank = homeVal === "" && awayVal === "";
     const bothFilled = homeVal !== "" && awayVal !== "";
 
@@ -445,8 +446,8 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                       onClick={async () => {
                         const scRaw2 = scores[match.id];
                         const sc2 = scRaw2 || { home: match.homeScore !== null ? String(match.homeScore) : "", away: match.awayScore !== null ? String(match.awayScore) : "" };
-                        const homeVal = sc2.home;
-                        const awayVal = sc2.away;
+                        const homeVal = sc2.home !== "" ? sc2.home : (match.homeScore !== null ? String(match.homeScore) : "");
+                        const awayVal = sc2.away !== "" ? sc2.away : (match.awayScore !== null ? String(match.awayScore) : "");
                         if (!homeVal || !awayVal) return;
                         setSaving(match.id);
                         try {
