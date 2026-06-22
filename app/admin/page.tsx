@@ -442,6 +442,47 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
 
                   {match.status === "live" && (
                     <button
+                      className="btn-ghost"
+                      onClick={async () => {
+                        setSaving(match.id);
+                        try {
+                          const dateStr = match.matchDate?.toDate ? match.matchDate.toDate().toISOString().slice(0, 10) : "";
+                          const url = `/api/livescore?home=${encodeURIComponent(match.homeTeam)}&away=${encodeURIComponent(match.awayTeam)}&date=${dateStr}`;
+                          const res = await fetch(url);
+                          const data = await res.json();
+                          if (!data.found) {
+                            setMsgs((m) => ({ ...m, [match.id]: "⚠ " + (data.message || data.error || "No encontrado en API") }));
+                          } else {
+                            setScores((prev) => ({ ...prev, [match.id]: {
+                              home: data.homeScore !== null ? String(data.homeScore) : "",
+                              away: data.awayScore !== null ? String(data.awayScore) : "",
+                            }}));
+                            setCards((prev) => ({ ...prev, [match.id]: {
+                              homeY: String(data.homeYellow ?? 0),
+                              awayY: String(data.awayYellow ?? 0),
+                              homeR: String(data.homeRed ?? 0),
+                              awayR: String(data.awayRed ?? 0),
+                              homeYR: String(data.homeYellowRed ?? 0),
+                              awayYR: String(data.awayYellowRed ?? 0),
+                            }}));
+                            setMsgs((m) => ({ ...m, [match.id]: `🔄 Sincronizado: ${data.homeScore}-${data.awayScore}` }));
+                          }
+                        } catch {
+                          setMsgs((m) => ({ ...m, [match.id]: "❌ Error al sincronizar" }));
+                        } finally {
+                          setSaving(null);
+                          setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 4000);
+                        }
+                      }}
+                      disabled={saving === match.id}
+                      style={{ fontSize: 13, padding: "8px 12px" }}
+                    >
+                      🔄 Sincronizar
+                    </button>
+                  )}
+
+                  {match.status === "live" && (
+                    <button
                       className="btn-primary"
                       onClick={async () => {
                         const scRaw2 = scores[match.id];
