@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Fetch fixtures for that date in the World Cup league
-    const url = `${API_BASE}/fixtures?league=${LEAGUE_ID}&season=${SEASON}${date ? `&date=${date}` : ""}`;
+    // Fetch fixtures for that date in the World Cup league (Bogota timezone to match app's date logic)
+    const url = `${API_BASE}/fixtures?league=${LEAGUE_ID}&season=${SEASON}&timezone=America/Bogota${date ? `&date=${date}` : ""}`;
     const res = await fetch(url, {
       headers: { "x-apisports-key": apiKey },
       cache: "no-store",
@@ -35,11 +35,11 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    const fixtures = data.response ?? [];
+    let fixtures = data.response ?? [];
 
     // Find the fixture matching home/away team names (fuzzy match)
     const normalize = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
-    const fixture = fixtures.find((f: any) => {
+    const findMatch = (list: any[]) => list.find((f: any) => {
       const fHome = normalize(f.teams?.home?.name ?? "");
       const fAway = normalize(f.teams?.away?.name ?? "");
       const wantHome = normalize(homeTeam);
@@ -47,6 +47,22 @@ export async function GET(req: NextRequest) {
       return (fHome.includes(wantHome) || wantHome.includes(fHome)) &&
              (fAway.includes(wantAway) || wantAway.includes(fAway));
     });
+
+    let fixture = findMatch(fixtures);
+
+    // Fallback: if not found with date filter, search the whole tournament (no date)
+    if (!fixture && date) {
+      const fallbackUrl = `${API_BASE}/fixtures?league=${LEAGUE_ID}&season=${SEASON}&timezone=America/Bogota`;
+      const fallbackRes = await fetch(fallbackUrl, {
+        headers: { "x-apisports-key": apiKey },
+        cache: "no-store",
+      });
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        fixtures = fallbackData.response ?? [];
+        fixture = findMatch(fixtures);
+      }
+    }
 
     if (!fixture) {
       return NextResponse.json({ found: false, message: "Partido no encontrado en API-Football" });
