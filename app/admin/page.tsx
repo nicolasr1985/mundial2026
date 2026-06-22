@@ -181,6 +181,17 @@ function teamCode(name: string): string {
 }
 
 function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => void }) {
+  // Auto-transition matches to "live" once kickoff time has passed
+  useEffect(() => {
+    const toTransition = matches.filter(m => {
+      if (m.status !== "upcoming") return false;
+      const kickoff = m.matchDate?.toDate?.();
+      return kickoff && new Date() >= kickoff;
+    });
+    if (toTransition.length > 0) {
+      Promise.all(toTransition.map(m => lockMatch(m.id))).then(() => onUpdated()).catch(() => {});
+    }
+  }, [matches]);
   const [scores, setScores] = useState<Record<string, { home: string; away: string }>>({});
   const [cards, setCards] = useState<Record<string, { homeY: string; awayY: string; homeR: string; awayR: string; homeYR: string; awayYR: string }>>({});
 
@@ -206,8 +217,17 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
   const [msgs, setMsgs] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
 
+  // Effective status: if kickoff time has passed but match is still "upcoming"
+  // in Firestore, treat it as "live" for display purposes (auto-transition)
+  const effectiveStatus = (m: Match): string => {
+    if (m.status !== "upcoming") return m.status;
+    const kickoff = m.matchDate?.toDate?.();
+    if (kickoff && new Date() >= kickoff) return "live";
+    return m.status;
+  };
+
   const filtered = matches
-    .filter((m) => m.status === filter)
+    .filter((m) => effectiveStatus(m) === filter)
     .sort((a, b) => {
       const aTime = a.matchDate?.toDate?.()?.getTime() ?? 0;
       const bTime = b.matchDate?.toDate?.()?.getTime() ?? 0;
@@ -261,7 +281,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
         homeYellowRed: parseInt(cards[match.id]?.homeYR || "0") || 0,
         awayYellowRed: parseInt(cards[match.id]?.awayYR || "0") || 0,
       };
-      if (match.status === "live") {
+      if (effectiveStatus(match) === "live") {
         await updateLiveMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), cardData);
         setMsgs((m) => ({ ...m, [match.id]: "🔄 Marcador actualizado + puntos recalculados" }));
       } else {
@@ -277,7 +297,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
     <div>
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         {(["upcoming", "live", "finished"] as const).map((f) => {
-          const c = matches.filter((m) => m.status === f).length;
+          const c = matches.filter((m) => effectiveStatus(m) === f).length;
           const labels = { upcoming: "Próximos", live: "🟢 En Juego", finished: "Finalizados" };
           return (
             <button key={f} onClick={() => setFilter(f)} style={{
@@ -310,7 +330,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
             );
             const bothBlank = sc.home === "" && sc.away === "";
             const hasExistingScore = match.homeScore !== null && match.awayScore !== null;
-            const canSave = (sc.home !== "" && sc.away !== "") || (isFinished && bothBlank) || (match.status === "live" && hasExistingScore);
+            const canSave = (sc.home !== "" && sc.away !== "") || (isFinished && bothBlank) || (effectiveStatus(match) === "live" && hasExistingScore);
 
             return (
               <div key={match.id} style={{
@@ -440,7 +460,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     {saving === match.id ? "..." : isFinished && bothBlank ? "↩ Eliminar resultado" : isFinished ? (hasChanged ? "⚠ Corregir" : "✏ Editar") : "✓ Guardar"}
                   </button>
 
-                  {match.status === "live" && (
+                  {effectiveStatus(match) === "live" && (
                     <button
                       className="btn-ghost"
                       onClick={async () => {
@@ -481,7 +501,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     </button>
                   )}
 
-                  {match.status === "live" && (
+                  {effectiveStatus(match) === "live" && (
                     <button
                       className="btn-primary"
                       onClick={async () => {
