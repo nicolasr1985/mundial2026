@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   try {
     const url = `${API_BASE}/matches?seasons[]=2026&per_page=100`;
     const res = await fetch(url, {
-      headers: { Authorization: apiKey },
+      headers: { Authorization: `Bearer ${apiKey}` },
       cache: "no-store",
     });
 
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     let homeYellow = 0, awayYellow = 0, homeRed = 0, awayRed = 0, homeYellowRed = 0, awayYellowRed = 0;
     try {
       const evRes = await fetch(`${API_BASE}/match_events?match_id=${match.id}`, {
-        headers: { Authorization: apiKey },
+        headers: { Authorization: `Bearer ${apiKey}` },
         cache: "no-store",
       });
       if (evRes.ok) {
