@@ -358,7 +358,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     onChange={(e) => {
                       const v = e.target.value;
                       if (v === "" || (/^\d+$/.test(v) && parseInt(v) >= 0 && parseInt(v) <= 20))
-                        setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], home: v } }));
+                        setScores((prev) => ({ ...prev, [match.id]: { home: v, away: sc.away } }));
                     }}
                     onKeyDown={(e) => { if (["-","e","E","+","."].includes(e.key)) e.preventDefault(); }}
                     style={{ width: 48, borderColor: hasChanged ? "rgba(231,76,60,0.5)" : undefined }}
@@ -372,7 +372,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                     onChange={(e) => {
                       const v = e.target.value;
                       if (v === "" || (/^\d+$/.test(v) && parseInt(v) >= 0 && parseInt(v) <= 20))
-                        setScores((prev) => ({ ...prev, [match.id]: { ...prev[match.id], away: v } }));
+                        setScores((prev) => ({ ...prev, [match.id]: { home: sc.home, away: v } }));
                     }}
                     onKeyDown={(e) => { if (["-","e","E","+","."].includes(e.key)) e.preventDefault(); }}
                     style={{ width: 48, borderColor: hasChanged ? "rgba(231,76,60,0.5)" : undefined }}
