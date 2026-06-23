@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getRanking, getTournamentSettings, getAllUsers, RankingEntry, UserProfile } from "@/lib/firebase";
+import { getRanking, getTournamentSettings, getAllUsers, RankingEntry, UserProfile, getAllPicks, getMatches, Pick, Match } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { isDeadlinePassed } from "@/lib/scoring";
 
 const BET_PER_USER = 150000;
@@ -15,6 +17,7 @@ export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [maxPointsMap, setMaxPointsMap] = useState<Record<string, number>>({});
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [totalUsers, setTotalUsers] = useState(0);
   const [fetching, setFetching] = useState(true);
@@ -28,11 +31,67 @@ export default function DashboardPage() {
     if (!user) return;
     const load = async () => {
       try {
-        const [r, s, u] = await Promise.all([getRanking(), getTournamentSettings(), getAllUsers()]);
+        const [r, s, u, allPicks, allMatches, groupPicksSnap] = await Promise.all([
+          getRanking(), getTournamentSettings(), getAllUsers(), getAllPicks(), getMatches(),
+          getDocs(collection(db, "groupPicks")),
+        ]);
         setRanking(r);
         setSettings(s as Record<string, string>);
         setTotalUsers(u.length);
         setUsers(u);
+
+        // ── Compute Max Possible Points per user ──
+        const allGroupPicks = groupPicksSnap.docs.map(d => d.data() as any);
+        const matchMap: Record<string, Match> = {};
+        allMatches.forEach(m => { matchMap[m.id] = m; });
+
+        const settingsObj = s as Record<string, string>;
+        const championDecided = !!settingsObj.champion;
+        const topScorerDecided = !!settingsObj.topScorer;
+
+        const maxMap: Record<string, number> = {};
+        for (const usr of u) {
+          // Points already locked in (can't change)
+          const lockedMatchPts = allPicks
+            .filter(p => p.userId === usr.uid && p.points !== null && p.points !== undefined)
+            .reduce((s, p) => s + (p.points ?? 0), 0);
+          const lockedGroupPts = allGroupPicks
+            .filter((p: any) => p.userId === usr.uid && p.points !== null && p.points !== undefined)
+            .reduce((s: number, p: any) => s + (p.points ?? 0), 0);
+          const lockedChampionPts = settingsObj.champion && usr.champion === settingsObj.champion ? 15 : 0;
+          const lockedTopScorerPts = settingsObj.topScorer && usr.topScorer === settingsObj.topScorer ? 10 : 0;
+
+          // Potential points from pending (not-yet-finished) matches — max 5 pts each, regardless of whether a pick was already made
+          const pendingMatchMax = allMatches
+            .filter(m => {
+              if (m.status === "finished") return false;
+              const existingPick = allPicks.find(p => p.userId === usr.uid && p.matchId === m.id);
+              // If already scored, it's counted in lockedMatchPts above, skip here
+              if (existingPick && existingPick.points !== null && existingPick.points !== undefined) return false;
+              return true;
+            })
+            .reduce((s) => s + 5, 0);
+
+          // Potential points from pending group position picks — max 1 pt each, regardless of whether a pick was made
+          const pendingGroupMax = (() => {
+            // Determine total possible group-position slots: one set per group (1st, 2nd, 3rd qualifying)
+            // We approximate using the groupPicks collection's distinct groups across all users, falling back
+            // to counting this user's existing groupPicks entries (decided or not) as the slot count.
+            const userGroupPickDocs = allGroupPicks.filter((p: any) => p.userId === usr.uid);
+            const decidedCount = userGroupPickDocs.filter((p: any) => p.points !== null && p.points !== undefined).length;
+            const totalSlots = userGroupPickDocs.length;
+            return Math.max(0, totalSlots - decidedCount);
+          })();
+
+          // Champion/top scorer: only countable if not yet officially decided and user made a pick
+          const pendingChampionMax = !championDecided && usr.champion ? 15 : 0;
+          const pendingTopScorerMax = !topScorerDecided && usr.topScorer ? 10 : 0;
+
+          maxMap[usr.uid] =
+            lockedMatchPts + lockedGroupPts + lockedChampionPts + lockedTopScorerPts +
+            pendingMatchMax + pendingGroupMax + pendingChampionMax + pendingTopScorerMax;
+        }
+        setMaxPointsMap(maxMap);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
@@ -127,6 +186,7 @@ export default function DashboardPage() {
             ranking={ranking}
             userId={user?.uid ?? ""}
             prizes={[firstPrize, secondPrize, thirdPrize]}
+            maxPointsMap={maxPointsMap}
           />
         )}
       </div>
@@ -227,8 +287,8 @@ function buildTieGroups(ranking: RankingEntry[], prizes: number[]): { pos: numbe
   });
 }
 
-function RankingTable({ ranking, userId, prizes }: {
-  ranking: RankingEntry[]; userId: string; prizes: number[];
+function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
+  ranking: RankingEntry[]; userId: string; prizes: number[]; maxPointsMap: Record<string, number>;
 }) {
   const allPaid = ranking.every(e => e.hasPaid);
   const showPaid = !allPaid;
@@ -257,6 +317,7 @@ function RankingTable({ ranking, userId, prizes }: {
             {showTabla && <th style={th}>Tabla</th>}
             {showEspecial && <th style={{ ...th, color: "var(--gold)" }}>Especial</th>}
             <th style={{ ...th, color: "var(--gold)", fontWeight: 700 }}>Total</th>
+            <th style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}>Max Pts</th>
             {showPaid && <th style={{ ...th, color: "var(--green)" }}>💰 Pago</th>}
           </tr>
         </thead>
@@ -318,6 +379,9 @@ function RankingTable({ ranking, userId, prizes }: {
                 <td style={{ padding: "10px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: isMe ? "var(--gold)" : "var(--text)" }}>{entry.totalPoints}</div>
                   <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", marginTop: -2 }}>pts</div>
+                </td>
+                <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 13, color: "var(--green)" }}>{maxPointsMap[entry.uid] ?? entry.totalPoints}</div>
                 </td>
                 {showPaid && (
                   <td style={{ padding: "10px 8px", textAlign: "center", fontSize: 18 }}>
