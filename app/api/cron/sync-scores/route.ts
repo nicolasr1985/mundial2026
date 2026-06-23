@@ -48,26 +48,43 @@ export async function GET(req: NextRequest) {
   const results: any[] = [];
 
   if (cleanup) {
-    // Clean up matches that are still "upcoming" but got polluted with a fake score
+    // Find all matches currently "upcoming" (these should have no picks with points set)
     const upcomingSnap = await getDocs(query(collection(db, "matches"), where("status", "==", "upcoming")));
-    const cleaned: string[] = [];
+    const upcomingIds = upcomingSnap.docs.map(d => d.id);
+    const upcomingNames: Record<string, string> = {};
+    upcomingSnap.docs.forEach(d => {
+      const data = d.data();
+      upcomingNames[d.id] = `${data.homeTeam} vs ${data.awayTeam}`;
+    });
+
+    // Also clear any leftover fake scores on matches still marked upcoming
+    const cleanedMatches: string[] = [];
     for (const m of upcomingSnap.docs) {
       const data = m.data();
       if (data.homeScore !== null || data.awayScore !== null) {
         await updateDoc(doc(db, "matches", m.id), {
-          homeScore: null,
-          awayScore: null,
-          homeYellow: 0,
-          awayYellow: 0,
-          homeRed: 0,
-          awayRed: 0,
-          homeYellowRed: 0,
-          awayYellowRed: 0,
+          homeScore: null, awayScore: null,
+          homeYellow: 0, awayYellow: 0, homeRed: 0, awayRed: 0, homeYellowRed: 0, awayYellowRed: 0,
         });
-        cleaned.push(`${data.homeTeam} vs ${data.awayTeam}`);
+        cleanedMatches.push(upcomingNames[m.id]);
       }
     }
-    return NextResponse.json({ cleanedCount: cleaned.length, cleaned });
+
+    // Find picks tied to upcoming matches that still have points set (orphaned from the fake-score incident)
+    const affectedByMatch: Record<string, number> = {};
+    let picksReset = 0;
+    const allPicksSnap = await getDocs(collection(db, "picks"));
+    for (const p of allPicksSnap.docs) {
+      const pick = p.data();
+      if (upcomingIds.includes(pick.matchId) && pick.points !== null && pick.points !== undefined) {
+        await updateDoc(doc(db, "picks", p.id), { points: null });
+        picksReset++;
+        const name = upcomingNames[pick.matchId] ?? pick.matchId;
+        affectedByMatch[name] = (affectedByMatch[name] ?? 0) + 1;
+      }
+    }
+
+    return NextResponse.json({ cleanedMatchesCount: cleanedMatches.length, cleanedMatches, picksReset, affectedByMatch });
   }
 
   try {
