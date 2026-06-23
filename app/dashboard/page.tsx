@@ -298,6 +298,8 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
   const showEspecial = ranking.some(e => (e.championPoints + e.topScorerPoints) > 0);
   const showTabla = ranking.some(e => e.groupPoints > 0);
   const tieGroups = buildTieGroups(ranking, prizes);
+  // Total points of whoever currently holds 3rd place (used to flag eliminated contestants)
+  const thirdPlaceTotalPoints = ranking.length >= 3 ? ranking[2].totalPoints : -Infinity;
 
   const th: React.CSSProperties = {
     fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase",
@@ -338,6 +340,13 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.displayName}</span>
                     {isMe && <span className="badge badge-gold" style={{ fontSize: 10, padding: "1px 6px" }}>Tú</span>}
+                    {(maxPointsMap[entry.uid] ?? entry.totalPoints) < thirdPlaceTotalPoints && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+                        background: "rgba(231,76,60,0.15)", color: "var(--red)",
+                        border: "1px solid rgba(231,76,60,0.4)",
+                      }}>ELIMINADO</span>
+                    )}
                     {prize !== null && prize > 0 && (
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 4,
