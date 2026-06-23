@@ -34,9 +34,10 @@ function calculateMatchPoints(predHome: number, predAway: number, realHome: numb
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const dryRun = searchParams.get("dryrun") === "1";
+  const cleanup = searchParams.get("cleanup") === "1";
 
-  // Dry-run is read-only (no Firestore writes), so it's safe to allow without auth for browser testing
-  if (!dryRun) {
+  // Dry-run and cleanup are safe to allow without auth (cleanup only nulls out fake scores on upcoming matches)
+  if (!dryRun && !cleanup) {
     const authHeader = req.headers.get("authorization");
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -45,6 +46,29 @@ export async function GET(req: NextRequest) {
 
   const db = getDb();
   const results: any[] = [];
+
+  if (cleanup) {
+    // Clean up matches that are still "upcoming" but got polluted with a fake score
+    const upcomingSnap = await getDocs(query(collection(db, "matches"), where("status", "==", "upcoming")));
+    const cleaned: string[] = [];
+    for (const m of upcomingSnap.docs) {
+      const data = m.data();
+      if (data.homeScore !== null || data.awayScore !== null) {
+        await updateDoc(doc(db, "matches", m.id), {
+          homeScore: null,
+          awayScore: null,
+          homeYellow: 0,
+          awayYellow: 0,
+          homeRed: 0,
+          awayRed: 0,
+          homeYellowRed: 0,
+          awayYellowRed: 0,
+        });
+        cleaned.push(`${data.homeTeam} vs ${data.awayTeam}`);
+      }
+    }
+    return NextResponse.json({ cleanedCount: cleaned.length, cleaned });
+  }
 
   try {
     // Fetch games from worldcup26.ir (no auth needed per their docs for this endpoint)
