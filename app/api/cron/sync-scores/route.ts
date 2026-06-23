@@ -32,14 +32,16 @@ function calculateMatchPoints(predHome: number, predAway: number, realHome: numb
 }
 
 export async function GET(req: NextRequest) {
-  // Protect the cron endpoint with a secret so it can't be triggered by randoms
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { searchParams } = new URL(req.url);
   const dryRun = searchParams.get("dryrun") === "1";
+
+  // Dry-run is read-only (no Firestore writes), so it's safe to allow without auth for browser testing
+  if (!dryRun) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
 
   const db = getDb();
   const results: any[] = [];
