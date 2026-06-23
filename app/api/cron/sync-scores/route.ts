@@ -1,6 +1,7 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+// app/api/cron/sync-scores/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, collection, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, getDocs, query, where, doc, updateDoc, Timestamp } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,6 +21,7 @@ function normalize(s: string): string {
   return (s ?? "").toLowerCase().replace(/[^a-z]/g, "");
 }
 
+// Recalculate pick points for a match (mirrors logic in lib/firebase.ts)
 function calculateMatchPoints(predHome: number, predAway: number, realHome: number, realAway: number): number {
   if (predHome === realHome && predAway === realAway) return 5;
   let pts = 0;
@@ -30,15 +32,20 @@ function calculateMatchPoints(predHome: number, predAway: number, realHome: numb
 }
 
 export async function GET(req: NextRequest) {
+  // Protect the cron endpoint with a secret so it can't be triggered by randoms
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const dryRun = searchParams.get("dryrun") === "1";
+
   const db = getDb();
   const results: any[] = [];
 
   try {
+    // Fetch games from worldcup26.ir (no auth needed per their docs for this endpoint)
     const wcRes = await fetch("https://worldcup26.ir/get/games", { cache: "no-store" });
     if (!wcRes.ok) {
       return NextResponse.json({ error: `worldcup26.ir error: ${wcRes.status}` }, { status: 502 });
@@ -50,6 +57,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: "No games returned from source", raw: wcData });
     }
 
+    if (dryRun) {
+      return NextResponse.json({
+        dryRun: true,
+        totalGames: games.length,
+        sample: games.slice(0, 3),
+      });
+    }
+
+    // Get all matches from Firestore that are not yet finished
     const matchesSnap = await getDocs(
       query(collection(db, "matches"), where("status", "in", ["upcoming", "live"]))
     );
@@ -83,6 +99,7 @@ export async function GET(req: NextRequest) {
 
       if (!scoreChanged && !statusChanged) continue;
 
+      // Update the match document
       await updateDoc(doc(db, "matches", matchDoc.id), {
         homeScore,
         awayScore,
@@ -90,6 +107,7 @@ export async function GET(req: NextRequest) {
         locked: newStatus !== "upcoming",
       });
 
+      // Recalculate picks for this match if score changed
       if (scoreChanged) {
         const picksSnap = await getDocs(
           query(collection(db, "picks"), where("matchId", "==", matchDoc.id))
