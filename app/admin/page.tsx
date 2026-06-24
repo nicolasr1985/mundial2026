@@ -8,7 +8,7 @@ import { FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, updateLiveMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
-  setGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
+  setGroupStanding, getGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry
 } from "@/lib/firebase";
 
@@ -565,9 +565,51 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
   const [thirds, setThirds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [loadedGroups, setLoadedGroups] = useState<Set<string>>(new Set());
+  const [savedNote, setSavedNote] = useState("");
 
   const groupMatches = matches.filter((m) => m.group === group);
   const teams = Array.from(new Set(groupMatches.flatMap((m) => [m.homeTeam, m.awayTeam])));
+
+  // Load existing standing whenever group changes
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const existing = await getGroupStanding(group);
+        if (cancelled) return;
+        if (existing) {
+          setFirst(existing.firstPlace || "");
+          setSecond(existing.secondPlace || "");
+          setThirds(existing.thirdPlaces || []);
+          setSavedNote(`✅ Clasificación ya guardada para Grupo ${group}`);
+        } else {
+          setFirst("");
+          setSecond("");
+          setThirds([]);
+          setSavedNote("");
+        }
+        setLoadedGroups(prev => new Set(prev).add(group));
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [group]);
+
+  // Track which groups already have standings saved (load once)
+  useEffect(() => {
+    (async () => {
+      for (const g of GROUPS) {
+        if (loadedGroups.has(g)) continue;
+        try {
+          const existing = await getGroupStanding(g);
+          if (existing) setLoadedGroups(prev => new Set(prev).add(g));
+        } catch {}
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSave = async () => {
     if (!first || !second) { setMsg("⚠ Elige 1° y 2° lugar"); return; }
@@ -575,6 +617,8 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
     try {
       await setGroupStanding({ group, firstPlace: first, secondPlace: second, thirdPlaces: thirds });
       setMsg("✅ Clasificación guardada + puntos calculados");
+      setSavedNote(`✅ Clasificación ya guardada para Grupo ${group}`);
+      setLoadedGroups(prev => new Set(prev).add(group));
       onUpdated();
     } catch { setMsg("❌ Error"); }
     finally { setSaving(false); setTimeout(() => setMsg(""), 4000); }
@@ -594,17 +638,30 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
         <div style={{ marginBottom: 16 }}>
           <label className="label">Grupo</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {GROUPS.map((g) => (
-              <button key={g} onClick={() => setGroup(g)} style={{
-                width: 36, height: 36, borderRadius: 6,
-                fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, cursor: "pointer", border: "none",
-                background: group === g ? "var(--gold)" : "var(--surface2)",
-                color: group === g ? "var(--black)" : "var(--text-muted)",
-                transition: "all 0.15s",
-              }}>{g}</button>
-            ))}
+            {GROUPS.map((g) => {
+              const hasStanding = loadedGroups.has(g);
+              return (
+                <button key={g} onClick={() => setGroup(g)} style={{
+                  width: 36, height: 36, borderRadius: 6,
+                  fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, cursor: "pointer",
+                  border: hasStanding && group !== g ? "2px solid var(--green)" : "none",
+                  background: group === g ? "var(--gold)" : "var(--surface2)",
+                  color: group === g ? "var(--black)" : (hasStanding ? "var(--green)" : "var(--text-muted)"),
+                  transition: "all 0.15s", position: "relative",
+                }} title={hasStanding ? "Clasificación ya guardada" : ""}>{g}</button>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)" }}>
+            <span style={{ color: "var(--green)" }}>● Verde</span> = clasificación ya guardada
           </div>
         </div>
+
+        {savedNote && (
+          <div style={{ marginBottom: 14, padding: "8px 12px", background: "rgba(46,204,113,0.08)", border: "1px solid rgba(46,204,113,0.3)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--green)" }}>
+            {savedNote} — puedes modificarla y volver a guardar para recalcular puntos.
+          </div>
+        )}
 
         {teams.length === 0 ? (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No hay partidos creados para el Grupo {group}</p>

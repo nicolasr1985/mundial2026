@@ -349,6 +349,16 @@ export async function setGroupStanding(standing: Omit<GroupStanding, "id">) {
   await recalculateGroupPicks(standing);
 }
 
+export async function getGroupStanding(group: string): Promise<GroupStanding | null> {
+  const snap = await getDoc(doc(db, "groupStandings", group));
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as GroupStanding) : null;
+}
+
+export async function getAllGroupStandings(): Promise<GroupStanding[]> {
+  const snap = await getDocs(collection(db, "groupStandings"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as GroupStanding));
+}
+
 async function recalculateGroupPicks(standing: Omit<GroupStanding, "id">) {
   const picks = await getDocs(
     query(collection(db, "groupPicks"), where("group", "==", standing.group))

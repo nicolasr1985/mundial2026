@@ -295,8 +295,8 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
   const activePhases = PHASE_ORDER.filter(phase =>
     ranking.some(e => (e.phasePoints?.[phase] ?? 0) > 0)
   );
-  const showEspecial = ranking.some(e => (e.championPoints + e.topScorerPoints) > 0);
-  const showTabla = ranking.some(e => e.groupPoints > 0);
+  // Bono = group standings (1st/2nd/3rd pass) + champion + topScorer
+  const showBono = ranking.some(e => (e.groupPoints + e.championPoints + e.topScorerPoints) > 0);
   const tieGroups = buildTieGroups(ranking, prizes);
   // Total points of whoever currently holds 3rd place (used to flag eliminated contestants)
   const thirdPlaceTotalPoints = ranking.length >= 3 ? ranking[2].totalPoints : -Infinity;
@@ -316,8 +316,7 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
             <th style={{ ...th, textAlign: "left", paddingLeft: 14, width: 36 }}>#</th>
             <th style={{ ...th, textAlign: "left" }}>Participante</th>
             {activePhases.map(p => <th key={p} style={th}>{p}</th>)}
-            {showTabla && <th style={th}>Tabla</th>}
-            {showEspecial && <th style={{ ...th, color: "var(--gold)" }}>Especial</th>}
+            {showBono && <th style={{ ...th, color: "var(--gold)" }} title="Clasificación de grupos + Campeón + Goleador">Bono</th>}
             <th style={{ ...th, color: "var(--gold)", fontWeight: 700 }}>Total</th>
             <th style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}>Max Pts</th>
             {showPaid && <th style={{ ...th, color: "var(--green)" }}>💰 Pago</th>}
@@ -371,16 +370,10 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
                     <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
                   </td>
                 ))}
-                {showTabla && (
+                {showBono && (
                   <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: entry.groupPoints > 0 ? "var(--text)" : "var(--text-muted)" }}>{entry.groupPoints}</div>
-                    <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
-                  </td>
-                )}
-                {showEspecial && (
-                  <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: (entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
-                      {entry.championPoints + entry.topScorerPoints}
+                    <div style={{ fontSize: 16, fontWeight: 600, color: (entry.groupPoints + entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
+                      {entry.groupPoints + entry.championPoints + entry.topScorerPoints}
                     </div>
                     <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
                   </td>
