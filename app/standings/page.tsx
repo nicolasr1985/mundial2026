@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getMatches, getUserPicks, Match } from "@/lib/firebase";
+import { getMatches, getUserPicks, getAllUsers, Match, UserProfile } from "@/lib/firebase";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { teamWithRank, canSeeRanking, FIFA_RANKINGS } from "@/lib/fifa-ranking";
@@ -791,8 +791,9 @@ export default function StandingsPage() {
   const [userPickMap, setUserPickMap] = useState<Record<string, { homeScore: number; awayScore: number }>>({});
   const [activeGroup, setActiveGroup] = useState("A");
   const [viewMode, setViewMode] = useState<"real" | "predicted">("real");
-  const [activeTab, setActiveTab] = useState<"groups" | "thirds" | "r32" | "fifa">("groups");
+  const [activeTab, setActiveTab] = useState<"groups" | "thirds" | "r32" | "fifa" | "scorers">("groups");
   const [fetching, setFetching] = useState(true);
+  const [users, setUsers] = useState<UserProfile[]>([]);
 
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
@@ -816,6 +817,12 @@ export default function StandingsPage() {
       up.forEach((p) => { pickMap[p.matchId] = { homeScore: p.homeScore, awayScore: p.awayScore }; });
       setUserPickMap(pickMap);
     }).catch(console.warn);
+  }, [user]);
+
+  // Load all users for goalscorer picks display
+  useEffect(() => {
+    if (!user) return;
+    getAllUsers().then(setUsers).catch(console.warn);
   }, [user]);
 
   const groupMatches = matches.filter((m) => m.round?.startsWith("Fase de Grupos"));
@@ -884,6 +891,7 @@ export default function StandingsPage() {
           { id: "thirds", label: "🏅 Tabla de Terceros" },
           { id: "r32", label: "⚔️ Ronda de 32" },
           { id: "fifa", label: "🌍 Ranking FIFA" },
+          { id: "scorers", label: "⚽ Goleadores" },
         ] as const).map((t) => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
             padding: "10px 16px", fontSize: 13, cursor: "pointer", border: "none",
@@ -895,7 +903,11 @@ export default function StandingsPage() {
         ))}
       </div>
 
-      {availableGroups.length === 0 ? (
+      {activeTab === "fifa" ? (
+        <FifaRankingTab />
+      ) : activeTab === "scorers" ? (
+        <GoalscorersTab users={users} />
+      ) : availableGroups.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
           <p>No hay partidos de grupos aún.</p>
@@ -913,8 +925,6 @@ export default function StandingsPage() {
         />
       ) : activeTab === "thirds" ? (
         <ThirdsTab displayThirds={displayThirds} viewMode={viewMode} showRank={showRank} />
-      ) : activeTab === "fifa" ? (
-        <FifaRankingTab />
       ) : (
         <R32Tab r32={displayR32} viewMode={viewMode} showRank={showRank} />
       )}
@@ -1281,6 +1291,250 @@ function FifaRankingTab() {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ─── GOALSCORERS TAB ──────────────────────────────────────────────────────────
+// Source: Wikipedia (as of June 23, 2026)
+interface GoalScorer {
+  player: string;
+  country: string;
+  code: string;
+  goals: number;
+}
+
+const GOAL_SCORERS_DATA: GoalScorer[] = [
+  // 5 goals
+  { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 5 },
+  // 4 goals
+  { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 4 },
+  { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 4 },
+  // 3 goals
+  { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
+  { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
+  // 2 goals
+  { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 2 },
+  { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 2 },
+  { player: "Cyle Larin", country: "Canada", code: "CAN", goals: 2 },
+  { player: "Daniel Muñoz", country: "Colombia", code: "COL", goals: 2 },
+  { player: "Harry Kane", country: "England", code: "ENG", goals: 2 },
+  { player: "Kai Havertz", country: "Germany", code: "GER", goals: 2 },
+  { player: "Daichi Kamada", country: "Japan", code: "JPN", goals: 2 },
+  { player: "Ayase Ueda", country: "Japan", code: "JPN", goals: 2 },
+  { player: "Ismael Saibari", country: "Morocco", code: "MAR", goals: 2 },
+  { player: "Brian Brobbey", country: "Netherlands", code: "NED", goals: 2 },
+  { player: "Cody Gakpo", country: "Netherlands", code: "NED", goals: 2 },
+  { player: "Crysencio Summerville", country: "Netherlands", code: "NED", goals: 2 },
+  { player: "Elijah Just", country: "New Zealand", code: "NZL", goals: 2 },
+  { player: "Cristiano Ronaldo", country: "Portugal", code: "POR", goals: 2 },
+  { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 2 },
+  { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 2 },
+  { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
+  { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 2 },
+  { player: "Folarin Balogun", country: "United States", code: "USA", goals: 2 },
+  { player: "Maximiliano Araújo", country: "Uruguay", code: "URU", goals: 2 },
+  // 1 goal (only those potentially picked by participants)
+  { player: "Amine Gouiri", country: "Algeria", code: "ALG", goals: 1 },
+  { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 1 },
+  { player: "Luis Díaz", country: "Colombia", code: "COL", goals: 1 },
+  { player: "Ante Budimir", country: "Croatia", code: "CRO", goals: 1 },
+  { player: "Yoane Wissa", country: "DR Congo", code: "COD", goals: 1 },
+  { player: "Mohamed Salah", country: "Egypt", code: "EGY", goals: 1 },
+  { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
+  { player: "Jude Bellingham", country: "England", code: "ENG", goals: 1 },
+  { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
+  { player: "Bradley Barcola", country: "France", code: "FRA", goals: 1 },
+  { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 1 },
+  { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
+  { player: "Amad Diallo", country: "Ivory Coast", code: "CIV", goals: 1 },
+  { player: "Raúl Jiménez", country: "Mexico", code: "MEX", goals: 1 },
+  { player: "Julián Quiñones", country: "Mexico", code: "MEX", goals: 1 },
+  { player: "Virgil van Dijk", country: "Netherlands", code: "NED", goals: 1 },
+  { player: "Rafael Leão", country: "Portugal", code: "POR", goals: 1 },
+  { player: "John McGinn", country: "Scotland", code: "SCO", goals: 1 },
+  { player: "Lamine Yamal", country: "Spain", code: "ESP", goals: 1 },
+  { player: "Anthony Elanga", country: "Sweden", code: "SWE", goals: 1 },
+  { player: "Viktor Gyökeres", country: "Sweden", code: "SWE", goals: 1 },
+  { player: "Alexander Isak", country: "Sweden", code: "SWE", goals: 1 },
+  { player: "Breel Embolo", country: "Switzerland", code: "SUI", goals: 1 },
+  { player: "Granit Xhaka", country: "Switzerland", code: "SUI", goals: 1 },
+  { player: "Giovanni Reyna", country: "United States", code: "USA", goals: 1 },
+];
+
+// Maps a user's topScorer pick string (format: "(CODE) Lastname, Firstname") to current goals.
+// Some players have multiple pick spellings in WC2026_SCORERS — we map all variants.
+const PICK_TO_GOALS: Record<string, number> = {
+  // 5 goals
+  "(ARG) Messi, Lionel": 5,
+  // 4 goals
+  "(FRA) Mbappé, Kylian": 4,
+  "(FRA) Mbappe, Kylian": 4,
+  "(NOR) Haaland, Erling Braut": 4,
+  // 3 goals
+  "(CAN) David, Jonathan": 3,
+  "(GER) Undav, Deniz": 3,
+  // 2 goals
+  "(BRA) Cunha, Matheus": 2,
+  "(BRA) Vinicius Jr.": 2,
+  "(BRA) De Oliveira Junior, Vinicius": 2,
+  "(CAN) Larin, Cyle": 2,
+  "(ENG) Kane, Harry": 2,
+  "(GER) Havertz, Kai": 2,
+  "(JPN) Kamada, Daichi": 2,
+  "(JPN) Ueda, Ayase": 2,
+  "(MAR) Saibari, Ismael": 2,
+  "(NED) Brobbey, Brian": 2,
+  "(NED) Gakpo, Cody": 2,
+  "(NED) Summerville, Crysencio": 2,
+  "(POR) Ronaldo, Cristiano": 2,
+  "(SEN) Sarr, Ismaila": 2,
+  "(ESP) Oyarzabal, Mikel": 2,
+  "(ESP) Oyarzabal Ugarte, Mikiel": 2,
+  "(USA) Balogun, Folarin": 2,
+  // 1 goal
+  "(ALG) Gouiri, Amine": 1,
+  "(AUT) Arnautovic, Marko": 1,
+  "(COL) Díaz, Luis": 1,
+  "(COL) Diaz, Luis": 1,
+  "(CRO) Budimir, Ante": 1,
+  "(COD) Wissa, Yoane": 1,
+  "(EGY) Salah, Mohamed": 1,
+  "(EGY) Trezeguet": 1,
+  "(ENG) Bellingham, Jude": 1,
+  "(ENG) Rashford, Marcus": 1,
+  "(FRA) Barcola, Bradley": 1,
+  "(FRA) Dembélé, Ousmane": 1,
+  "(FRA) Dembele, Ousmane": 1,
+  "(GER) Musiala, Jamal": 1,
+  "(CIV) Diallo, Amad": 1,
+  "(MEX) Raúl Jiménez": 1,
+  "(MEX) Jimenez, Raul": 1,
+  "(MEX) Quiñones, Julián": 1,
+  "(MEX) Quinones, Julian": 1,
+  "(NED) Van Dijk, Virgil": 1,
+  "(POR) Leão, Rafael": 1,
+  "(POR) Leao, Rafael": 1,
+  "(SCO) McGinn, John": 1,
+  "(ESP) Yamal, Lamine": 1,
+  "(SWE) Elanga, Anthony": 1,
+  "(SWE) Gyökeres, Viktor": 1,
+  "(SWE) Gyokeres, Viktor": 1,
+  "(SWE) Isak, Alexander": 1,
+  "(SUI) Embolo, Breel": 1,
+  "(SUI) Xhaka, Granit": 1,
+  "(USA) Reyna, Giovanni": 1,
+};
+
+function GoalscorersTab({ users }: { users: UserProfile[] }) {
+  // Sort scorers by goals desc, then by player name
+  const sorted = [...GOAL_SCORERS_DATA].sort((a, b) =>
+    b.goals - a.goals || a.player.localeCompare(b.player)
+  );
+  // Take top 10 with tie-aware positions
+  const top10: (GoalScorer & { pos: number })[] = [];
+  let lastGoals = -1, lastPos = 0;
+  for (let i = 0; i < sorted.length && top10.length < 10; i++) {
+    const sc = sorted[i];
+    const pos = sc.goals === lastGoals ? lastPos : i + 1;
+    top10.push({ ...sc, pos });
+    lastGoals = sc.goals;
+    lastPos = pos;
+  }
+
+  // Build picks list: every user that has a topScorer pick (admins included or excluded? exclude admins)
+  const picksList = users
+    .filter(u => !u.isAdmin && u.topScorer)
+    .map(u => ({
+      displayName: u.displayName,
+      pick: u.topScorer as string,
+      goals: PICK_TO_GOALS[u.topScorer as string] ?? 0,
+    }))
+    .sort((a, b) => b.goals - a.goals || a.displayName.localeCompare(b.displayName));
+
+  return (
+    <div>
+      {/* Top 10 */}
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          ⚽ TOP 10 GOLEADORES
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+          Goleadores del Mundial 2026 — actualizado al 23 de junio, 2026
+        </p>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border-gold)" }}>
+                <th style={{ ...s.th, width: 60 }}>Pos</th>
+                <th style={{ ...s.th, textAlign: "left" }}>Nombre</th>
+                <th style={{ ...s.th, textAlign: "left" }}>País</th>
+                <th style={{ ...s.th, width: 80 }}>Goles</th>
+              </tr>
+            </thead>
+            <tbody>
+              {top10.map((sc, i) => (
+                <tr key={i} style={{
+                  borderBottom: "1px solid var(--border)",
+                  background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+                }}>
+                  <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)" }}>
+                    {sc.pos}
+                  </td>
+                  <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>{sc.player}</td>
+                  <td style={{ ...s.td, textAlign: "left", color: "var(--text-muted)" }}>
+                    {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
+                  </td>
+                  <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--text)" }}>
+                    {sc.goals}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Participants' picks */}
+      <div>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          🎯 PICKS DE LOS PARTICIPANTES
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+          Goleadores escogidos por cada participante y sus goles actuales
+        </p>
+        {picksList.length === 0 ? (
+          <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
+            Ningún participante ha registrado su pick de goleador.
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border-gold)" }}>
+                  <th style={{ ...s.th, textAlign: "left" }}>Participante</th>
+                  <th style={{ ...s.th, textAlign: "left" }}>Su Pick</th>
+                  <th style={{ ...s.th, width: 80 }}>Goles</th>
+                </tr>
+              </thead>
+              <tbody>
+                {picksList.map((p, i) => (
+                  <tr key={i} style={{
+                    borderBottom: "1px solid var(--border)",
+                    background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+                  }}>
+                    <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>{p.displayName}</td>
+                    <td style={{ ...s.td, textAlign: "left", color: "var(--text-muted)", fontSize: 13 }}>{p.pick}</td>
+                    <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: p.goals > 0 ? "var(--green)" : "var(--text-muted)" }}>
+                      {p.goals}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
