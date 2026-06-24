@@ -296,7 +296,8 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
     ranking.some(e => (e.phasePoints?.[phase] ?? 0) > 0)
   );
   // Bono = group standings (1st/2nd/3rd pass) + champion + topScorer
-  const showBono = ranking.some(e => (e.groupPoints + e.championPoints + e.topScorerPoints) > 0);
+  // Always shown so admin can see whether bonus points are being awarded
+  const showBono = true;
   const tieGroups = buildTieGroups(ranking, prizes);
   // Total points of whoever currently holds 3rd place (used to flag eliminated contestants)
   const thirdPlaceTotalPoints = ranking.length >= 3 ? ranking[2].totalPoints : -Infinity;
@@ -373,7 +374,7 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
                 {showBono && (
                   <td style={{ padding: "10px 8px", textAlign: "center" }}>
                     <div style={{ fontSize: 16, fontWeight: 600, color: (entry.groupPoints + entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
-                      {entry.groupPoints + entry.championPoints + entry.topScorerPoints}
+                      {(entry.groupPoints + entry.championPoints + entry.topScorerPoints) > 0 ? "+" : ""}{entry.groupPoints + entry.championPoints + entry.topScorerPoints}
                     </div>
                     <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
                   </td>
