@@ -62,7 +62,7 @@ export default function MyPicksPage() {
     if (match.status !== "finished") return false;
     if (filter === "exact") return pick.points === 5;
     if (filter === "correct") return (pick.points ?? 0) >= 2 && pick.points !== 5;
-    if (filter === "wrong") return (pick.points ?? 0) === 0;
+    if (filter === "wrong") return (pick.points ?? 0) <= 1;
     return true;
   });
 
@@ -170,7 +170,7 @@ export default function MyPicksPage() {
                 pending: enrichedPicks.filter((e) => e.match.status !== "finished").length,
                 exact: enrichedPicks.filter((e) => e.pick.points === 5).length,
                 correct: enrichedPicks.filter((e) => (e.pick.points ?? 0) >= 2 && e.pick.points !== 5).length,
-                wrong: enrichedPicks.filter((e) => e.match.status === "finished" && (e.pick.points ?? 0) === 0).length,
+                wrong: enrichedPicks.filter((e) => e.match.status === "finished" && (e.pick.points ?? 0) <= 1).length,
               };
               return (
                 <button
