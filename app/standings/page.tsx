@@ -1296,7 +1296,7 @@ function FifaRankingTab() {
 }
 
 // ─── GOALSCORERS TAB ──────────────────────────────────────────────────────────
-// Source: Wikipedia (as of June 23, 2026)
+// Source: Wikipedia (as of June 24, 2026)
 interface GoalScorer {
   player: string;
   country: string;
@@ -1313,7 +1313,9 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 3 goals
   { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
   { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
+  { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 3 },
   // 2 goals
+  { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 2 },
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 2 },
   { player: "Cyle Larin", country: "Canada", code: "CAN", goals: 2 },
@@ -1331,12 +1333,14 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 2 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 2 },
   { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
-  { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 2 },
+  { player: "Rubén Vargas", country: "Switzerland", code: "SUI", goals: 2 },
   { player: "Folarin Balogun", country: "United States", code: "USA", goals: 2 },
   { player: "Maximiliano Araújo", country: "Uruguay", code: "URU", goals: 2 },
   // 1 goal (only those potentially picked by participants)
   { player: "Amine Gouiri", country: "Algeria", code: "ALG", goals: 1 },
   { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 1 },
+  { player: "Kerim Alajbegović", country: "Bosnia and Herzegovina", code: "BIH", goals: 1 },
+  { player: "Promise David", country: "Canada", code: "CAN", goals: 1 },
   { player: "Luis Díaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Ante Budimir", country: "Croatia", code: "CRO", goals: 1 },
   { player: "Yoane Wissa", country: "DR Congo", code: "COD", goals: 1 },
@@ -1391,10 +1395,13 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(SEN) Sarr, Ismaila": 2,
   "(ESP) Oyarzabal, Mikel": 2,
   "(ESP) Oyarzabal Ugarte, Mikiel": 2,
+  "(SUI) Vargas, Ruben": 2,
   "(USA) Balogun, Folarin": 2,
   // 1 goal
   "(ALG) Gouiri, Amine": 1,
   "(AUT) Arnautovic, Marko": 1,
+  "(BIH) Alajbegovic, Kerim": 1,
+  "(CAN) David, Promise": 1,
   "(COL) Díaz, Luis": 1,
   "(COL) Diaz, Luis": 1,
   "(CRO) Budimir, Ante": 1,
