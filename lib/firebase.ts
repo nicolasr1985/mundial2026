@@ -27,6 +27,7 @@ import {
   Timestamp,
   onSnapshot,
 } from "firebase/firestore";
+import { computeGroupStandings } from "./group-standings-calc";
 
 // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 // Reemplaza estos valores con los de tu proyecto Firebase
@@ -346,7 +347,7 @@ export async function getUserGroupPicks(userId: string): Promise<GroupPick[]> {
 
 export async function setGroupStanding(standing: Omit<GroupStanding, "id">) {
   await setDoc(doc(db, "groupStandings", standing.group), standing);
-  await recalculateGroupPicks(standing);
+  await recalculateGroupPicksFromMatchPicks(standing);
 }
 
 export async function getGroupStanding(group: string): Promise<GroupStanding | null> {
@@ -359,20 +360,141 @@ export async function getAllGroupStandings(): Promise<GroupStanding[]> {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as GroupStanding));
 }
 
-async function recalculateGroupPicks(standing: Omit<GroupStanding, "id">) {
-  const picks = await getDocs(
-    query(collection(db, "groupPicks"), where("group", "==", standing.group))
-  );
+export interface RecalcGroupResult {
+  group: string;
+  usersWithPicks: number;
+  totalUsers: number;
+  pointsAwarded: number;
+  userDetails: { displayName: string; predicted: { first: string; second: string; third: string }; points: number }[];
+}
+
+/**
+ * For each user, derive their predicted standings for this group from their match
+ * score predictions (picks collection), then compare with the official standing to
+ * award bonus points:
+ *   +1 if their predicted 1st = official 1st
+ *   +1 if their predicted 2nd = official 2nd
+ *   +1 if their predicted 3rd is among the official thirdPlaces (qualifies)
+ * Results are written to the groupPicks collection so getRanking() picks them up.
+ */
+async function recalculateGroupPicksFromMatchPicks(standing: Omit<GroupStanding, "id">): Promise<RecalcGroupResult> {
+  const [allUsers, picksSnap, matchesSnap, existingGroupPicksSnap] = await Promise.all([
+    getAllUsers(),
+    getDocs(collection(db, "picks")),
+    getDocs(collection(db, "matches")),
+    getDocs(query(collection(db, "groupPicks"), where("group", "==", standing.group))),
+  ]);
+
+  const allPicks = picksSnap.docs.map(d => d.data() as Pick);
+  const allMatches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Match));
+  const groupMatches = allMatches.filter(m => m.group === standing.group);
+
+  const result: RecalcGroupResult = {
+    group: standing.group,
+    usersWithPicks: 0,
+    totalUsers: allUsers.length,
+    pointsAwarded: 0,
+    userDetails: [],
+  };
+
+  if (groupMatches.length === 0) return result;
+
+  const existingByUser: Record<string, string> = {};
+  existingGroupPicksSnap.docs.forEach(d => {
+    const data = d.data() as GroupPick;
+    existingByUser[data.userId] = d.id;
+  });
+
   const batch = writeBatch(db);
-  for (const d of picks.docs) {
-    const pick = d.data() as GroupPick;
+  let hasWrites = false;
+
+  for (const user of allUsers) {
+    // Build predicted matches: clone the real match but override scores with user picks
+    const predictedMatches: Match[] = [];
+    for (const m of groupMatches) {
+      const pick = allPicks.find(p => p.userId === user.uid && p.matchId === m.id);
+      if (!pick) continue;
+      const hs = Number(pick.homeScore), as_ = Number(pick.awayScore);
+      if (isNaN(hs) || isNaN(as_)) continue;
+      predictedMatches.push({
+        ...m,
+        homeScore: hs,
+        awayScore: as_,
+        status: "finished",
+        // Inherit real cards for tiebreaker consistency
+        homeYellow: m.homeYellow ?? 0,
+        awayYellow: m.awayYellow ?? 0,
+        homeRed: m.homeRed ?? 0,
+        awayRed: m.awayRed ?? 0,
+      });
+    }
+
+    if (predictedMatches.length === 0) continue;
+
+    const userStandings = computeGroupStandings(predictedMatches, groupMatches);
+    const table = userStandings[standing.group];
+    if (!table || table.length < 2) continue;
+
+    const userFirst = table[0]?.team ?? "";
+    const userSecond = table[1]?.team ?? "";
+    const userThird = table[2]?.team ?? "";
+
     let pts = 0;
-    if (pick.firstPlace === standing.firstPlace) pts += 1;
-    if (pick.secondPlace === standing.secondPlace) pts += 1;
-    if (pick.thirdPlace && standing.thirdPlaces.includes(pick.thirdPlace)) pts += 1;
-    batch.update(doc(db, "groupPicks", d.id), { points: pts });
+    if (userFirst && userFirst === standing.firstPlace) pts += 1;
+    if (userSecond && userSecond === standing.secondPlace) pts += 1;
+    if (userThird && standing.thirdPlaces.includes(userThird)) pts += 1;
+
+    result.usersWithPicks++;
+    result.pointsAwarded += pts;
+    result.userDetails.push({
+      displayName: user.displayName,
+      predicted: { first: userFirst, second: userSecond, third: userThird },
+      points: pts,
+    });
+
+    const data = {
+      userId: user.uid,
+      group: standing.group,
+      firstPlace: userFirst,
+      secondPlace: userSecond,
+      thirdPlace: userThird,
+      points: pts,
+    };
+
+    const existingId = existingByUser[user.uid];
+    if (existingId) {
+      batch.update(doc(db, "groupPicks", existingId), data);
+    } else {
+      const newRef = doc(collection(db, "groupPicks"));
+      batch.set(newRef, { ...data, createdAt: Timestamp.now() });
+    }
+    hasWrites = true;
   }
-  await batch.commit();
+
+  if (hasWrites) await batch.commit();
+  return result;
+}
+
+/**
+ * Recalculate group bonuses for ALL saved group standings.
+ * Useful to force a recalculation after deploying a new version or to verify
+ * that the algorithm is awarding points correctly.
+ */
+export async function recalculateAllGroupBonuses(): Promise<RecalcGroupResult[]> {
+  const standings = await getAllGroupStandings();
+  const results: RecalcGroupResult[] = [];
+  for (const standing of standings) {
+    const r = await recalculateGroupPicksFromMatchPicks(standing);
+    results.push(r);
+  }
+  return results;
+}
+
+async function recalculateGroupPicks_legacy_unused(_standing: Omit<GroupStanding, "id">) {
+  // Legacy function: previously recalculated points based on explicit groupPicks docs
+  // (where users picked 1st/2nd/3rd directly). Now replaced by
+  // recalculateGroupPicksFromMatchPicks which derives predictions from match score picks.
+  return;
 }
 
 // ─── RANKING ──────────────────────────────────────────────────────────────────

@@ -8,8 +8,8 @@ import { FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, updateLiveMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
-  setGroupStanding, getGroupStanding, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
-  sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry
+  setGroupStanding, getGroupStanding, recalculateAllGroupBonuses, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
+  sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry, RecalcGroupResult
 } from "@/lib/firebase";
 
 const ROUNDS = [
@@ -567,6 +567,25 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
   const [msg, setMsg] = useState("");
   const [loadedGroups, setLoadedGroups] = useState<Set<string>>(new Set());
   const [savedNote, setSavedNote] = useState("");
+  const [recalcing, setRecalcing] = useState(false);
+  const [recalcResults, setRecalcResults] = useState<RecalcGroupResult[] | null>(null);
+  const [recalcExpanded, setRecalcExpanded] = useState<string | null>(null);
+
+  const handleRecalcAll = async () => {
+    setRecalcing(true);
+    setRecalcResults(null);
+    try {
+      const results = await recalculateAllGroupBonuses();
+      setRecalcResults(results);
+      onUpdated();
+    } catch (e) {
+      setRecalcResults([]);
+      setMsg("❌ Error al recalcular: " + String(e));
+      setTimeout(() => setMsg(""), 5000);
+    } finally {
+      setRecalcing(false);
+    }
+  };
 
   const groupMatches = matches.filter((m) => m.group === group);
   const teams = Array.from(new Set(groupMatches.flatMap((m) => [m.homeTeam, m.awayTeam])));
@@ -629,12 +648,102 @@ function GroupsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () => 
   };
 
   return (
-    <div style={{ maxWidth: 540 }}>
+    <div style={{ maxWidth: 720 }}>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
         Cuando termine la fase de grupos, registra aquí la clasificación oficial para calcular puntos.
       </p>
 
-      <div className="card-gold">
+      {/* Recalc button */}
+      <div className="card" style={{ marginBottom: 20, padding: "14px 16px", background: "rgba(46,204,113,0.05)", border: "1px solid rgba(46,204,113,0.25)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--green)", marginBottom: 2 }}>
+              🔄 Recalcular bonos
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              Recalcula los puntos de Bono de TODOS los grupos guardados y muestra el detalle por usuario.
+            </div>
+          </div>
+          <button
+            className="btn-primary"
+            onClick={handleRecalcAll}
+            disabled={recalcing}
+            style={{ padding: "9px 18px", fontSize: 13, whiteSpace: "nowrap" }}
+          >
+            {recalcing ? "Recalculando..." : "Recalcular ahora"}
+          </button>
+        </div>
+
+        {recalcResults && (
+          <div style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            {recalcResults.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                ⚠ No hay clasificaciones guardadas. Guarda al menos una abajo y vuelve a recalcular.
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                  Resultados del último recálculo (clic en un grupo para ver detalle):
+                </div>
+                {recalcResults.map(r => (
+                  <div key={r.group} style={{ marginBottom: 6 }}>
+                    <button
+                      onClick={() => setRecalcExpanded(recalcExpanded === r.group ? null : r.group)}
+                      style={{
+                        width: "100%", textAlign: "left", padding: "8px 12px", background: "var(--surface2)",
+                        border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", cursor: "pointer",
+                        color: "var(--text)", fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+                      }}
+                    >
+                      <span>
+                        <strong style={{ color: "var(--gold)" }}>Grupo {r.group}</strong> · {r.usersWithPicks}/{r.totalUsers} participantes con picks · {" "}
+                        <span style={{ color: r.pointsAwarded > 0 ? "var(--green)" : "var(--text-muted)" }}>
+                          {r.pointsAwarded} pts asignados
+                        </span>
+                      </span>
+                      <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{recalcExpanded === r.group ? "▼" : "▶"}</span>
+                    </button>
+                    {recalcExpanded === r.group && (
+                      <div style={{ padding: "8px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderTop: "none", borderRadius: "0 0 var(--radius-sm) var(--radius-sm)", fontSize: 12 }}>
+                        {r.userDetails.length === 0 ? (
+                          <div style={{ color: "var(--text-muted)" }}>Ningún participante predijo este grupo.</div>
+                        ) : (
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--text-muted)" }}>
+                                <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 11 }}>Participante</th>
+                                <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 11 }}>Su 1°</th>
+                                <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 11 }}>Su 2°</th>
+                                <th style={{ textAlign: "left", padding: "4px 6px", fontSize: 11 }}>Su 3°</th>
+                                <th style={{ textAlign: "center", padding: "4px 6px", fontSize: 11 }}>Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {r.userDetails.map((u, i) => (
+                                <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                                  <td style={{ padding: "4px 6px", fontWeight: 600 }}>{u.displayName}</td>
+                                  <td style={{ padding: "4px 6px", color: "var(--text-muted)" }}>{u.predicted.first || "—"}</td>
+                                  <td style={{ padding: "4px 6px", color: "var(--text-muted)" }}>{u.predicted.second || "—"}</td>
+                                  <td style={{ padding: "4px 6px", color: "var(--text-muted)" }}>{u.predicted.third || "—"}</td>
+                                  <td style={{ padding: "4px 6px", textAlign: "center", fontWeight: 700, color: u.points > 0 ? "var(--green)" : "var(--text-muted)" }}>
+                                    {u.points}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="card-gold" style={{ maxWidth: 540 }}>
         <div style={{ marginBottom: 16 }}>
           <label className="label">Grupo</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
