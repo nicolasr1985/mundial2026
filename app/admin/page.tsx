@@ -107,22 +107,25 @@ function CreateMatchTab({ onCreated }: { onCreated: () => void }) {
     setSaving(true);
     try {
       const group = form.round.startsWith("Fase de Grupos - Grupo ") ? form.round.replace("Fase de Grupos - Grupo ", "") : undefined;
-      await createMatch({
+      const matchData: any = {
         homeTeam: form.homeTeam.trim(),
         awayTeam: form.awayTeam.trim(),
         matchDate: Timestamp.fromDate(new Date(form.matchDate)),
         round: form.round,
-        group,
         homeScore: null,
         awayScore: null,
         status: "upcoming",
         locked: false,
-      });
+      };
+      if (group) matchData.group = group;
+      await createMatch(matchData);
       setMsg("✅ Partido creado");
       setForm((f) => ({ ...f, homeTeam: "", awayTeam: "", matchDate: "" }));
       onCreated();
-    } catch { setMsg("❌ Error al crear"); }
-    finally { setSaving(false); setTimeout(() => setMsg(""), 3000); }
+    } catch (e) {
+      setMsg("❌ " + (e instanceof Error ? e.message : String(e)));
+    }
+    finally { setSaving(false); setTimeout(() => setMsg(""), 5000); }
   };
 
   return (
