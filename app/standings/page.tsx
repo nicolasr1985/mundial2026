@@ -1180,7 +1180,8 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
   const homeKnown = !!(homeM?.homeTeam) || (!tbd && !!home);
   const awayKnown = !!(awayM?.awayTeam) || (!tbd && !!away);
   const awayIsThird = awayM?.awayIsThird;
-  const awayConfirmed = awayIsThird && !awayM?.isTBD && awayKnown && !!(awayM?.awayGroupDone);
+  // Away team is confirmed if its group has finished (applies to 1st, 2nd, or 3rd)
+  const awayConfirmed = awayKnown && !awayM?.isTBD && !!(awayM?.awayGroupDone);
   const awayProvisional = awayIsThird && awayKnown && !awayConfirmed;
   // Home is confirmed only if the group has finished all its matches
   const homeConfirmed = homeKnown && !tbd && !!(homeM?.homeGroupDone);
