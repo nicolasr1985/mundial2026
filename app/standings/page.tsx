@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, getAllUsers, Match, UserProfile } from "@/lib/firebase";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { teamWithRank, canSeeRanking, FIFA_RANKINGS } from "@/lib/fifa-ranking";
+import { teamWithRank, canSeeRanking, getFifaRank, FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { WC2026_TEAMS } from "@/lib/wc2026-data";
 
 interface TeamStat {
@@ -1324,6 +1324,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Daniel Muñoz", country: "Colombia", code: "COL", goals: 2 },
   { player: "Harry Kane", country: "England", code: "ENG", goals: 2 },
   { player: "Kai Havertz", country: "Germany", code: "GER", goals: 2 },
+  { player: "Nicolas Pépé", country: "Ivory Coast", code: "CIV", goals: 2 },
   { player: "Daichi Kamada", country: "Japan", code: "JPN", goals: 2 },
   { player: "Ayase Ueda", country: "Japan", code: "JPN", goals: 2 },
   { player: "Julián Quiñones", country: "Mexico", code: "MEX", goals: 2 },
@@ -1346,6 +1347,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Luis Díaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Ante Budimir", country: "Croatia", code: "CRO", goals: 1 },
   { player: "Yoane Wissa", country: "DR Congo", code: "COD", goals: 1 },
+  { player: "Nilson Angulo", country: "Ecuador", code: "ECU", goals: 1 },
+  { player: "Gonzalo Plata", country: "Ecuador", code: "ECU", goals: 1 },
   { player: "Mohamed Salah", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Jude Bellingham", country: "England", code: "ENG", goals: 1 },
@@ -1353,6 +1356,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Bradley Barcola", country: "France", code: "FRA", goals: 1 },
   { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 1 },
   { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
+  { player: "Leroy Sané", country: "Germany", code: "GER", goals: 1 },
   { player: "Wilson Isidor", country: "Haiti", code: "HAI", goals: 1 },
   { player: "Amad Diallo", country: "Ivory Coast", code: "CIV", goals: 1 },
   { player: "Raúl Jiménez", country: "Mexico", code: "MEX", goals: 1 },
@@ -1392,6 +1396,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(GER) Havertz, Kai": 2,
   "(JPN) Kamada, Daichi": 2,
   "(JPN) Ueda, Ayase": 2,
+  "(CIV) Pépé, Nicolas": 2,
   "(MEX) Quiñones, Julián": 2,
   "(MEX) Quinones, Julian": 2,
   "(NED) Brobbey, Brian": 2,
@@ -1412,6 +1417,8 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(COL) Diaz, Luis": 1,
   "(CRO) Budimir, Ante": 1,
   "(COD) Wissa, Yoane": 1,
+  "(ECU) Angulo, Nilson": 1,
+  "(ECU) Plata, Gonzalo": 1,
   "(EGY) Salah, Mohamed": 1,
   "(EGY) Trezeguet": 1,
   "(ENG) Bellingham, Jude": 1,
@@ -1420,6 +1427,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(FRA) Dembélé, Ousmane": 1,
   "(FRA) Dembele, Ousmane": 1,
   "(GER) Musiala, Jamal": 1,
+  "(GER) Sane, Leroy": 1,
   "(HAI) Isidor, Wilson": 1,
   "(CIV) Diallo, Amad": 1,
   "(MEX) Raúl Jiménez": 1,
@@ -1441,9 +1449,11 @@ const PICK_TO_GOALS: Record<string, number> = {
 };
 
 function GoalscorersTab({ users }: { users: UserProfile[] }) {
-  // Sort scorers by goals desc, then by player name
+  // Sort scorers by goals desc, then by FIFA ranking of their country (asc), then by player name
   const sorted = [...GOAL_SCORERS_DATA].sort((a, b) =>
-    b.goals - a.goals || a.player.localeCompare(b.player)
+    b.goals - a.goals
+    || getFifaRank(a.country) - getFifaRank(b.country)
+    || a.player.localeCompare(b.player)
   );
   // Take top 10 with tie-aware positions
   const top10: (GoalScorer & { pos: number })[] = [];
