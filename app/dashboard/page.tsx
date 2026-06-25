@@ -105,7 +105,13 @@ export default function DashboardPage() {
 
   const myEntry = ranking.find((r) => r.uid === user?.uid);
   const myIndex = ranking.findIndex((r) => r.uid === user?.uid);
-  const myPosition = myEntry ? (ranking.filter(r => r.totalPoints > myEntry.totalPoints).length + 1) : 0;
+  // Use full tie-break key (matches firebase.ts getRanking sort order) to determine real position.
+  // Users tied on ALL tie-breakers share the same position.
+  const tieKey = (r: RankingEntry) =>
+    `${r.totalPoints}-${r.exactCount}-${r.resultCount ?? 0}-${r.partialCount ?? 0}`;
+  const myPosition = myEntry
+    ? (ranking.findIndex(r => tieKey(r) === tieKey(myEntry)) + 1)
+    : 0;
 
   const totalPot = totalUsers * BET_PER_USER;
   const firstPrize = Math.round(totalPot * 0.70);
