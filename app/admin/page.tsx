@@ -139,11 +139,21 @@ function CreateMatchTab({ onCreated }: { onCreated: () => void }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label className="label">Equipo Local</label>
-              <input className="input" placeholder="Ej: Brasil" value={form.homeTeam} onChange={(e) => set("homeTeam", e.target.value)} />
+              <select className="input" value={form.homeTeam} onChange={(e) => set("homeTeam", e.target.value)} style={{ cursor: "pointer" }}>
+                <option value="">— Selecciona equipo —</option>
+                {WC2026_TEAMS.map((t) => (
+                  <option key={t} value={t} disabled={t === form.awayTeam}>{t}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">Equipo Visitante</label>
-              <input className="input" placeholder="Ej: Argentina" value={form.awayTeam} onChange={(e) => set("awayTeam", e.target.value)} />
+              <select className="input" value={form.awayTeam} onChange={(e) => set("awayTeam", e.target.value)} style={{ cursor: "pointer" }}>
+                <option value="">— Selecciona equipo —</option>
+                {WC2026_TEAMS.map((t) => (
+                  <option key={t} value={t} disabled={t === form.homeTeam}>{t}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div>
