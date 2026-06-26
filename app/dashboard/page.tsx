@@ -31,9 +31,10 @@ export default function DashboardPage() {
     if (!user) return;
     const load = async () => {
       try {
-        const [r, s, u, allPicks, allMatches, groupPicksSnap] = await Promise.all([
+        const [r, s, u, allPicks, allMatches, groupPicksSnap, groupStandingsSnap] = await Promise.all([
           getRanking(), getTournamentSettings(), getAllUsers(), getAllPicks(), getMatches(),
           getDocs(collection(db, "groupPicks")),
+          getDocs(collection(db, "groupStandings")),
         ]);
         setRanking(r);
         setSettings(s as Record<string, string>);
@@ -44,6 +45,14 @@ export default function DashboardPage() {
         const allGroupPicks = groupPicksSnap.docs.map(d => d.data() as any);
         const matchMap: Record<string, Match> = {};
         allMatches.forEach(m => { matchMap[m.id] = m; });
+
+        // Groups that already have an official standing saved (no more pending bonus from them)
+        const savedGroups = new Set(groupStandingsSnap.docs.map(d => d.id));
+        // Distinct groups across all matches (A, B, …, L)
+        const allGroups = Array.from(new Set(
+          allMatches.filter(m => m.group).map(m => m.group as string)
+        ));
+        const unsavedGroupCount = allGroups.filter(g => !savedGroups.has(g)).length;
 
         const settingsObj = s as Record<string, string>;
         const championDecided = !!settingsObj.champion;
@@ -72,16 +81,10 @@ export default function DashboardPage() {
             })
             .reduce((s) => s + 5, 0);
 
-          // Potential points from pending group position picks — max 1 pt each, regardless of whether a pick was made
-          const pendingGroupMax = (() => {
-            // Determine total possible group-position slots: one set per group (1st, 2nd, 3rd qualifying)
-            // We approximate using the groupPicks collection's distinct groups across all users, falling back
-            // to counting this user's existing groupPicks entries (decided or not) as the slot count.
-            const userGroupPickDocs = allGroupPicks.filter((p: any) => p.userId === usr.uid);
-            const decidedCount = userGroupPickDocs.filter((p: any) => p.points !== null && p.points !== undefined).length;
-            const totalSlots = userGroupPickDocs.length;
-            return Math.max(0, totalSlots - decidedCount);
-          })();
+          // Potential group-standing bonus per group: 1° + 2° + 3° qualifying = 3 pts max.
+          // A group only contributes pending points if its official standing hasn't been saved yet.
+          // (Once admin saves it, the awarded points show up in lockedGroupPts above.)
+          const pendingGroupMax = unsavedGroupCount * 3;
 
           // Champion/top scorer: only countable if not yet officially decided and user made a pick
           const pendingChampionMax = !championDecided && usr.champion ? 15 : 0;
