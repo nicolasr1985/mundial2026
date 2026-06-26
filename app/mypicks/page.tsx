@@ -865,17 +865,17 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
     return { count: max, picks: bestPicks };
   }
 
-  // Compute streak champions across all non-admin users
-  const nonAdminUsers = allUsers.filter(u => !u.isAdmin);
-  const exactStreaks: StreakRecord[] = nonAdminUsers.map(u => {
+  // Compute streak champions across ALL users (admin is a participant too)
+  const allParticipants = allUsers;
+  const exactStreaks: StreakRecord[] = allParticipants.map(u => {
     const r = maxStreakWithMatches(userSortedPicks(u.uid), p => p.points === 5);
     return { uid: u.uid, displayName: u.displayName, count: r.count, picks: r.picks };
   });
-  const goodStreaks: StreakRecord[] = nonAdminUsers.map(u => {
+  const goodStreaks: StreakRecord[] = allParticipants.map(u => {
     const r = maxStreakWithMatches(userSortedPicks(u.uid), p => (p.points ?? 0) >= 2);
     return { uid: u.uid, displayName: u.displayName, count: r.count, picks: r.picks };
   });
-  const zeroStreaks: StreakRecord[] = nonAdminUsers.map(u => {
+  const zeroStreaks: StreakRecord[] = allParticipants.map(u => {
     const r = maxStreakWithMatches(userSortedPicks(u.uid), p => p.points === 0);
     return { uid: u.uid, displayName: u.displayName, count: r.count, picks: r.picks };
   });
