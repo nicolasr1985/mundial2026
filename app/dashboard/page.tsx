@@ -258,7 +258,7 @@ export default function DashboardPage() {
 }
 
 
-const PHASE_ORDER = ["Grupos", "Octavos", "Cuartos", "Semis", "Final", "3er Puesto"];
+const PHASE_ORDER = ["Grupos", "R32", "Octavos", "Cuartos", "Semis", "Final", "3er Puesto"];
 
 function tieScore(e: RankingEntry): string {
   return `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
