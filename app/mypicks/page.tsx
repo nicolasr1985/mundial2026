@@ -717,7 +717,7 @@ interface StreakRecord {
   uid: string;
   displayName: string;
   count: number;
-  matchIds: string[];
+  picks: Pick[];
 }
 
 function StatsView({ matches, allPicks, allUsers, myPicks }: {
@@ -762,39 +762,39 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
       });
   }
 
-  function maxStreakWithMatches(picks: Pick[], predicate: (p: Pick) => boolean): { count: number; matchIds: string[] } {
+  function maxStreakWithMatches(picks: Pick[], predicate: (p: Pick) => boolean): { count: number; picks: Pick[] } {
     let max = 0, cur = 0;
-    let bestMatches: string[] = [];
-    let curMatches: string[] = [];
+    let bestPicks: Pick[] = [];
+    let curPicks: Pick[] = [];
     for (const p of picks) {
       if (predicate(p)) {
         cur++;
-        curMatches.push(p.matchId);
+        curPicks.push(p);
         if (cur > max) {
           max = cur;
-          bestMatches = [...curMatches];
+          bestPicks = [...curPicks];
         }
       } else {
         cur = 0;
-        curMatches = [];
+        curPicks = [];
       }
     }
-    return { count: max, matchIds: bestMatches };
+    return { count: max, picks: bestPicks };
   }
 
   // Compute streak champions across all non-admin users
   const nonAdminUsers = allUsers.filter(u => !u.isAdmin);
   const exactStreaks: StreakRecord[] = nonAdminUsers.map(u => {
     const r = maxStreakWithMatches(userSortedPicks(u.uid), p => p.points === 5);
-    return { uid: u.uid, displayName: u.displayName, count: r.count, matchIds: r.matchIds };
+    return { uid: u.uid, displayName: u.displayName, count: r.count, picks: r.picks };
   });
   const goodStreaks: StreakRecord[] = nonAdminUsers.map(u => {
     const r = maxStreakWithMatches(userSortedPicks(u.uid), p => (p.points ?? 0) >= 2);
-    return { uid: u.uid, displayName: u.displayName, count: r.count, matchIds: r.matchIds };
+    return { uid: u.uid, displayName: u.displayName, count: r.count, picks: r.picks };
   });
   const zeroStreaks: StreakRecord[] = nonAdminUsers.map(u => {
     const r = maxStreakWithMatches(userSortedPicks(u.uid), p => p.points === 0);
-    return { uid: u.uid, displayName: u.displayName, count: r.count, matchIds: r.matchIds };
+    return { uid: u.uid, displayName: u.displayName, count: r.count, picks: r.picks };
   });
 
   function topRecords(records: StreakRecord[]): StreakRecord[] {
@@ -976,15 +976,15 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
           </div>
 
           {showMatches && records.map((rec, ri) => {
-            const matches = rec.matchIds.map(id => matchMap[id]).filter(Boolean);
-            if (matches.length === 0) return null;
+            const items = rec.picks.map(p => ({ pick: p, match: matchMap[p.matchId] })).filter(x => !!x.match);
+            if (items.length === 0) return null;
             return (
               <div key={rec.uid} style={{ marginTop: ri > 0 ? 10 : 0, paddingTop: ri > 0 ? 8 : 0, borderTop: ri > 0 ? "1px solid var(--border)" : "none" }}>
                 {records.length > 1 && (
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{rec.displayName}:</div>
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {matches.map((m) => (
+                  {items.map(({ pick, match: m }) => (
                     <div key={m.id} style={{
                       display: "flex", alignItems: "center", gap: 6,
                       padding: "5px 8px",
@@ -1003,6 +1003,9 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
                         {codeMap[m.awayTeam] ?? m.awayTeam.slice(0, 3).toUpperCase()}
                       </span>
                       <TeamFlag team={m.awayTeam} size={16} />
+                      <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-muted)" }}>
+                        (<span style={{ color: color, fontWeight: 600 }}>{pick.points ?? 0}</span> pt{(pick.points ?? 0) !== 1 ? "s" : ""})
+                      </span>
                     </div>
                   ))}
                 </div>
