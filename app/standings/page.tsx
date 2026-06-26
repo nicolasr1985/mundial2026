@@ -1483,24 +1483,32 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
   ];
 
   // Start with top 10
-  const topList: (GoalScorer & { pos: number; pinned?: boolean })[] = sortedWithPos.slice(0, 10);
+  const topListSet: (GoalScorer & { pos: number; pinned?: boolean })[] = sortedWithPos.slice(0, 10);
 
   // Append pinned players that aren't already in the top 10
   for (const pp of PINNED_PLAYERS) {
-    if (topList.some(t => t.player === pp.displayName)) continue;
+    if (topListSet.some(t => t.player === pp.displayName)) continue;
     const found = sortedWithPos.find(sc => sc.player === pp.displayName);
     if (found) {
-      topList.push({ ...found, pinned: true });
+      topListSet.push({ ...found, pinned: true });
     } else {
       // Player hasn't scored — show with 0 goals and no position
-      topList.push({ player: pp.displayName, country: pp.country, code: pp.code, goals: 0, pos: 0, pinned: true });
+      topListSet.push({ player: pp.displayName, country: pp.country, code: pp.code, goals: 0, pos: 0, pinned: true });
     }
   }
 
   // Mark already-in-top10 pinned players too
-  for (const row of topList) {
+  for (const row of topListSet) {
     if (PINNED_PLAYERS.some(p => p.displayName === row.player)) row.pinned = true;
   }
+
+  // Re-sort the combined list by goals desc → FIFA rank asc → player name
+  // so pinned players appear in the right spot by goals (not just appended at the end).
+  const topList = topListSet.sort((a, b) =>
+    b.goals - a.goals
+    || getFifaRank(a.country) - getFifaRank(b.country)
+    || a.player.localeCompare(b.player)
+  );
 
   // Build picks list: every user that has a topScorer pick (admins included or excluded? exclude admins)
   const picksList = users
