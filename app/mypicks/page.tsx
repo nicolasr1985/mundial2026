@@ -803,7 +803,7 @@ interface StreakRecord {
   picks: Pick[];
 }
 
-function StatsView({ matches, allPicks, allUsers, myPicks }: {
+function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
   matches: Match[];
   allPicks: Pick[];
   allUsers: UserProfile[];
@@ -890,6 +890,11 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
   const topGood = topRecords(goodStreaks);
   const topZero = topRecords(zeroStreaks);
 
+  // Current user's personal streak counts (so we can show "Tu mejor: X" under each card)
+  const myExactStreak = exactStreaks.find(r => r.uid === myUid)?.count ?? 0;
+  const myGoodStreak = goodStreaks.find(r => r.uid === myUid)?.count ?? 0;
+  const myZeroStreak = zeroStreaks.find(r => r.uid === myUid)?.count ?? 0;
+
   // My team stats: sum points per team across my finished picks.
   // Only count points for teams that I predicted to win or draw (not lose).
   // - Pick was a draw → both teams get credit
@@ -941,6 +946,8 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
             matchMap={matchMap}
             codeMap={codeMap}
             showMatches
+            personalCount={myExactStreak}
+            personalLabel="exacto"
           />
           <StreakCard
             icon="✅"
@@ -951,6 +958,8 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
             matchMap={matchMap}
             codeMap={codeMap}
             showMatches
+            personalCount={myGoodStreak}
+            personalLabel="pick"
           />
           <StreakCard
             icon="❌"
@@ -960,6 +969,8 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
             color="var(--red)"
             matchMap={matchMap}
             codeMap={codeMap}
+            personalCount={myZeroStreak}
+            personalLabel="cero"
           />
         </div>
       </div>
@@ -1028,7 +1039,7 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
   );
 }
 
-function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, showMatches }: {
+function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, showMatches, personalCount, personalLabel }: {
   icon: string;
   title: string;
   unit: string;
@@ -1037,7 +1048,17 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
   matchMap: Record<string, Match>;
   codeMap: Record<string, string>;
   showMatches?: boolean;
+  personalCount?: number;
+  personalLabel?: string;
 }) {
+  // Personal record line shown below winner — "s" for plural when > 1
+  const personalLine = personalCount !== undefined ? (
+    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+      (Tu mejor: <span style={{ color: color, fontWeight: 600 }}>{personalCount}</span>
+      {personalLabel ? ` ${personalLabel}${personalCount === 1 ? "" : "s"} seguido${personalCount === 1 ? "" : "s"}` : ""})
+    </div>
+  ) : null;
+
   return (
     <div className="card" style={{ padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -1045,8 +1066,11 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
         <span style={{ fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</span>
       </div>
       {records.length === 0 ? (
-        <div style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>
-          Aún no hay racha registrada
+        <div>
+          <div style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>
+            Aún no hay racha registrada
+          </div>
+          {personalLine}
         </div>
       ) : (
         <div>
@@ -1057,6 +1081,7 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
             🥇 {records.map(r => r.displayName).join(" · ")}
             {records.length > 1 && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>(empate)</span>}
           </div>
+          {personalLine}
 
           {showMatches && records.map((rec, ri) => {
             const items = rec.picks.map(p => ({ pick: p, match: matchMap[p.matchId] })).filter(x => !!x.match);
