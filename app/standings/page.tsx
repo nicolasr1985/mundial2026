@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getMatches, getUserPicks, getAllUsers, Match, UserProfile } from "@/lib/firebase";
+import { getMatches, getUserPicks, getAllUsers, getAllGroupStandings, Match, UserProfile } from "@/lib/firebase";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { teamWithRank, canSeeRanking, getFifaRank, FIFA_RANKINGS } from "@/lib/fifa-ranking";
@@ -167,7 +167,7 @@ function getThirdPlaceTable(standings: Record<string, TeamStat[]>): (TeamStat & 
 }
 
 // ─── R32 BRACKET BUILDER ─────────────────────────────────────────────────────
-function buildR32(standings: Record<string, TeamStat[]>, allGroupMatches?: Match[]): R32Match[] {
+function buildR32(standings: Record<string, TeamStat[]>, allGroupMatches?: Match[], confirmedThirdTeams?: Set<string>): R32Match[] {
   const get = (pos: number, group: string): string | undefined => {
     const teams = standings[group];
     if (!teams || teams.length < pos) return undefined;
@@ -199,30 +199,37 @@ function buildR32(standings: Record<string, TeamStat[]>, allGroupMatches?: Match
   // We implement the most important rule: thirds go to specific slots based on their group
   const thirdAssignments = assignThirds(qualifyingThirdGroups, thirds);
 
-  // Thirds are "confirmed" (gold + bold) only when ALL 12 groups have finished
-  // AND we have an exact FIFA lookup match. Before that they're provisional (green).
+  // Thirds are "confirmed" (gold + bold) when EITHER:
+  //  (a) admin has saved the team in a group standing's thirdPlaces list (authoritative), OR
+  //  (b) all 12 groups have finished and the FIFA exact lookup is available.
+  // Resolved per-team so each slot confirms independently as admin saves groups.
   const allGroupsDone = ["A","B","C","D","E","F","G","H","I","J","K","L"].every(g => !!groupDone[g]);
-  const thirdsConfirmed = allGroupsDone && qualifyingThirdGroups.length === 8 && !!FIFA_R32_LOOKUP[key];
+  const exactLookupReady = allGroupsDone && qualifyingThirdGroups.length === 8 && !!FIFA_R32_LOOKUP[key];
+  const isThirdConfirmed = (team: string | undefined): boolean => {
+    if (!team) return false;
+    if (confirmedThirdTeams?.has(team)) return true;
+    return exactLookupReady;
+  };
 
   return [
     // LEFT SIDE — top to bottom
-    { slot: "R32-1",  homeDesc: "1° Grupo E",  awayDesc: "3° (A/B/C/D/F)", homeTeam: get(1,"E"), awayTeam: thirdAssignments["ABCDF"], awayIsThird: true, awayThirdGroups: "ABCDF", isTBD: !thirdAssignments["ABCDF"], homeGroupDone: groupDone["E"], awayGroupDone: thirdsConfirmed },
-    { slot: "R32-2",  homeDesc: "1° Grupo I",  awayDesc: "3° (C/D/F/G/H)", homeTeam: get(1,"I"), awayTeam: thirdAssignments["CDFGH"], awayIsThird: true, awayThirdGroups: "CDFGH", isTBD: !thirdAssignments["CDFGH"], homeGroupDone: groupDone["I"], awayGroupDone: thirdsConfirmed },
+    { slot: "R32-1",  homeDesc: "1° Grupo E",  awayDesc: "3° (A/B/C/D/F)", homeTeam: get(1,"E"), awayTeam: thirdAssignments["ABCDF"], awayIsThird: true, awayThirdGroups: "ABCDF", isTBD: !thirdAssignments["ABCDF"], homeGroupDone: groupDone["E"], awayGroupDone: isThirdConfirmed(thirdAssignments["ABCDF"]) },
+    { slot: "R32-2",  homeDesc: "1° Grupo I",  awayDesc: "3° (C/D/F/G/H)", homeTeam: get(1,"I"), awayTeam: thirdAssignments["CDFGH"], awayIsThird: true, awayThirdGroups: "CDFGH", isTBD: !thirdAssignments["CDFGH"], homeGroupDone: groupDone["I"], awayGroupDone: isThirdConfirmed(thirdAssignments["CDFGH"]) },
     { slot: "R32-3",  homeDesc: "2° Grupo A",  awayDesc: "2° Grupo B",     homeTeam: get(2,"A"), awayTeam: get(2,"B"), homeGroupDone: groupDone["A"], awayGroupDone: groupDone["B"] },
     { slot: "R32-4",  homeDesc: "1° Grupo F",  awayDesc: "2° Grupo C",     homeTeam: get(1,"F"), awayTeam: get(2,"C"), homeGroupDone: groupDone["F"], awayGroupDone: groupDone["C"] },
     { slot: "R32-5",  homeDesc: "2° Grupo K",  awayDesc: "2° Grupo L",     homeTeam: get(2,"K"), awayTeam: get(2,"L"), homeGroupDone: groupDone["K"], awayGroupDone: groupDone["L"] },
     { slot: "R32-6",  homeDesc: "1° Grupo H",  awayDesc: "2° Grupo J",     homeTeam: get(1,"H"), awayTeam: get(2,"J"), homeGroupDone: groupDone["H"], awayGroupDone: groupDone["J"] },
-    { slot: "R32-7",  homeDesc: "1° Grupo D",  awayDesc: "3° (B/E/F/I/J)", homeTeam: get(1,"D"), awayTeam: thirdAssignments["BEFIJ"], awayIsThird: true, awayThirdGroups: "BEFIJ", isTBD: !thirdAssignments["BEFIJ"], homeGroupDone: groupDone["D"], awayGroupDone: thirdsConfirmed },
-    { slot: "R32-8",  homeDesc: "1° Grupo G",  awayDesc: "3° (A/E/H/I/J)", homeTeam: get(1,"G"), awayTeam: thirdAssignments["AEHIJ"], awayIsThird: true, awayThirdGroups: "AEHIJ", isTBD: !thirdAssignments["AEHIJ"], homeGroupDone: groupDone["G"], awayGroupDone: thirdsConfirmed },
+    { slot: "R32-7",  homeDesc: "1° Grupo D",  awayDesc: "3° (B/E/F/I/J)", homeTeam: get(1,"D"), awayTeam: thirdAssignments["BEFIJ"], awayIsThird: true, awayThirdGroups: "BEFIJ", isTBD: !thirdAssignments["BEFIJ"], homeGroupDone: groupDone["D"], awayGroupDone: isThirdConfirmed(thirdAssignments["BEFIJ"]) },
+    { slot: "R32-8",  homeDesc: "1° Grupo G",  awayDesc: "3° (A/E/H/I/J)", homeTeam: get(1,"G"), awayTeam: thirdAssignments["AEHIJ"], awayIsThird: true, awayThirdGroups: "AEHIJ", isTBD: !thirdAssignments["AEHIJ"], homeGroupDone: groupDone["G"], awayGroupDone: isThirdConfirmed(thirdAssignments["AEHIJ"]) },
     // RIGHT SIDE — top to bottom
     { slot: "R32-9",  homeDesc: "1° Grupo C",  awayDesc: "2° Grupo F",     homeTeam: get(1,"C"), awayTeam: get(2,"F"), homeGroupDone: groupDone["C"], awayGroupDone: groupDone["F"] },
     { slot: "R32-10", homeDesc: "2° Grupo E",  awayDesc: "2° Grupo I",     homeTeam: get(2,"E"), awayTeam: get(2,"I"), homeGroupDone: groupDone["E"], awayGroupDone: groupDone["I"] },
-    { slot: "R32-11", homeDesc: "1° Grupo A",  awayDesc: "3° (C/E/F/H/I)", homeTeam: get(1,"A"), awayTeam: thirdAssignments["CEFHI"], awayIsThird: true, awayThirdGroups: "CEFHI", isTBD: !thirdAssignments["CEFHI"], homeGroupDone: groupDone["A"], awayGroupDone: thirdsConfirmed },
-    { slot: "R32-12", homeDesc: "1° Grupo L",  awayDesc: "3° (E/H/I/J/K)", homeTeam: get(1,"L"), awayTeam: thirdAssignments["EHIJK"], awayIsThird: true, awayThirdGroups: "EHIJK", isTBD: !thirdAssignments["EHIJK"], homeGroupDone: groupDone["L"], awayGroupDone: thirdsConfirmed },
+    { slot: "R32-11", homeDesc: "1° Grupo A",  awayDesc: "3° (C/E/F/H/I)", homeTeam: get(1,"A"), awayTeam: thirdAssignments["CEFHI"], awayIsThird: true, awayThirdGroups: "CEFHI", isTBD: !thirdAssignments["CEFHI"], homeGroupDone: groupDone["A"], awayGroupDone: isThirdConfirmed(thirdAssignments["CEFHI"]) },
+    { slot: "R32-12", homeDesc: "1° Grupo L",  awayDesc: "3° (E/H/I/J/K)", homeTeam: get(1,"L"), awayTeam: thirdAssignments["EHIJK"], awayIsThird: true, awayThirdGroups: "EHIJK", isTBD: !thirdAssignments["EHIJK"], homeGroupDone: groupDone["L"], awayGroupDone: isThirdConfirmed(thirdAssignments["EHIJK"]) },
     { slot: "R32-13", homeDesc: "1° Grupo J",  awayDesc: "2° Grupo H",     homeTeam: get(1,"J"), awayTeam: get(2,"H"), homeGroupDone: groupDone["J"], awayGroupDone: groupDone["H"] },
     { slot: "R32-14", homeDesc: "2° Grupo D",  awayDesc: "2° Grupo G",     homeTeam: get(2,"D"), awayTeam: get(2,"G"), homeGroupDone: groupDone["D"], awayGroupDone: groupDone["G"] },
-    { slot: "R32-15", homeDesc: "1° Grupo B",  awayDesc: "3° (E/F/G/I/J)", homeTeam: get(1,"B"), awayTeam: thirdAssignments["EFGIJ"], awayIsThird: true, awayThirdGroups: "EFGIJ", isTBD: !thirdAssignments["EFGIJ"], homeGroupDone: groupDone["B"], awayGroupDone: thirdsConfirmed },
-    { slot: "R32-16", homeDesc: "1° Grupo K",  awayDesc: "3° (D/E/I/J/L)", homeTeam: get(1,"K"), awayTeam: thirdAssignments["DEIJL"], awayIsThird: true, awayThirdGroups: "DEIJL", isTBD: !thirdAssignments["DEIJL"], homeGroupDone: groupDone["K"], awayGroupDone: thirdsConfirmed },
+    { slot: "R32-15", homeDesc: "1° Grupo B",  awayDesc: "3° (E/F/G/I/J)", homeTeam: get(1,"B"), awayTeam: thirdAssignments["EFGIJ"], awayIsThird: true, awayThirdGroups: "EFGIJ", isTBD: !thirdAssignments["EFGIJ"], homeGroupDone: groupDone["B"], awayGroupDone: isThirdConfirmed(thirdAssignments["EFGIJ"]) },
+    { slot: "R32-16", homeDesc: "1° Grupo K",  awayDesc: "3° (D/E/I/J/L)", homeTeam: get(1,"K"), awayTeam: thirdAssignments["DEIJL"], awayIsThird: true, awayThirdGroups: "DEIJL", isTBD: !thirdAssignments["DEIJL"], homeGroupDone: groupDone["K"], awayGroupDone: isThirdConfirmed(thirdAssignments["DEIJL"]) },
   ];
 }
 
@@ -799,6 +806,7 @@ export default function StandingsPage() {
   const [activeTab, setActiveTab] = useState<"groups" | "thirds" | "r32" | "fifa" | "scorers">("groups");
   const [fetching, setFetching] = useState(true);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [adminConfirmedThirds, setAdminConfirmedThirds] = useState<Set<string>>(new Set());
 
   useEffect(() => { if (!loading && !user) router.push("/login"); }, [user, loading, router]);
 
@@ -830,13 +838,27 @@ export default function StandingsPage() {
     getAllUsers().then(setUsers).catch(console.warn);
   }, [user]);
 
+  // Load admin-saved group standings to know which third-place teams are officially confirmed as advancing.
+  // A team is "confirmed" once admin saves its group standing with the team in the thirdPlaces list.
+  useEffect(() => {
+    if (!user) return;
+    getAllGroupStandings().then((arr) => {
+      const teams = new Set<string>();
+      for (const s of arr) {
+        const tp: unknown = (s as { thirdPlaces?: string[] }).thirdPlaces;
+        if (Array.isArray(tp)) tp.forEach(t => { if (typeof t === "string" && t.length > 0) teams.add(t); });
+      }
+      setAdminConfirmedThirds(teams);
+    }).catch(console.warn);
+  }, [user]);
+
   const groupMatches = matches.filter((m) => m.round?.startsWith("Fase de Grupos"));
   const availableGroups = Array.from(new Set(groupMatches.map((m) => m.group).filter(Boolean) as string[])).sort();
 
   const realFinished = groupMatches.filter((m) => (m.status === "finished" || m.status === "live") && m.homeScore !== null);
   const realStandings = computeGroupStandings(realFinished, groupMatches);
   const realThirds = getThirdPlaceTable(realStandings);
-  const realR32 = buildR32(realStandings, groupMatches);
+  const realR32 = buildR32(realStandings, groupMatches, adminConfirmedThirds);
 
   const predictedMatches = groupMatches.map((m) => {
     const p = userPickMap[m.id];
@@ -857,7 +879,7 @@ export default function StandingsPage() {
   }).filter(Boolean) as Match[];
   const predictedStandings = computeGroupStandings(predictedMatches, groupMatches);
   const predictedThirds = getThirdPlaceTable(predictedStandings);
-  const predictedR32 = buildR32(predictedStandings, groupMatches);
+  const predictedR32 = buildR32(predictedStandings, groupMatches, adminConfirmedThirds);
 
   // Build simple standings map for display (team name by position)
   const displayStandings = viewMode === "real" ? realStandings : predictedStandings;
