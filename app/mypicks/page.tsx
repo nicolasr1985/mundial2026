@@ -23,7 +23,7 @@ export default function MyPicksPage() {
 
   const [allPicks, setAllPicks] = useState<Pick[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
-  const [activeView, setActiveView] = useState<"mine" | "community">("mine");
+  const [activeView, setActiveView] = useState<"mine" | "community" | "stats">("mine");
   const [mineCollapsedPhases, setMineCollapsedPhases] = useState<Set<string>>(new Set());
 
   const toggleMinePhase = (phase: string) => {
@@ -99,6 +99,7 @@ export default function MyPicksPage() {
         {([
           { id: "mine", label: "📋 Mis Picks" },
           { id: "community", label: "👥 Todos los Picks" },
+          { id: "stats", label: "📊 Stats" },
         ] as const).map((t) => (
           <button key={t.id} onClick={() => setActiveView(t.id)} style={{
             padding: "10px 18px", fontSize: 13, cursor: "pointer", border: "none",
@@ -117,6 +118,16 @@ export default function MyPicksPage() {
           allUsers={allUsers}
           myUid={user?.uid ?? ""}
           showRank={showRank}
+        />
+      )}
+
+      {activeView === "stats" && (
+        <StatsView
+          matches={matches}
+          allPicks={allPicks}
+          allUsers={allUsers}
+          myUid={user?.uid ?? ""}
+          myPicks={picks}
         />
       )}
 
@@ -655,6 +666,273 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
         </div>
         );
       })}
+    </div>
+  );
+}
+
+// ─── STATS VIEW ───────────────────────────────────────────────────────────────
+
+// Map team name → 2-letter ISO code for flag emoji
+const TEAM_ISO: Record<string, string> = {
+  "Algeria": "DZ", "Argentina": "AR", "Australia": "AU", "Austria": "AT",
+  "Belgium": "BE", "Bosnia and Herzegovina": "BA", "Brazil": "BR",
+  "Canada": "CA", "Cape Verde": "CV", "Colombia": "CO", "Congo DR": "CD",
+  "Croatia": "HR", "Curacao": "CW", "Czechia": "CZ",
+  "Ecuador": "EC", "Egypt": "EG",
+  "France": "FR",
+  "Germany": "DE", "Ghana": "GH",
+  "Haiti": "HT",
+  "Iran": "IR", "Iraq": "IQ", "Ivory Coast": "CI",
+  "Japan": "JP", "Jordan": "JO",
+  "Mexico": "MX", "Morocco": "MA",
+  "Netherlands": "NL", "New Zealand": "NZ", "Norway": "NO",
+  "Panama": "PA", "Paraguay": "PY", "Portugal": "PT",
+  "Qatar": "QA",
+  "Saudi Arabia": "SA", "Senegal": "SN", "South Africa": "ZA",
+  "South Korea": "KR", "Spain": "ES", "Sweden": "SE", "Switzerland": "CH",
+  "Tunisia": "TN", "Turkey": "TR",
+  "United States": "US", "Uruguay": "UY", "Uzbekistan": "UZ",
+};
+
+function teamFlag(name: string): string {
+  // Special cases for England and Scotland (constituent countries)
+  if (name === "England") return "🏴󠁧󠁢󠁥󠁮󠁧󠁿";
+  if (name === "Scotland") return "🏴󠁧󠁢󠁳󠁣󠁴󠁿";
+  const iso = TEAM_ISO[name];
+  if (!iso) return "🏳️";
+  return iso.split("").map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join("");
+}
+
+interface StreakRecord {
+  uid: string;
+  displayName: string;
+  count: number;
+}
+
+function StatsView({ matches, allPicks, allUsers, myPicks }: {
+  matches: Match[];
+  allPicks: Pick[];
+  allUsers: UserProfile[];
+  myUid: string;
+  myPicks: Pick[];
+}) {
+  const matchMap = Object.fromEntries(matches.map(m => [m.id, m]));
+
+  // Team code map (FIFA 3-letter) for participating WC2026 teams
+  const codeMap: Record<string, string> = {
+    "Algeria": "ALG", "Argentina": "ARG", "Australia": "AUS", "Austria": "AUT",
+    "Belgium": "BEL", "Bosnia and Herzegovina": "BIH", "Brazil": "BRA",
+    "Canada": "CAN", "Cape Verde": "CPV", "Colombia": "COL", "Congo DR": "COD",
+    "Croatia": "CRO", "Curacao": "CUW", "Czechia": "CZE",
+    "Ecuador": "ECU", "Egypt": "EGY", "England": "ENG",
+    "France": "FRA", "Germany": "GER", "Ghana": "GHA",
+    "Haiti": "HAI", "Iran": "IRN", "Iraq": "IRQ", "Ivory Coast": "CIV",
+    "Japan": "JPN", "Jordan": "JOR", "Mexico": "MEX", "Morocco": "MAR",
+    "Netherlands": "NED", "New Zealand": "NZL", "Norway": "NOR",
+    "Panama": "PAN", "Paraguay": "PAR", "Portugal": "POR", "Qatar": "QAT",
+    "Saudi Arabia": "KSA", "Scotland": "SCO", "Senegal": "SEN",
+    "South Africa": "RSA", "South Korea": "KOR", "Spain": "ESP",
+    "Sweden": "SWE", "Switzerland": "SUI", "Tunisia": "TUN", "Turkey": "TUR",
+    "United States": "USA", "Uruguay": "URU", "Uzbekistan": "UZB",
+  };
+
+  // Build per-user picks index, sorted by match date asc (only finished matches with scored points)
+  function userSortedPicks(uid: string): Pick[] {
+    return allPicks
+      .filter(p => p.userId === uid)
+      .filter(p => {
+        const m = matchMap[p.matchId];
+        return m && m.status === "finished" && p.points !== null && p.points !== undefined;
+      })
+      .sort((a, b) => {
+        const ta = matchMap[a.matchId]?.matchDate?.toDate?.()?.getTime() ?? 0;
+        const tb = matchMap[b.matchId]?.matchDate?.toDate?.()?.getTime() ?? 0;
+        return ta - tb;
+      });
+  }
+
+  function maxStreak(picks: Pick[], predicate: (p: Pick) => boolean): number {
+    let max = 0, cur = 0;
+    for (const p of picks) {
+      if (predicate(p)) {
+        cur++;
+        if (cur > max) max = cur;
+      } else {
+        cur = 0;
+      }
+    }
+    return max;
+  }
+
+  // Compute streak champions across all non-admin users
+  const nonAdminUsers = allUsers.filter(u => !u.isAdmin);
+  const exactStreaks: StreakRecord[] = nonAdminUsers.map(u => ({
+    uid: u.uid, displayName: u.displayName,
+    count: maxStreak(userSortedPicks(u.uid), p => p.points === 5),
+  }));
+  const goodStreaks: StreakRecord[] = nonAdminUsers.map(u => ({
+    uid: u.uid, displayName: u.displayName,
+    count: maxStreak(userSortedPicks(u.uid), p => (p.points ?? 0) >= 2),
+  }));
+  const zeroStreaks: StreakRecord[] = nonAdminUsers.map(u => ({
+    uid: u.uid, displayName: u.displayName,
+    count: maxStreak(userSortedPicks(u.uid), p => p.points === 0),
+  }));
+
+  function topRecords(records: StreakRecord[]): StreakRecord[] {
+    const max = Math.max(0, ...records.map(r => r.count));
+    if (max === 0) return [];
+    return records.filter(r => r.count === max).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  const topExact = topRecords(exactStreaks);
+  const topGood = topRecords(goodStreaks);
+  const topZero = topRecords(zeroStreaks);
+
+  // My team stats: sum points per team across my finished picks
+  const teamPoints: Record<string, number> = {};
+  const teamMatches: Record<string, number> = {};
+  for (const p of myPicks) {
+    const m = matchMap[p.matchId];
+    if (!m || m.status !== "finished" || p.points === null || p.points === undefined) continue;
+    const pts = p.points ?? 0;
+    teamPoints[m.homeTeam] = (teamPoints[m.homeTeam] ?? 0) + pts;
+    teamPoints[m.awayTeam] = (teamPoints[m.awayTeam] ?? 0) + pts;
+    teamMatches[m.homeTeam] = (teamMatches[m.homeTeam] ?? 0) + 1;
+    teamMatches[m.awayTeam] = (teamMatches[m.awayTeam] ?? 0) + 1;
+  }
+  const teamRanking = Object.entries(teamPoints)
+    .map(([team, pts]) => ({ team, pts, matches: teamMatches[team] ?? 0 }))
+    .sort((a, b) => b.pts - a.pts);
+  const topTeam = teamRanking[0];
+
+  return (
+    <div>
+      {/* Global records */}
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          🏆 RÉCORDS DE LA POLLA
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
+          Rachas consecutivas en partidos finalizados
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
+          <StreakCard
+            icon="⭐"
+            title="Mayor racha de marcadores exactos"
+            unit="exactos seguidos"
+            records={topExact}
+            color="var(--gold)"
+          />
+          <StreakCard
+            icon="✅"
+            title="Mayor racha de exactos o correctos"
+            unit="picks seguidos"
+            records={topGood}
+            color="var(--green)"
+          />
+          <StreakCard
+            icon="❌"
+            title="Mayor racha de fallados"
+            unit="ceros seguidos"
+            records={topZero}
+            color="var(--red)"
+          />
+        </div>
+      </div>
+
+      {/* Personal stats */}
+      <div>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          📈 TUS STATS
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
+          Equipos que más puntos te han dado en tus apuestas
+        </p>
+        {!topTeam ? (
+          <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
+            Aún no tienes apuestas finalizadas con puntos.
+          </div>
+        ) : (
+          <div className="card-gold" style={{ padding: 20 }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 12 }}>
+              🥇 Top equipo
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 48, lineHeight: 1 }}>{teamFlag(topTeam.team)}</div>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--gold)", letterSpacing: "0.04em", lineHeight: 1 }}>
+                  {codeMap[topTeam.team] ?? topTeam.team.slice(0, 3).toUpperCase()}
+                </div>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{topTeam.team}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 40, color: "var(--gold)", lineHeight: 1 }}>
+                  {topTeam.pts}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  pts en {topTeam.matches} partido{topTeam.matches !== 1 ? "s" : ""}
+                </div>
+              </div>
+            </div>
+
+            {teamRanking.length > 1 && (
+              <>
+                <div className="divider" />
+                <div style={{ fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                  Resto del ranking
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {teamRanking.slice(1, 8).map((t, i) => (
+                    <div key={t.team} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 10px", background: "var(--surface2)", borderRadius: "var(--radius-sm)" }}>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", width: 18, textAlign: "center" }}>{i + 2}</span>
+                      <span style={{ fontSize: 20, lineHeight: 1 }}>{teamFlag(t.team)}</span>
+                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, color: "var(--text)", letterSpacing: "0.04em", width: 50 }}>
+                        {codeMap[t.team] ?? t.team.slice(0, 3).toUpperCase()}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--text-muted)" }}>{t.team}</span>
+                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)" }}>{t.pts}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)" }}>pts</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StreakCard({ icon, title, unit, records, color }: {
+  icon: string;
+  title: string;
+  unit: string;
+  records: StreakRecord[];
+  color: string;
+}) {
+  return (
+    <div className="card" style={{ padding: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 20 }}>{icon}</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</span>
+      </div>
+      {records.length === 0 ? (
+        <div style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>
+          Aún no hay racha registrada
+        </div>
+      ) : (
+        <div>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: color, lineHeight: 1, marginBottom: 6 }}>
+            {records[0].count} <span style={{ fontSize: 14, color: "var(--text-muted)", letterSpacing: "0.04em" }}>{unit}</span>
+          </div>
+          <div style={{ fontSize: 13, color: "var(--text)" }}>
+            🥇 {records.map(r => r.displayName).join(" · ")}
+            {records.length > 1 && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>(empate)</span>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
