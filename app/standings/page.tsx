@@ -1337,6 +1337,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 5 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
+  { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 4 },
   { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 4 },
   { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 4 },
   // 3 goals
@@ -1345,6 +1346,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
   { player: "Ismael Saibari", country: "Morocco", code: "MAR", goals: 3 },
   { player: "Brian Brobbey", country: "Netherlands", code: "NED", goals: 3 },
+  { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 3 },
   { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 3 },
   // 2 goals
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
@@ -1360,7 +1362,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Crysencio Summerville", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Elijah Just", country: "New Zealand", code: "NZL", goals: 2 },
   { player: "Cristiano Ronaldo", country: "Portugal", code: "POR", goals: 2 },
-  { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 2 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 2 },
   { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Anthony Elanga", country: "Sweden", code: "SWE", goals: 2 },
@@ -1383,7 +1384,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Jude Bellingham", country: "England", code: "ENG", goals: 1 },
   { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
   { player: "Bradley Barcola", country: "France", code: "FRA", goals: 1 },
-  { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 1 },
   { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
   { player: "Leroy Sané", country: "Germany", code: "GER", goals: 1 },
   { player: "Wilson Isidor", country: "Haiti", code: "HAI", goals: 1 },
@@ -1414,6 +1414,8 @@ const PICK_TO_GOALS: Record<string, number> = {
   // 4 goals
   "(BRA) Vinicius Jr.": 4,
   "(BRA) De Oliveira Junior, Vinicius": 4,
+  "(FRA) Dembélé, Ousmane": 4,
+  "(FRA) Dembele, Ousmane": 4,
   "(FRA) Mbappé, Kylian": 4,
   "(FRA) Mbappe, Kylian": 4,
   "(NOR) Haaland, Erling Braut": 4,
@@ -1423,6 +1425,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(GER) Undav, Deniz": 3,
   "(MAR) Saibari, Ismael": 3,
   "(NED) Brobbey, Brian": 3,
+  "(SEN) Sarr, Ismaila": 3,
   // 2 goals
   "(CAN) Larin, Cyle": 2,
   "(ENG) Kane, Harry": 2,
@@ -1435,7 +1438,6 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(NED) Gakpo, Cody": 2,
   "(NED) Summerville, Crysencio": 2,
   "(POR) Ronaldo, Cristiano": 2,
-  "(SEN) Sarr, Ismaila": 2,
   "(ESP) Oyarzabal, Mikel": 2,
   "(ESP) Oyarzabal Ugarte, Mikiel": 2,
   "(SWE) Elanga, Anthony": 2,
@@ -1457,8 +1459,6 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(ENG) Bellingham, Jude": 1,
   "(ENG) Rashford, Marcus": 1,
   "(FRA) Barcola, Bradley": 1,
-  "(FRA) Dembélé, Ousmane": 1,
-  "(FRA) Dembele, Ousmane": 1,
   "(GER) Musiala, Jamal": 1,
   "(GER) Sane, Leroy": 1,
   "(HAI) Isidor, Wilson": 1,
