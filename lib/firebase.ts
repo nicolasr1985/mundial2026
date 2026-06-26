@@ -368,10 +368,8 @@ export interface RecalcGroupResult {
   pointsAwarded: number;
   userDetails: {
     displayName: string;
-    firstPlace: string;
-    secondPlace: string;
-    thirdPlace?: string;
-    pointsAwarded: number;
+    predicted: { first: string; second: string; third: string };
+    points: number;
     correct: { first: boolean; second: boolean; third: boolean };
   }[];
 }
@@ -439,10 +437,8 @@ async function recalculateGroupPicksFromMatchPicks(
 
     userDetails.push({
       displayName: u.displayName,
-      firstPlace: firstPick,
-      secondPlace: secondPick,
-      thirdPlace: thirdPick,
-      pointsAwarded: pts,
+      predicted: { first: firstPick, second: secondPick, third: thirdPick },
+      points: pts,
       correct,
     });
 
