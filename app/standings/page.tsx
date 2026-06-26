@@ -1474,18 +1474,33 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
       lastP = pos;
     });
   }
-  const top10 = sortedWithPos.slice(0, 10);
 
-  // Pinned players — always shown, regardless of their position
+  // Pinned players — always shown in the top list even if outside the top 10
   const PINNED_PLAYERS: { displayName: string; country: string; code: string }[] = [
     { displayName: "Michael Olise", country: "France", code: "FRA" },
     { displayName: "Harry Kane", country: "England", code: "ENG" },
     { displayName: "Kylian Mbappé", country: "France", code: "FRA" },
   ];
-  const pinnedRows = PINNED_PLAYERS.map(pp => {
+
+  // Start with top 10
+  const topList: (GoalScorer & { pos: number; pinned?: boolean })[] = sortedWithPos.slice(0, 10);
+
+  // Append pinned players that aren't already in the top 10
+  for (const pp of PINNED_PLAYERS) {
+    if (topList.some(t => t.player === pp.displayName)) continue;
     const found = sortedWithPos.find(sc => sc.player === pp.displayName);
-    return found ?? { player: pp.displayName, country: pp.country, code: pp.code, goals: 0, pos: 0 };
-  });
+    if (found) {
+      topList.push({ ...found, pinned: true });
+    } else {
+      // Player hasn't scored — show with 0 goals and no position
+      topList.push({ player: pp.displayName, country: pp.country, code: pp.code, goals: 0, pos: 0, pinned: true });
+    }
+  }
+
+  // Mark already-in-top10 pinned players too
+  for (const row of topList) {
+    if (PINNED_PLAYERS.some(p => p.displayName === row.player)) row.pinned = true;
+  }
 
   // Build picks list: every user that has a topScorer pick (admins included or excluded? exclude admins)
   const picksList = users
@@ -1502,10 +1517,10 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
       {/* Top 10 */}
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
-          ⚽ TOP 10 GOLEADORES
+          ⚽ TOP GOLEADORES
         </h2>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Goleadores del Mundial 2026 — actualizado al 25 de junio, 2026
+          Goleadores del Mundial 2026 — actualizado al 25 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1518,56 +1533,18 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
               </tr>
             </thead>
             <tbody>
-              {top10.map((sc, i) => (
+              {topList.map((sc, i) => (
                 <tr key={i} style={{
                   borderBottom: "1px solid var(--border)",
-                  background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
-                }}>
-                  <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)" }}>
-                    {sc.pos}
-                  </td>
-                  <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>{sc.player}</td>
-                  <td style={{ ...s.td, textAlign: "left", color: "var(--text-muted)" }}>
-                    {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
-                  </td>
-                  <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--text)" }}>
-                    {sc.goals}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pinned players — always shown */}
-      <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
-          📌 JUGADORES DESTACADOS
-        </h2>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Posición actual de jugadores seguidos
-        </p>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border-gold)" }}>
-                <th style={{ ...s.th, width: 60 }}>Pos</th>
-                <th style={{ ...s.th, textAlign: "left" }}>Nombre</th>
-                <th style={{ ...s.th, textAlign: "left" }}>País</th>
-                <th style={{ ...s.th, width: 80 }}>Goles</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pinnedRows.map((sc, i) => (
-                <tr key={i} style={{
-                  borderBottom: "1px solid var(--border)",
-                  background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+                  background: sc.pinned ? "rgba(201,168,76,0.06)" : (i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)"),
                 }}>
                   <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: sc.pos > 0 ? "var(--gold)" : "var(--text-muted)" }}>
                     {sc.pos > 0 ? sc.pos : "—"}
                   </td>
-                  <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>{sc.player}</td>
+                  <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>
+                    {sc.pinned && <span style={{ marginRight: 6, fontSize: 12 }}>📌</span>}
+                    {sc.player}
+                  </td>
                   <td style={{ ...s.td, textAlign: "left", color: "var(--text-muted)" }}>
                     {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
                   </td>
