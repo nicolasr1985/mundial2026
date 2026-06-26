@@ -1317,6 +1317,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
   { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
   { player: "Ismael Saibari", country: "Morocco", code: "MAR", goals: 3 },
+  { player: "Brian Brobbey", country: "Netherlands", code: "NED", goals: 3 },
   { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 3 },
   // 2 goals
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
@@ -1328,7 +1329,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Daichi Kamada", country: "Japan", code: "JPN", goals: 2 },
   { player: "Ayase Ueda", country: "Japan", code: "JPN", goals: 2 },
   { player: "Julián Quiñones", country: "Mexico", code: "MEX", goals: 2 },
-  { player: "Brian Brobbey", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Cody Gakpo", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Crysencio Summerville", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Elijah Just", country: "New Zealand", code: "NZL", goals: 2 },
@@ -1336,6 +1336,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 2 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 2 },
   { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
+  { player: "Anthony Elanga", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Rubén Vargas", country: "Switzerland", code: "SUI", goals: 2 },
   { player: "Folarin Balogun", country: "United States", code: "USA", goals: 2 },
   { player: "Maximiliano Araújo", country: "Uruguay", code: "URU", goals: 2 },
@@ -1359,6 +1360,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Leroy Sané", country: "Germany", code: "GER", goals: 1 },
   { player: "Wilson Isidor", country: "Haiti", code: "HAI", goals: 1 },
   { player: "Amad Diallo", country: "Ivory Coast", code: "CIV", goals: 1 },
+  { player: "Daizen Maeda", country: "Japan", code: "JPN", goals: 1 },
   { player: "Raúl Jiménez", country: "Mexico", code: "MEX", goals: 1 },
   { player: "Achraf Hakimi", country: "Morocco", code: "MAR", goals: 1 },
   { player: "Soufiane Rahimi", country: "Morocco", code: "MAR", goals: 1 },
@@ -1371,6 +1373,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Alexander Isak", country: "Sweden", code: "SWE", goals: 1 },
   { player: "Breel Embolo", country: "Switzerland", code: "SUI", goals: 1 },
   { player: "Granit Xhaka", country: "Switzerland", code: "SUI", goals: 1 },
+  { player: "Hazem Mastouri", country: "Tunisia", code: "TUN", goals: 1 },
+  { player: "Arda Güler", country: "Turkey", code: "TUR", goals: 1 },
   { player: "Giovanni Reyna", country: "United States", code: "USA", goals: 1 },
 ];
 
@@ -1390,6 +1394,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(CAN) David, Jonathan": 3,
   "(GER) Undav, Deniz": 3,
   "(MAR) Saibari, Ismael": 3,
+  "(NED) Brobbey, Brian": 3,
   // 2 goals
   "(CAN) Larin, Cyle": 2,
   "(ENG) Kane, Harry": 2,
@@ -1399,13 +1404,13 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(CIV) Pépé, Nicolas": 2,
   "(MEX) Quiñones, Julián": 2,
   "(MEX) Quinones, Julian": 2,
-  "(NED) Brobbey, Brian": 2,
   "(NED) Gakpo, Cody": 2,
   "(NED) Summerville, Crysencio": 2,
   "(POR) Ronaldo, Cristiano": 2,
   "(SEN) Sarr, Ismaila": 2,
   "(ESP) Oyarzabal, Mikel": 2,
   "(ESP) Oyarzabal Ugarte, Mikiel": 2,
+  "(SWE) Elanga, Anthony": 2,
   "(SUI) Vargas, Ruben": 2,
   "(USA) Balogun, Folarin": 2,
   // 1 goal
@@ -1430,6 +1435,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(GER) Sane, Leroy": 1,
   "(HAI) Isidor, Wilson": 1,
   "(CIV) Diallo, Amad": 1,
+  "(JPN) Maeda, Daizen": 1,
   "(MEX) Raúl Jiménez": 1,
   "(MEX) Jimenez, Raul": 1,
   "(MAR) Hakimi, Achraf": 1,
@@ -1439,12 +1445,14 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(POR) Leao, Rafael": 1,
   "(SCO) McGinn, John": 1,
   "(ESP) Yamal, Lamine": 1,
-  "(SWE) Elanga, Anthony": 1,
   "(SWE) Gyökeres, Viktor": 1,
   "(SWE) Gyokeres, Viktor": 1,
   "(SWE) Isak, Alexander": 1,
   "(SUI) Embolo, Breel": 1,
   "(SUI) Xhaka, Granit": 1,
+  "(TUN) Mastouri, Hazem": 1,
+  "(TUR) Güler, Arda": 1,
+  "(TUR) Guler, Arda": 1,
   "(USA) Reyna, Giovanni": 1,
 };
 
@@ -1455,16 +1463,29 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
     || getFifaRank(a.country) - getFifaRank(b.country)
     || a.player.localeCompare(b.player)
   );
-  // Take top 10 with tie-aware positions
-  const top10: (GoalScorer & { pos: number })[] = [];
-  let lastGoals = -1, lastPos = 0;
-  for (let i = 0; i < sorted.length && top10.length < 10; i++) {
-    const sc = sorted[i];
-    const pos = sc.goals === lastGoals ? lastPos : i + 1;
-    top10.push({ ...sc, pos });
-    lastGoals = sc.goals;
-    lastPos = pos;
+  // Assign tie-aware positions (only goals tied → share position)
+  const sortedWithPos: (GoalScorer & { pos: number })[] = [];
+  {
+    let lastG = -1, lastP = 0;
+    sorted.forEach((sc, i) => {
+      const pos = sc.goals === lastG ? lastP : i + 1;
+      sortedWithPos.push({ ...sc, pos });
+      lastG = sc.goals;
+      lastP = pos;
+    });
   }
+  const top10 = sortedWithPos.slice(0, 10);
+
+  // Pinned players — always shown, regardless of their position
+  const PINNED_PLAYERS: { displayName: string; country: string; code: string }[] = [
+    { displayName: "Michael Olise", country: "France", code: "FRA" },
+    { displayName: "Harry Kane", country: "England", code: "ENG" },
+    { displayName: "Kylian Mbappé", country: "France", code: "FRA" },
+  ];
+  const pinnedRows = PINNED_PLAYERS.map(pp => {
+    const found = sortedWithPos.find(sc => sc.player === pp.displayName);
+    return found ?? { player: pp.displayName, country: pp.country, code: pp.code, goals: 0, pos: 0 };
+  });
 
   // Build picks list: every user that has a topScorer pick (admins included or excluded? exclude admins)
   const picksList = users
@@ -1484,7 +1505,7 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
           ⚽ TOP 10 GOLEADORES
         </h2>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Goleadores del Mundial 2026 — actualizado al 23 de junio, 2026
+          Goleadores del Mundial 2026 — actualizado al 25 de junio, 2026
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1510,6 +1531,47 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
                     {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
                   </td>
                   <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--text)" }}>
+                    {sc.goals}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Pinned players — always shown */}
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          📌 JUGADORES DESTACADOS
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+          Posición actual de jugadores seguidos
+        </p>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border-gold)" }}>
+                <th style={{ ...s.th, width: 60 }}>Pos</th>
+                <th style={{ ...s.th, textAlign: "left" }}>Nombre</th>
+                <th style={{ ...s.th, textAlign: "left" }}>País</th>
+                <th style={{ ...s.th, width: 80 }}>Goles</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pinnedRows.map((sc, i) => (
+                <tr key={i} style={{
+                  borderBottom: "1px solid var(--border)",
+                  background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)",
+                }}>
+                  <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: sc.pos > 0 ? "var(--gold)" : "var(--text-muted)" }}>
+                    {sc.pos > 0 ? sc.pos : "—"}
+                  </td>
+                  <td style={{ ...s.td, textAlign: "left", fontWeight: 600 }}>{sc.player}</td>
+                  <td style={{ ...s.td, textAlign: "left", color: "var(--text-muted)" }}>
+                    {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
+                  </td>
+                  <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: sc.goals > 0 ? "var(--text)" : "var(--text-muted)" }}>
                     {sc.goals}
                   </td>
                 </tr>
