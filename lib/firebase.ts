@@ -380,7 +380,8 @@ async function recalculateGroupPicksFromMatchPicks(
   standing: GroupStanding,
   cache?: { users: UserProfile[]; allPicks: Pick[]; allMatches: Match[] }
 ): Promise<RecalcGroupResult> {
-  const users = cache?.users ?? (await getAllUsers()).filter(u => !u.isAdmin);
+  // Include ALL users — admin is also a participant in this pool
+  const users = cache?.users ?? (await getAllUsers());
   const allPicks = cache?.allPicks ?? (await getAllPicks());
   const allMatches = cache?.allMatches ?? (await getMatches());
 
@@ -476,8 +477,8 @@ export async function recalculateAllGroupBonuses(): Promise<RecalcGroupResult[]>
   const standings = await getAllGroupStandings();
   if (standings.length === 0) return [];
 
-  // Preload once for performance
-  const users = (await getAllUsers()).filter(u => !u.isAdmin);
+  // Preload once for performance — include all users (admin is a participant too)
+  const users = await getAllUsers();
   const allPicks = await getAllPicks();
   const allMatches = await getMatches();
   const cache = { users, allPicks, allMatches };
