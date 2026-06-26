@@ -24,6 +24,15 @@ export default function MyPicksPage() {
   const [allPicks, setAllPicks] = useState<Pick[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [activeView, setActiveView] = useState<"mine" | "community">("mine");
+  const [mineCollapsedPhases, setMineCollapsedPhases] = useState<Set<string>>(new Set());
+
+  const toggleMinePhase = (phase: string) => {
+    setMineCollapsedPhases(prev => {
+      const next = new Set(prev);
+      if (next.has(phase)) next.delete(phase); else next.add(phase);
+      return next;
+    });
+  };
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -195,11 +204,60 @@ export default function MyPicksPage() {
               No hay apuestas en esta categoría
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {filteredPicks.map(({ pick, match }) => (
-                <PickResultRow key={pick.id} pick={pick} match={match} showRank={showRank} />
-              ))}
-            </div>
+            (() => {
+              // Group filtered picks by phase
+              const phaseOf = (m: Match) => m.group ? `Grupo ${m.group}` : (m.round || "Otros");
+              const PHASE_ORDER = ["Grupo A","Grupo B","Grupo C","Grupo D","Grupo E","Grupo F","Grupo G","Grupo H","Grupo I","Grupo J","Grupo K","Grupo L","Ronda de 32","Octavos de Final","Cuartos de Final","Semifinal","Tercer Puesto","Final","Otros"];
+              const byPhase: Record<string, typeof filteredPicks> = {};
+              for (const fp of filteredPicks) {
+                const ph = phaseOf(fp.match);
+                if (!byPhase[ph]) byPhase[ph] = [];
+                byPhase[ph].push(fp);
+              }
+              const sortedPhases = Object.keys(byPhase).sort((a, b) => {
+                const ia = PHASE_ORDER.indexOf(a), ib = PHASE_ORDER.indexOf(b);
+                if (ia !== -1 && ib !== -1) return ia - ib;
+                if (ia !== -1) return -1;
+                if (ib !== -1) return 1;
+                return a.localeCompare(b);
+              });
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {sortedPhases.map((phase) => {
+                    const collapsed = mineCollapsedPhases.has(phase);
+                    const phasePicks = byPhase[phase];
+                    return (
+                      <div key={phase}>
+                        <div
+                          onClick={() => toggleMinePhase(phase)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+                            padding: "8px 0", marginBottom: collapsed ? 0 : 8,
+                            borderBottom: "1px solid var(--border)",
+                            userSelect: "none",
+                          }}
+                        >
+                          <span style={{ fontSize: 12, color: "var(--gold)", width: 14 }}>{collapsed ? "▶" : "▼"}</span>
+                          <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 16, color: "var(--gold)", letterSpacing: "0.08em" }}>
+                            {phase.startsWith("Grupo ") ? phase.toUpperCase() : phase}
+                          </span>
+                          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                            ({phasePicks.length})
+                          </span>
+                        </div>
+                        {!collapsed && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {phasePicks.map(({ pick, match }) => (
+                              <PickResultRow key={pick.id} pick={pick} match={match} showRank={showRank} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
           )}
         </div>
       )}
@@ -435,6 +493,15 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
   showRank: boolean;
 }) {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set());
+
+  const togglePhase = (phase: string) => {
+    setCollapsedPhases(prev => {
+      const next = new Set(prev);
+      if (next.has(phase)) next.delete(phase); else next.add(phase);
+      return next;
+    });
+  };
 
   const relevantMatches = matches
     .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0));
@@ -473,11 +540,26 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
         if (ia !== -1) return -1;
         if (ib !== -1) return 1;
         return a.localeCompare(b);
-      }).map(([group, gMatches]) => (
+      }).map(([group, gMatches]) => {
+        const collapsed = collapsedPhases.has(group);
+        return (
         <div key={group} style={{ marginBottom: 28 }}>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)", letterSpacing: "0.08em", marginBottom: 10 }}>
-            {group.startsWith("Grupo ") ? group.toUpperCase() : group}
+          <div
+            onClick={() => togglePhase(group)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+              marginBottom: collapsed ? 0 : 10, paddingBottom: 6,
+              borderBottom: "1px solid var(--border)",
+              userSelect: "none",
+            }}
+          >
+            <span style={{ fontSize: 12, color: "var(--gold)", width: 14 }}>{collapsed ? "▶" : "▼"}</span>
+            <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)", letterSpacing: "0.08em" }}>
+              {group.startsWith("Grupo ") ? group.toUpperCase() : group}
+            </span>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>({gMatches.length})</span>
           </div>
+          {!collapsed && (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {gMatches.map((match) => {
               const matchPicks = picksIndex[match.id] ?? {};
@@ -569,8 +651,10 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
               );
             })}
           </div>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
