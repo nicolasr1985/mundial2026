@@ -1051,9 +1051,13 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
   personalCount?: number;
   personalLabel?: string;
 }) {
-  // Personal record line shown below winner — "s" for plural when > 1
+  // Personal record line shown at the bottom of the card with breathing room
   const personalLine = personalCount !== undefined ? (
-    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+    <div style={{
+      fontSize: 12, color: "var(--text-muted)",
+      marginTop: 14, paddingTop: 10,
+      borderTop: "1px dashed var(--border)",
+    }}>
       (Tu mejor: <span style={{ color: color, fontWeight: 600 }}>{personalCount}</span>
       {personalLabel ? ` ${personalLabel}${personalCount === 1 ? "" : "s"} seguido${personalCount === 1 ? "" : "s"}` : ""})
     </div>
@@ -1081,7 +1085,6 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
             🥇 {records.map(r => r.displayName).join(" · ")}
             {records.length > 1 && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>(empate)</span>}
           </div>
-          {personalLine}
 
           {showMatches && records.map((rec, ri) => {
             const items = rec.picks.map(p => ({ pick: p, match: matchMap[p.matchId] })).filter(x => !!x.match);
@@ -1120,6 +1123,7 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
               </div>
             );
           })}
+          {personalLine}
         </div>
       )}
     </div>
