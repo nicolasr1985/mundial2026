@@ -1345,6 +1345,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 1 },
   { player: "Kerim Alajbegović", country: "Bosnia and Herzegovina", code: "BIH", goals: 1 },
   { player: "Promise David", country: "Canada", code: "CAN", goals: 1 },
+  { player: "Jaminton Campaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Luis Díaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Ante Budimir", country: "Croatia", code: "CRO", goals: 1 },
   { player: "Yoane Wissa", country: "DR Congo", code: "COD", goals: 1 },
@@ -1500,6 +1501,13 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
   // Mark already-in-top10 pinned players too
   for (const row of topListSet) {
     if (PINNED_PLAYERS.some(p => p.displayName === row.player)) row.pinned = true;
+  }
+
+  // Always include ALL Colombian players who have scored — no special distinction
+  for (const sc of sortedWithPos) {
+    if (sc.country !== "Colombia") continue;
+    if (topListSet.some(t => t.player === sc.player)) continue;
+    topListSet.push({ ...sc }); // no pinned flag
   }
 
   // Re-sort the combined list by goals desc → FIFA rank asc → player name
