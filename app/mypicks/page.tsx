@@ -785,14 +785,54 @@ function TeamFlag({ team, size = 24 }: { team: string; size?: number }) {
   if (!iso) return <span style={{ fontSize: size }}>🏳️</span>;
   // flagcdn widths: 20, 40, 80, 160, 320 — pick next size up for crispness
   const w = size <= 20 ? 40 : size <= 40 ? 80 : size <= 80 ? 160 : 320;
+  const isoLow = iso.toLowerCase();
+  // Order of fallbacks tried via onError: SVG from flagcdn → flagsapi PNG → hidden img + visible code box
   return (
-    <img
-      src={`https://flagcdn.com/w${w}/${iso.toLowerCase()}.png`}
-      width={size}
-      height={Math.round(size * 0.75)}
-      alt={team}
-      style={{ borderRadius: 3, objectFit: "cover", display: "inline-block", verticalAlign: "middle" }}
-    />
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: Math.round(size * 0.75), position: "relative" }}>
+      <img
+        src={`https://flagcdn.com/w${w}/${isoLow}.png`}
+        width={size}
+        height={Math.round(size * 0.75)}
+        alt={team}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        style={{ borderRadius: 3, objectFit: "cover", display: "inline-block", verticalAlign: "middle" }}
+        onError={(e) => {
+          const img = e.currentTarget as HTMLImageElement;
+          const tried = img.dataset.tried ?? "0";
+          if (tried === "0") {
+            img.dataset.tried = "1";
+            img.src = `https://flagcdn.com/${isoLow}.svg`;
+          } else if (tried === "1") {
+            img.dataset.tried = "2";
+            img.src = `https://flagsapi.com/${iso!.toUpperCase()}/flat/64.png`;
+          } else {
+            // Final fallback: hide image and reveal the sibling code badge
+            img.style.display = "none";
+            const fb = img.nextElementSibling as HTMLElement | null;
+            if (fb) fb.style.display = "inline-flex";
+          }
+        }}
+      />
+      <span
+        aria-hidden="true"
+        style={{
+          display: "none",
+          position: "absolute",
+          inset: 0,
+          alignItems: "center", justifyContent: "center",
+          fontSize: Math.max(8, Math.round(size * 0.42)),
+          fontFamily: "'Bebas Neue',sans-serif",
+          letterSpacing: "0.04em",
+          background: "var(--surface2)",
+          border: "1px solid var(--border)",
+          borderRadius: 3,
+          color: "var(--text-muted)",
+        }}
+      >
+        {iso!.toUpperCase()}
+      </span>
+    </span>
   );
 }
 
