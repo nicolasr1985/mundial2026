@@ -505,6 +505,7 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
 }) {
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [collapsedPhases, setCollapsedPhases] = useState<Set<string>>(new Set());
+  const [hiddenCats, setHiddenCats] = useState<Set<string>>(new Set());
 
   const togglePhase = (phase: string) => {
     setCollapsedPhases(prev => {
@@ -513,6 +514,22 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
       return next;
     });
   };
+
+  const toggleCat = (cat: string) => {
+    setHiddenCats(prev => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat); else next.add(cat);
+      return next;
+    });
+  };
+
+  // Phase categories — groups all combined under "Grupos"
+  const CAT_ORDER = ["Grupos", "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final", "Otros"];
+  function categoryOf(phaseKey: string): string {
+    if (phaseKey.startsWith("Grupo ")) return "Grupos";
+    if (CAT_ORDER.includes(phaseKey)) return phaseKey;
+    return "Otros";
+  }
 
   const relevantMatches = matches
     .sort((a, b) => (a.matchDate?.toDate?.()?.getTime() ?? 0) - (b.matchDate?.toDate?.()?.getTime() ?? 0));
@@ -540,11 +557,77 @@ function CommunityPicksView({ matches, allPicks, allUsers, myUid, showRank }: {
 
   return (
     <div>
-      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 20, padding: "10px 14px", background: "rgba(201,168,76,0.06)", border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)" }}>
+      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16, padding: "10px 14px", background: "rgba(201,168,76,0.06)", border: "1px solid var(--border-gold)", borderRadius: "var(--radius-sm)" }}>
         💡 Puedes ver si alguien apostó en un partido. El marcador exacto se revela solo cuando el partido haya comenzado y las apuestas estén cerradas.
       </p>
 
-      {Object.entries(byGroup).sort(([a],[b]) => {
+      {/* Phase filter */}
+      {(() => {
+        // Count matches per category (so we can show count + skip empty cats)
+        const catCounts: Record<string, number> = {};
+        for (const [phaseKey, ms] of Object.entries(byGroup)) {
+          const c = categoryOf(phaseKey);
+          catCounts[c] = (catCounts[c] ?? 0) + ms.length;
+        }
+        const availableCats = CAT_ORDER.filter(c => catCounts[c] > 0);
+        if (availableCats.length <= 1) return null;
+        const allSelected = hiddenCats.size === 0;
+        const noneSelected = hiddenCats.size === availableCats.length;
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 20 }}>
+            <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginRight: 4 }}>
+              Filtrar:
+            </span>
+            {availableCats.map(cat => {
+              const hidden = hiddenCats.has(cat);
+              return (
+                <button
+                  key={cat}
+                  onClick={() => toggleCat(cat)}
+                  style={{
+                    padding: "5px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+                    fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, transition: "all 0.15s",
+                    background: hidden ? "var(--surface2)" : "rgba(201,168,76,0.15)",
+                    color: hidden ? "var(--text-muted)" : "var(--gold)",
+                    border: `1px solid ${hidden ? "var(--border)" : "var(--border-gold)"}`,
+                    opacity: hidden ? 0.55 : 1,
+                  }}
+                >
+                  {cat} <span style={{ fontSize: 10, opacity: 0.7 }}>({catCounts[cat]})</span>
+                </button>
+              );
+            })}
+            {!allSelected && (
+              <button
+                onClick={() => setHiddenCats(new Set())}
+                style={{
+                  padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                  fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+                  background: "transparent", color: "var(--text-muted)",
+                  border: "1px dashed var(--border)",
+                }}
+              >
+                ✓ Todos
+              </button>
+            )}
+            {!noneSelected && availableCats.length > 1 && (
+              <button
+                onClick={() => setHiddenCats(new Set(availableCats))}
+                style={{
+                  padding: "5px 10px", borderRadius: 20, fontSize: 11, cursor: "pointer",
+                  fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
+                  background: "transparent", color: "var(--text-muted)",
+                  border: "1px dashed var(--border)",
+                }}
+              >
+                ✕ Ninguno
+              </button>
+            )}
+          </div>
+        );
+      })()}
+
+      {Object.entries(byGroup).filter(([key]) => !hiddenCats.has(categoryOf(key))).sort(([a],[b]) => {
         const order = ["Grupo A","Grupo B","Grupo C","Grupo D","Grupo E","Grupo F","Grupo G","Grupo H","Grupo I","Grupo J","Grupo K","Grupo L","Ronda de 32","Octavos de Final","Cuartos de Final","Semifinal","Tercer Puesto","Final","Otros"];
         const ia = order.indexOf(a), ib = order.indexOf(b);
         if (ia !== -1 && ib !== -1) return ia - ib;
