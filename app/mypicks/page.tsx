@@ -694,19 +694,30 @@ const TEAM_ISO: Record<string, string> = {
   "United States": "US", "Uruguay": "UY", "Uzbekistan": "UZ",
 };
 
-function teamFlag(name: string): string {
-  // Special cases for England and Scotland (constituent countries)
-  if (name === "England") return "🏴󠁧󠁢󠁥󠁮󠁧󠁿";
-  if (name === "Scotland") return "🏴󠁧󠁢󠁳󠁣󠁴󠁿";
-  const iso = TEAM_ISO[name];
-  if (!iso) return "🏳️";
-  return iso.split("").map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join("");
+function TeamFlag({ team, size = 24 }: { team: string; size?: number }) {
+  // flagcdn.com serves reliable PNG flags that work cross-platform
+  let iso: string | undefined = TEAM_ISO[team];
+  if (team === "England") iso = "gb-eng";
+  if (team === "Scotland") iso = "gb-sct";
+  if (!iso) return <span style={{ fontSize: size }}>🏳️</span>;
+  // flagcdn widths: 20, 40, 80, 160, 320 — pick next size up for crispness
+  const w = size <= 20 ? 40 : size <= 40 ? 80 : size <= 80 ? 160 : 320;
+  return (
+    <img
+      src={`https://flagcdn.com/w${w}/${iso.toLowerCase()}.png`}
+      width={size}
+      height={Math.round(size * 0.75)}
+      alt={team}
+      style={{ borderRadius: 3, objectFit: "cover", display: "inline-block", verticalAlign: "middle" }}
+    />
+  );
 }
 
 interface StreakRecord {
   uid: string;
   displayName: string;
   count: number;
+  matchIds: string[];
 }
 
 function StatsView({ matches, allPicks, allUsers, myPicks }: {
@@ -751,33 +762,40 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
       });
   }
 
-  function maxStreak(picks: Pick[], predicate: (p: Pick) => boolean): number {
+  function maxStreakWithMatches(picks: Pick[], predicate: (p: Pick) => boolean): { count: number; matchIds: string[] } {
     let max = 0, cur = 0;
+    let bestMatches: string[] = [];
+    let curMatches: string[] = [];
     for (const p of picks) {
       if (predicate(p)) {
         cur++;
-        if (cur > max) max = cur;
+        curMatches.push(p.matchId);
+        if (cur > max) {
+          max = cur;
+          bestMatches = [...curMatches];
+        }
       } else {
         cur = 0;
+        curMatches = [];
       }
     }
-    return max;
+    return { count: max, matchIds: bestMatches };
   }
 
   // Compute streak champions across all non-admin users
   const nonAdminUsers = allUsers.filter(u => !u.isAdmin);
-  const exactStreaks: StreakRecord[] = nonAdminUsers.map(u => ({
-    uid: u.uid, displayName: u.displayName,
-    count: maxStreak(userSortedPicks(u.uid), p => p.points === 5),
-  }));
-  const goodStreaks: StreakRecord[] = nonAdminUsers.map(u => ({
-    uid: u.uid, displayName: u.displayName,
-    count: maxStreak(userSortedPicks(u.uid), p => (p.points ?? 0) >= 2),
-  }));
-  const zeroStreaks: StreakRecord[] = nonAdminUsers.map(u => ({
-    uid: u.uid, displayName: u.displayName,
-    count: maxStreak(userSortedPicks(u.uid), p => p.points === 0),
-  }));
+  const exactStreaks: StreakRecord[] = nonAdminUsers.map(u => {
+    const r = maxStreakWithMatches(userSortedPicks(u.uid), p => p.points === 5);
+    return { uid: u.uid, displayName: u.displayName, count: r.count, matchIds: r.matchIds };
+  });
+  const goodStreaks: StreakRecord[] = nonAdminUsers.map(u => {
+    const r = maxStreakWithMatches(userSortedPicks(u.uid), p => (p.points ?? 0) >= 2);
+    return { uid: u.uid, displayName: u.displayName, count: r.count, matchIds: r.matchIds };
+  });
+  const zeroStreaks: StreakRecord[] = nonAdminUsers.map(u => {
+    const r = maxStreakWithMatches(userSortedPicks(u.uid), p => p.points === 0);
+    return { uid: u.uid, displayName: u.displayName, count: r.count, matchIds: r.matchIds };
+  });
 
   function topRecords(records: StreakRecord[]): StreakRecord[] {
     const max = Math.max(0, ...records.map(r => r.count));
@@ -823,6 +841,9 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
             unit="exactos seguidos"
             records={topExact}
             color="var(--gold)"
+            matchMap={matchMap}
+            codeMap={codeMap}
+            showMatches
           />
           <StreakCard
             icon="✅"
@@ -830,6 +851,9 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
             unit="picks seguidos"
             records={topGood}
             color="var(--green)"
+            matchMap={matchMap}
+            codeMap={codeMap}
+            showMatches
           />
           <StreakCard
             icon="❌"
@@ -837,6 +861,8 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
             unit="ceros seguidos"
             records={topZero}
             color="var(--red)"
+            matchMap={matchMap}
+            codeMap={codeMap}
           />
         </div>
       </div>
@@ -859,7 +885,7 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
               🥇 Top equipo
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 48, lineHeight: 1 }}>{teamFlag(topTeam.team)}</div>
+              <TeamFlag team={topTeam.team} size={56} />
               <div style={{ flex: 1, minWidth: 140 }}>
                 <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--gold)", letterSpacing: "0.04em", lineHeight: 1 }}>
                   {codeMap[topTeam.team] ?? topTeam.team.slice(0, 3).toUpperCase()}
@@ -886,7 +912,7 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
                   {teamRanking.slice(1, 8).map((t, i) => (
                     <div key={t.team} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 10px", background: "var(--surface2)", borderRadius: "var(--radius-sm)" }}>
                       <span style={{ fontSize: 11, color: "var(--text-muted)", width: 18, textAlign: "center" }}>{i + 2}</span>
-                      <span style={{ fontSize: 20, lineHeight: 1 }}>{teamFlag(t.team)}</span>
+                      <TeamFlag team={t.team} size={20} />
                       <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, color: "var(--text)", letterSpacing: "0.04em", width: 50 }}>
                         {codeMap[t.team] ?? t.team.slice(0, 3).toUpperCase()}
                       </span>
@@ -905,12 +931,15 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
   );
 }
 
-function StreakCard({ icon, title, unit, records, color }: {
+function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, showMatches }: {
   icon: string;
   title: string;
   unit: string;
   records: StreakRecord[];
   color: string;
+  matchMap: Record<string, Match>;
+  codeMap: Record<string, string>;
+  showMatches?: boolean;
 }) {
   return (
     <div className="card" style={{ padding: 16 }}>
@@ -927,10 +956,45 @@ function StreakCard({ icon, title, unit, records, color }: {
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: color, lineHeight: 1, marginBottom: 6 }}>
             {records[0].count} <span style={{ fontSize: 14, color: "var(--text-muted)", letterSpacing: "0.04em" }}>{unit}</span>
           </div>
-          <div style={{ fontSize: 13, color: "var(--text)" }}>
+          <div style={{ fontSize: 13, color: "var(--text)", marginBottom: showMatches ? 10 : 0 }}>
             🥇 {records.map(r => r.displayName).join(" · ")}
             {records.length > 1 && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>(empate)</span>}
           </div>
+
+          {showMatches && records.map((rec, ri) => {
+            const matches = rec.matchIds.map(id => matchMap[id]).filter(Boolean);
+            if (matches.length === 0) return null;
+            return (
+              <div key={rec.uid} style={{ marginTop: ri > 0 ? 10 : 0, paddingTop: ri > 0 ? 8 : 0, borderTop: ri > 0 ? "1px solid var(--border)" : "none" }}>
+                {records.length > 1 && (
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{rec.displayName}:</div>
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {matches.map((m) => (
+                    <div key={m.id} style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "5px 8px",
+                      background: "var(--surface2)",
+                      borderRadius: 4,
+                      fontSize: 12,
+                    }}>
+                      <TeamFlag team={m.homeTeam} size={16} />
+                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.04em", color: "var(--text)" }}>
+                        {codeMap[m.homeTeam] ?? m.homeTeam.slice(0, 3).toUpperCase()}
+                      </span>
+                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", color: color, minWidth: 32, textAlign: "center" }}>
+                        {m.homeScore}–{m.awayScore}
+                      </span>
+                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.04em", color: "var(--text)" }}>
+                        {codeMap[m.awayTeam] ?? m.awayTeam.slice(0, 3).toUpperCase()}
+                      </span>
+                      <TeamFlag team={m.awayTeam} size={16} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
