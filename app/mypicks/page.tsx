@@ -807,17 +807,31 @@ function StatsView({ matches, allPicks, allUsers, myPicks }: {
   const topGood = topRecords(goodStreaks);
   const topZero = topRecords(zeroStreaks);
 
-  // My team stats: sum points per team across my finished picks
+  // My team stats: sum points per team across my finished picks.
+  // Only count points for teams that I predicted to win or draw (not lose).
+  // - Pick was a draw → both teams get credit
+  // - Pick had a winner → only the predicted winner gets credit
   const teamPoints: Record<string, number> = {};
   const teamMatches: Record<string, number> = {};
   for (const p of myPicks) {
     const m = matchMap[p.matchId];
     if (!m || m.status !== "finished" || p.points === null || p.points === undefined) continue;
     const pts = p.points ?? 0;
-    teamPoints[m.homeTeam] = (teamPoints[m.homeTeam] ?? 0) + pts;
-    teamPoints[m.awayTeam] = (teamPoints[m.awayTeam] ?? 0) + pts;
-    teamMatches[m.homeTeam] = (teamMatches[m.homeTeam] ?? 0) + 1;
-    teamMatches[m.awayTeam] = (teamMatches[m.awayTeam] ?? 0) + 1;
+    if (p.homeScore === p.awayScore) {
+      // I predicted a draw → both teams get credit
+      teamPoints[m.homeTeam] = (teamPoints[m.homeTeam] ?? 0) + pts;
+      teamPoints[m.awayTeam] = (teamPoints[m.awayTeam] ?? 0) + pts;
+      teamMatches[m.homeTeam] = (teamMatches[m.homeTeam] ?? 0) + 1;
+      teamMatches[m.awayTeam] = (teamMatches[m.awayTeam] ?? 0) + 1;
+    } else if (p.homeScore > p.awayScore) {
+      // I predicted home to win → only home gets credit
+      teamPoints[m.homeTeam] = (teamPoints[m.homeTeam] ?? 0) + pts;
+      teamMatches[m.homeTeam] = (teamMatches[m.homeTeam] ?? 0) + 1;
+    } else {
+      // I predicted away to win → only away gets credit
+      teamPoints[m.awayTeam] = (teamPoints[m.awayTeam] ?? 0) + pts;
+      teamMatches[m.awayTeam] = (teamMatches[m.awayTeam] ?? 0) + 1;
+    }
   }
   const teamRanking = Object.entries(teamPoints)
     .map(([team, pts]) => ({ team, pts, matches: teamMatches[team] ?? 0 }))
