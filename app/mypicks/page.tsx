@@ -173,7 +173,7 @@ export default function MyPicksPage() {
                 <div className="divider" />
                 <h3 style={{ fontSize: 15, color: "var(--text)", marginBottom: 10 }}>Clasificaciones de Grupo</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
-                  {groupPicks.map((gp) => (
+                  {[...groupPicks].sort((a, b) => (a.group || "").localeCompare(b.group || "")).map((gp) => (
                     <GroupPickRow key={gp.group} gp={gp} />
                   ))}
                 </div>
