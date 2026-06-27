@@ -1346,9 +1346,11 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
   { player: "Ismael Saibari", country: "Morocco", code: "MAR", goals: 3 },
   { player: "Brian Brobbey", country: "Netherlands", code: "NED", goals: 3 },
+  { player: "Elijah Just", country: "New Zealand", code: "NZL", goals: 3 },
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 3 },
   { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 3 },
   // 2 goals
+  { player: "Leandro Trossard", country: "Belgium", code: "BEL", goals: 2 },
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
   { player: "Cyle Larin", country: "Canada", code: "CAN", goals: 2 },
   { player: "Daniel Muñoz", country: "Colombia", code: "COL", goals: 2 },
@@ -1360,7 +1362,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Julián Quiñones", country: "Mexico", code: "MEX", goals: 2 },
   { player: "Cody Gakpo", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Crysencio Summerville", country: "Netherlands", code: "NED", goals: 2 },
-  { player: "Elijah Just", country: "New Zealand", code: "NZL", goals: 2 },
   { player: "Cristiano Ronaldo", country: "Portugal", code: "POR", goals: 2 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 2 },
   { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
@@ -1371,6 +1372,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 1 goal (only those potentially picked by participants)
   { player: "Amine Gouiri", country: "Algeria", code: "ALG", goals: 1 },
   { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 1 },
+  { player: "Kevin De Bruyne", country: "Belgium", code: "BEL", goals: 1 },
+  { player: "Romelu Lukaku", country: "Belgium", code: "BEL", goals: 1 },
   { player: "Kerim Alajbegović", country: "Bosnia and Herzegovina", code: "BIH", goals: 1 },
   { player: "Promise David", country: "Canada", code: "CAN", goals: 1 },
   { player: "Jaminton Campaz", country: "Colombia", code: "COL", goals: 1 },
@@ -1427,6 +1430,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(NED) Brobbey, Brian": 3,
   "(SEN) Sarr, Ismaila": 3,
   // 2 goals
+  "(BEL) Trossard, Leandro": 2,
   "(CAN) Larin, Cyle": 2,
   "(ENG) Kane, Harry": 2,
   "(GER) Havertz, Kai": 2,
@@ -1446,6 +1450,8 @@ const PICK_TO_GOALS: Record<string, number> = {
   // 1 goal
   "(ALG) Gouiri, Amine": 1,
   "(AUT) Arnautovic, Marko": 1,
+  "(BEL) De Bruyne, Kevin": 1,
+  "(BEL) Lukaku, Romelu": 1,
   "(BIH) Alajbegovic, Kerim": 1,
   "(CAN) David, Promise": 1,
   "(COL) Díaz, Luis": 1,
