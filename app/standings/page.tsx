@@ -1511,7 +1511,7 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
   ];
 
   // Start with top 10
-  const topListSet: (GoalScorer & { pos: number; pinned?: boolean })[] = sortedWithPos.slice(0, 10);
+  const topListSet: (GoalScorer & { pos: number; pinned?: boolean })[] = sortedWithPos.slice(0, 15);
 
   // Append pinned players that aren't already in the top 10
   for (const pp of PINNED_PLAYERS) {
@@ -1563,7 +1563,7 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
           ⚽ TOP GOLEADORES
         </h2>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Goleadores del Mundial 2026 — actualizado al 25 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
+          Goleadores del Mundial 2026 — actualizado al 26 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
