@@ -1334,7 +1334,8 @@ interface GoalScorer {
 
 const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 5 goals
-  { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 5 },
+  // 6 goals
+  { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 6 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
   { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 4 },
@@ -1343,6 +1344,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 3 goals
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 3 },
   { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
+  { player: "Yoane Wissa", country: "DR Congo", code: "COD", goals: 3 },
+  { player: "Harry Kane", country: "England", code: "ENG", goals: 3 },
   { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
   { player: "Ismael Saibari", country: "Morocco", code: "MAR", goals: 3 },
   { player: "Brian Brobbey", country: "Netherlands", code: "NED", goals: 3 },
@@ -1350,12 +1353,14 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 3 },
   { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 3 },
   // 2 goals
+  { player: "Riyad Mahrez", country: "Algeria", code: "ALG", goals: 2 },
   { player: "Leandro Trossard", country: "Belgium", code: "BEL", goals: 2 },
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
   { player: "Cyle Larin", country: "Canada", code: "CAN", goals: 2 },
   { player: "Daniel Muñoz", country: "Colombia", code: "COL", goals: 2 },
-  { player: "Harry Kane", country: "England", code: "ENG", goals: 2 },
+  { player: "Jude Bellingham", country: "England", code: "ENG", goals: 2 },
   { player: "Kai Havertz", country: "Germany", code: "GER", goals: 2 },
+  { player: "Ramin Rezaeian", country: "Iran", code: "IRN", goals: 2 },
   { player: "Nicolas Pépé", country: "Ivory Coast", code: "CIV", goals: 2 },
   { player: "Daichi Kamada", country: "Japan", code: "JPN", goals: 2 },
   { player: "Ayase Ueda", country: "Japan", code: "JPN", goals: 2 },
@@ -1379,12 +1384,10 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Jaminton Campaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Luis Díaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Ante Budimir", country: "Croatia", code: "CRO", goals: 1 },
-  { player: "Yoane Wissa", country: "DR Congo", code: "COD", goals: 1 },
   { player: "Nilson Angulo", country: "Ecuador", code: "ECU", goals: 1 },
   { player: "Gonzalo Plata", country: "Ecuador", code: "ECU", goals: 1 },
   { player: "Mohamed Salah", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
-  { player: "Jude Bellingham", country: "England", code: "ENG", goals: 1 },
   { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
   { player: "Bradley Barcola", country: "France", code: "FRA", goals: 1 },
   { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
@@ -1412,8 +1415,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
 // Maps a user's topScorer pick string (format: "(CODE) Lastname, Firstname") to current goals.
 // Some players have multiple pick spellings in WC2026_SCORERS — we map all variants.
 const PICK_TO_GOALS: Record<string, number> = {
-  // 5 goals
-  "(ARG) Messi, Lionel": 5,
+  // 6 goals
+  "(ARG) Messi, Lionel": 6,
   // 4 goals
   "(BRA) Vinicius Jr.": 4,
   "(BRA) De Oliveira Junior, Vinicius": 4,
@@ -1425,14 +1428,17 @@ const PICK_TO_GOALS: Record<string, number> = {
   // 3 goals
   "(BRA) Cunha, Matheus": 3,
   "(CAN) David, Jonathan": 3,
+  "(COD) Wissa, Yoane": 3,
+  "(ENG) Kane, Harry": 3,
   "(GER) Undav, Deniz": 3,
   "(MAR) Saibari, Ismael": 3,
   "(NED) Brobbey, Brian": 3,
   "(SEN) Sarr, Ismaila": 3,
   // 2 goals
+  "(ALG) Mahrez, Riyad": 2,
   "(BEL) Trossard, Leandro": 2,
   "(CAN) Larin, Cyle": 2,
-  "(ENG) Kane, Harry": 2,
+  "(ENG) Bellingham, Jude": 2,
   "(GER) Havertz, Kai": 2,
   "(JPN) Kamada, Daichi": 2,
   "(JPN) Ueda, Ayase": 2,
@@ -1449,6 +1455,8 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(USA) Balogun, Folarin": 2,
   // 1 goal
   "(ALG) Gouiri, Amine": 1,
+  "(ARG) Lautaro Martínez": 1,
+  "(ARG) Martinez, Lautaro": 1,
   "(AUT) Arnautovic, Marko": 1,
   "(BEL) De Bruyne, Kevin": 1,
   "(BEL) Lukaku, Romelu": 1,
@@ -1457,19 +1465,21 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(COL) Díaz, Luis": 1,
   "(COL) Diaz, Luis": 1,
   "(CRO) Budimir, Ante": 1,
-  "(COD) Wissa, Yoane": 1,
+  "(CRO) Vlašić, Nikola": 1,
+  "(CRO) Vlasic, Nikola": 1,
   "(ECU) Angulo, Nilson": 1,
   "(ECU) Plata, Gonzalo": 1,
   "(EGY) Salah, Mohamed": 1,
   "(EGY) Trezeguet": 1,
-  "(ENG) Bellingham, Jude": 1,
   "(ENG) Rashford, Marcus": 1,
   "(FRA) Barcola, Bradley": 1,
   "(GER) Musiala, Jamal": 1,
   "(GER) Sane, Leroy": 1,
   "(HAI) Isidor, Wilson": 1,
   "(CIV) Diallo, Amad": 1,
+  "(JOR) Al Taamari, Musa": 1,
   "(JPN) Maeda, Daizen": 1,
+  "(UZB) Shomurodov, Eldor": 1,
   "(MEX) Raúl Jiménez": 1,
   "(MEX) Jimenez, Raul": 1,
   "(MAR) Hakimi, Achraf": 1,
@@ -1569,7 +1579,7 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
           ⚽ TOP GOLEADORES
         </h2>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Goleadores del Mundial 2026 — actualizado al 26 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
+          Goleadores del Mundial 2026 — actualizado al 27 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
