@@ -36,6 +36,11 @@ interface R32Match {
   awayThirdGroups?: string; // eligible groups for this 3rd slot
   homeGroupDone?: boolean;  // true = home team's group finished all 3 matches
   awayGroupDone?: boolean;  // true = away team's group finished all 3 matches
+  // Score and advancement info (set after enrichment with actual R32 match data)
+  displayHomeScore?: number | null;  // score shown in the bracket (real or user pick depending on view)
+  displayAwayScore?: number | null;
+  realWinner?: string;       // team name that actually advances (always based on real result)
+  isFinished?: boolean;      // whether the actual R32 match is finished
 }
 
 // ─── STANDINGS CALCULATOR ────────────────────────────────────────────────────
@@ -884,7 +889,57 @@ export default function StandingsPage() {
   // Build simple standings map for display (team name by position)
   const displayStandings = viewMode === "real" ? realStandings : predictedStandings;
   const displayThirds = viewMode === "real" ? realThirds : predictedThirds;
-  const displayR32 = viewMode === "real" ? realR32 : predictedR32;
+  const baseR32 = viewMode === "real" ? realR32 : predictedR32;
+
+  // Enrich R32 slots with real scores, user picks, and actual winner.
+  // - Real view: show the real score from Firestore.
+  // - Picks view: show the user's predicted score, but advancement still uses the real winner.
+  const r32ActualMatches = matches.filter(m => m.round === "Ronda de 32");
+  const displayR32: R32Match[] = baseR32.map(slot => {
+    if (!slot.homeTeam || !slot.awayTeam) return slot;
+    // Look up the actual R32 match (team order may be swapped)
+    const actual = r32ActualMatches.find(m =>
+      (m.homeTeam === slot.homeTeam && m.awayTeam === slot.awayTeam) ||
+      (m.homeTeam === slot.awayTeam && m.awayTeam === slot.homeTeam)
+    );
+    if (!actual) return slot;
+    const sameOrder = actual.homeTeam === slot.homeTeam;
+    const realHs = actual.homeScore;
+    const realAs = actual.awayScore;
+    const isFinished = actual.status === "finished" && realHs !== null && realAs !== null;
+    // Real winner — always based on real result
+    let realWinner: string | undefined;
+    if (isFinished && realHs !== null && realAs !== null) {
+      if (realHs > realAs) realWinner = actual.homeTeam;
+      else if (realHs < realAs) realWinner = actual.awayTeam;
+    }
+    // What score to display
+    let displayHs: number | null = null;
+    let displayAs: number | null = null;
+    if (viewMode === "real") {
+      // Real scores in slot's team order
+      displayHs = sameOrder ? realHs : realAs;
+      displayAs = sameOrder ? realAs : realHs;
+    } else {
+      const pick = userPickMap[actual.id];
+      if (pick) {
+        const ph = Number(pick.homeScore);
+        const pa = Number(pick.awayScore);
+        if (!isNaN(ph) && !isNaN(pa)) {
+          // pick is stored in actual match's team order — convert to slot order
+          displayHs = sameOrder ? ph : pa;
+          displayAs = sameOrder ? pa : ph;
+        }
+      }
+    }
+    return {
+      ...slot,
+      displayHomeScore: displayHs,
+      displayAwayScore: displayAs,
+      realWinner,
+      isFinished,
+    };
+  });
   const groupTable = displayStandings[activeGroup] || [];
 
   if (loading || fetching) return <Loading />;
@@ -1096,10 +1151,35 @@ function ThirdsTab({ displayThirds, viewMode, showRank }: { displayThirds: (Team
 
 // ─── R32 TAB — VISUAL BRACKET ────────────────────────────────────────────────
 function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string; showRank: boolean }) {
-  const bySlot = Object.fromEntries(r32.map(m => [m.slot, m]));
+  const bySlot: Record<string, R32Match> = Object.fromEntries(r32.map(m => [m.slot, m]));
 
   const leftSlots  = ["R32-1","R32-2","R32-3","R32-4","R32-5","R32-6","R32-7","R32-8"];
   const rightSlots = ["R32-9","R32-10","R32-11","R32-12","R32-13","R32-14","R32-15","R32-16"];
+
+  // Build Octavos pseudo-slots from R32 winners. Adjacent R32 slots pair into one Octavos slot:
+  //  (R32-1, R32-2) → OCT-1, (R32-3, R32-4) → OCT-2, etc.
+  const octPairs: [string, string][] = [
+    ["R32-1", "R32-2"], ["R32-3", "R32-4"], ["R32-5", "R32-6"], ["R32-7", "R32-8"],
+    ["R32-9", "R32-10"], ["R32-11", "R32-12"], ["R32-13", "R32-14"], ["R32-15", "R32-16"],
+  ];
+  const leftOctSlots: string[] = [];
+  const rightOctSlots: string[] = [];
+  octPairs.forEach(([aKey, bKey], idx) => {
+    const a = bySlot[aKey];
+    const b = bySlot[bKey];
+    const octKey = `OCT-${idx + 1}`;
+    bySlot[octKey] = {
+      slot: octKey,
+      homeDesc: `Ganador ${aKey}`,
+      awayDesc: `Ganador ${bKey}`,
+      homeTeam: a?.realWinner,
+      awayTeam: b?.realWinner,
+      // Treat as "confirmed" (gold) once the winner is locked in
+      homeGroupDone: !!a?.realWinner,
+      awayGroupDone: !!b?.realWinner,
+    };
+    if (idx < 4) leftOctSlots.push(octKey); else rightOctSlots.push(octKey);
+  });
 
   return (
     <div>
@@ -1120,7 +1200,7 @@ function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string
           <BracketConnectors count={4} />
 
           {/* LEFT R16 */}
-          <BracketRound title="Octavos" slots={[]} bySlot={bySlot} count={4} tbd />
+          <BracketRound title="Octavos" slots={leftOctSlots} bySlot={bySlot} count={4} showRank={showRank} />
           <BracketConnectors count={2} />
 
           {/* LEFT QF */}
@@ -1152,7 +1232,7 @@ function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string
           <BracketConnectors count={2} />
 
           {/* RIGHT R16 */}
-          <BracketRound title="Octavos" slots={[]} bySlot={bySlot} count={4} tbd />
+          <BracketRound title="Octavos" slots={rightOctSlots} bySlot={bySlot} count={4} showRank={showRank} />
           <BracketConnectors count={4} />
 
           {/* RIGHT R32 */}
@@ -1200,36 +1280,68 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
   homeM?: R32Match; awayM?: R32Match;
   tbd?: boolean; showRank?: boolean;
 }) {
-  const homeLabel = homeM?.homeTeam ? teamWithRank(homeM.homeTeam, showRank ?? false) : (tbd ? "—" : home || "—");
+  const homeLabel = homeM?.homeTeam ? teamWithRank(homeM.homeTeam, showRank ?? false) : (homeM?.homeDesc ?? (tbd ? "—" : home || "—"));
   const awayLabel = awayM ? (
     awayM.awayTeam ? teamWithRank(awayM.awayTeam, showRank ?? false) : awayM.awayDesc
   ) : (tbd ? "—" : away || "—");
   const homeKnown = !!(homeM?.homeTeam) || (!tbd && !!home);
   const awayKnown = !!(awayM?.awayTeam) || (!tbd && !!away);
   const awayIsThird = awayM?.awayIsThird;
-  // Away team is confirmed if its group has finished (applies to 1st, 2nd, or 3rd)
   const awayConfirmed = awayKnown && !awayM?.isTBD && !!(awayM?.awayGroupDone);
   const awayProvisional = awayIsThird && awayKnown && !awayConfirmed;
-  // Home is confirmed only if the group has finished all its matches
   const homeConfirmed = homeKnown && !tbd && !!(homeM?.homeGroupDone);
+
+  // Score + winner info — homeM and awayM are the same slot for R32, distinct refs for paired rounds
+  const hScore = homeM?.displayHomeScore;
+  const aScore = (awayM === homeM ? awayM?.displayAwayScore : awayM?.displayHomeScore);
+  const hasScores = (hScore !== null && hScore !== undefined) && (aScore !== null && aScore !== undefined);
+  const realWinner = homeM?.realWinner;
+  const homeIsWinner = !!(realWinner && homeM?.homeTeam && realWinner === homeM.homeTeam);
+  const awayIsWinner = !!(realWinner && awayM?.awayTeam && realWinner === awayM.awayTeam);
 
   return (
     <div style={{ marginBottom: 0 }}>
       {/* Home team */}
-      <div style={{ ...rStyle.teamBox(homeKnown, false, homeConfirmed), borderRadius: "4px 4px 0 0", borderBottom: "none" }}>
-        {homeLabel}
+      <div style={{
+        ...rStyle.teamBox(homeKnown, false, homeConfirmed),
+        borderRadius: "4px 4px 0 0",
+        borderBottom: "none",
+        justifyContent: "space-between",
+        opacity: realWinner && !homeIsWinner ? 0.55 : 1,
+        fontWeight: homeIsWinner ? 700 : (homeConfirmed ? 700 : 400),
+        background: homeIsWinner ? "rgba(46,204,113,0.08)" : "var(--surface2)",
+      }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {homeLabel}
+        </span>
+        {hasScores && (
+          <span style={{ marginLeft: 6, fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: homeIsWinner ? "var(--green)" : "var(--text)", flexShrink: 0 }}>
+            {hScore}
+          </span>
+        )}
       </div>
       {/* Away team */}
-      <div style={{ ...rStyle.teamBox(awayKnown, awayIsThird, awayConfirmed), borderRadius: "0 0 4px 4px", justifyContent: "space-between" }}>
+      <div style={{
+        ...rStyle.teamBox(awayKnown, awayIsThird, awayConfirmed),
+        borderRadius: "0 0 4px 4px",
+        justifyContent: "space-between",
+        opacity: realWinner && !awayIsWinner ? 0.55 : 1,
+        fontWeight: awayIsWinner ? 700 : (awayConfirmed ? 700 : 400),
+        background: awayIsWinner ? "rgba(46,204,113,0.08)" : "var(--surface2)",
+      }}>
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
           {awayLabel}
         </span>
-        {awayIsThird && awayProvisional && (
-          <span style={{ fontSize: 10, color: "var(--green)", marginLeft: 4, flexShrink: 0, opacity: 0.8 }}>*</span>
-        )}
-        {awayIsThird && !awayKnown && (
-          <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 4, flexShrink: 0 }}>*</span>
-        )}
+        <span style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+          {awayIsThird && awayProvisional && (
+            <span style={{ fontSize: 10, color: "var(--green)", opacity: 0.8 }}>*</span>
+          )}
+          {hasScores && (
+            <span style={{ marginLeft: 2, fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: awayIsWinner ? "var(--green)" : "var(--text)" }}>
+              {aScore}
+            </span>
+          )}
+        </span>
       </div>
     </div>
   );
