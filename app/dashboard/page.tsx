@@ -70,16 +70,38 @@ export default function DashboardPage() {
           const lockedChampionPts = settingsObj.champion && usr.champion === settingsObj.champion ? 15 : 0;
           const lockedTopScorerPts = settingsObj.topScorer && usr.topScorer === settingsObj.topScorer ? 10 : 0;
 
-          // Potential points from pending (not-yet-finished) matches — max 5 pts each, regardless of whether a pick was already made
-          const pendingMatchMax = allMatches
-            .filter(m => {
-              if (m.status === "finished") return false;
-              const existingPick = allPicks.find(p => p.userId === usr.uid && p.matchId === m.id);
-              // If already scored, it's counted in lockedMatchPts above, skip here
-              if (existingPick && existingPick.points !== null && existingPick.points !== undefined) return false;
-              return true;
-            })
-            .reduce((s) => s + 5, 0);
+          // Potential points from pending (not-yet-finished) matches — max 5 pts each.
+          // For knockout rounds, we use the expected total per round since matches may not yet exist
+          // in Firestore (e.g. Octavos isn't created until R32 finishes).
+          const EXPECTED_KNOCKOUT_COUNTS: Record<string, number> = {
+            "Ronda de 32": 16,
+            "Octavos de Final": 8,
+            "Cuartos de Final": 4,
+            "Semifinal": 2,
+            "Tercer Puesto": 1,
+            "Final": 1,
+          };
+
+          // Group stage: based on actual matches in Firestore (72 total expected)
+          let groupPending = 0;
+          for (const m of allMatches) {
+            if (!m.group) continue;
+            if (m.status === "finished") continue;
+            // If user already has a scored pick, it's in lockedMatchPts → skip
+            const pick = allPicks.find(p => p.userId === usr.uid && p.matchId === m.id);
+            if (pick && pick.points !== null && pick.points !== undefined) continue;
+            groupPending++;
+          }
+
+          // Knockout rounds: (expected total) − (already finished) per round
+          let knockoutPending = 0;
+          for (const round of Object.keys(EXPECTED_KNOCKOUT_COUNTS)) {
+            const expected = EXPECTED_KNOCKOUT_COUNTS[round];
+            const finishedInRound = allMatches.filter(m => m.round === round && m.status === "finished").length;
+            knockoutPending += Math.max(0, expected - finishedInRound);
+          }
+
+          const pendingMatchMax = (groupPending + knockoutPending) * 5;
 
           // Potential group-standing bonus per group: 1° + 2° + 3° qualifying = 3 pts max.
           // A group only contributes pending points if its official standing hasn't been saved yet.
