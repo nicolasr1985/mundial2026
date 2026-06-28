@@ -889,7 +889,9 @@ export default function StandingsPage() {
   // Build simple standings map for display (team name by position)
   const displayStandings = viewMode === "real" ? realStandings : predictedStandings;
   const displayThirds = viewMode === "real" ? realThirds : predictedThirds;
-  const baseR32 = viewMode === "real" ? realR32 : predictedR32;
+  // The R32 bracket ALWAYS uses the real teams. In "Según Mis Picks" mode, only the score changes
+  // (to the user's R32 pick); team matchups and the winner are still the real ones.
+  const baseR32 = realR32;
 
   // Enrich R32 slots with real scores, user picks, and actual winner.
   // - Real view: show the real score from Firestore.
