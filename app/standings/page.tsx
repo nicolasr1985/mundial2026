@@ -1693,7 +1693,7 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
           ⚽ TOP GOLEADORES
         </h2>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Goleadores del Mundial 2026 — actualizado al 27 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
+          Goleadores del Mundial 2026 — actualizado al 28 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
