@@ -42,6 +42,8 @@ interface R32Match {
   realWinner?: string;       // team name that actually advances (always based on real result)
   isFinished?: boolean;      // whether the actual R32 match is finished
   wonOnPenalties?: boolean;  // true when winner advanced via penalty shootout
+  penaltyHome?: number | null;  // penalty shootout score for home team (in slot order)
+  penaltyAway?: number | null;  // penalty shootout score for away team (in slot order)
 }
 
 // ─── STANDINGS CALCULATOR ────────────────────────────────────────────────────
@@ -945,6 +947,9 @@ export default function StandingsPage() {
       realWinner,
       isFinished,
       wonOnPenalties: isFinished && realHs === realAs && !!actual.penaltyWinner,
+      // Convert penalty scores to slot order (same swap rule as displayHs/displayAs)
+      penaltyHome: actual.penaltyHome != null ? (sameOrder ? actual.penaltyHome : actual.penaltyAway ?? null) : null,
+      penaltyAway: actual.penaltyAway != null ? (sameOrder ? actual.penaltyAway : actual.penaltyHome ?? null) : null,
     };
   });
   const groupTable = displayStandings[activeGroup] || [];
@@ -1306,6 +1311,10 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
   const homeIsWinner = !!(realWinner && homeM?.homeTeam && realWinner === homeM.homeTeam);
   const awayIsWinner = !!(realWinner && awayM?.awayTeam && realWinner === awayM.awayTeam);
   const wonOnPens = !!homeM?.wonOnPenalties;
+  // Penalty scores in slot order (only show when both are present)
+  const hPen = homeM?.penaltyHome;
+  const aPen = (awayM === homeM ? awayM?.penaltyAway : awayM?.penaltyHome);
+  const hasPenScores = wonOnPens && hPen !== null && hPen !== undefined && aPen !== null && aPen !== undefined;
 
   return (
     <div style={{ marginBottom: 0 }}>
@@ -1324,7 +1333,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
         </span>
         {hasScores && (
           <span style={{ marginLeft: 6, fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: homeIsWinner ? "var(--green)" : "var(--text)", flexShrink: 0 }}>
-            {hScore}{wonOnPens && homeIsWinner && <span style={{ fontSize: 9, marginLeft: 3, opacity: 0.85 }}>(p)</span>}
+            {hScore}{hasPenScores && <span style={{ fontSize: 11, marginLeft: 4, color: "var(--green)", fontWeight: 700 }}>({hPen})</span>}
           </span>
         )}
       </div>
@@ -1346,7 +1355,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
           )}
           {hasScores && (
             <span style={{ marginLeft: 2, fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: awayIsWinner ? "var(--green)" : "var(--text)" }}>
-              {aScore}{wonOnPens && awayIsWinner && <span style={{ fontSize: 9, marginLeft: 3, opacity: 0.85 }}>(p)</span>}
+              {aScore}{hasPenScores && <span style={{ fontSize: 11, marginLeft: 4, color: "var(--green)", fontWeight: 700 }}>({aPen})</span>}
             </span>
           )}
         </span>
