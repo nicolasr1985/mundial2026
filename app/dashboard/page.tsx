@@ -94,6 +94,8 @@ export default function DashboardPage() {
           // Potential points from pending (not-yet-finished) matches — max 5 pts each.
           // For knockout rounds, we use the expected total per round since matches may not yet exist
           // in Firestore (e.g. Octavos isn't created until R32 finishes).
+          // For LIVE matches, we compute the per-user maximum still achievable given the current
+          // score and the user's already-locked pick (instead of blindly assuming +5).
           const EXPECTED_KNOCKOUT_COUNTS: Record<string, number> = {
             "Ronda de 32": 16,
             "Octavos de Final": 8,
@@ -103,26 +105,64 @@ export default function DashboardPage() {
             "Final": 1,
           };
 
-          // Group stage: based on actual matches in Firestore (72 total expected)
+          // Helper: pts a user gets for a given pick vs a final score
+          const calcPts = (ph: number, pa: number, rh: number, ra: number): number => {
+            if (ph === rh && pa === ra) return 5;
+            let pts = 0;
+            if (Math.sign(ph - pa) === Math.sign(rh - ra)) pts += 2;
+            if (ph === rh) pts += 1;
+            if (pa === ra) pts += 1;
+            return pts;
+          };
+          // Max pts achievable on a live match given user's pick and current score
+          const liveAchievable = (ph: number, pa: number, lh: number, la: number): number => {
+            // Final score must satisfy f_h >= l_h AND f_a >= l_a. Brute-force search.
+            let best = 0;
+            const horizon = 10;
+            for (let fh = lh; fh <= lh + horizon; fh++) {
+              for (let fa = la; fa <= la + horizon; fa++) {
+                const pts = calcPts(ph, pa, fh, fa);
+                if (pts > best) best = pts;
+                if (best === 5) return 5;
+              }
+            }
+            return best;
+          };
+
+          // Group stage: based on actual matches in Firestore (72 total expected).
+          // Live group matches handled separately below.
           let groupPending = 0;
           for (const m of allMatches) {
             if (!m.group) continue;
             if (m.status === "finished") continue;
-            // If user already has a scored pick, it's in lockedMatchPts → skip
+            if (m.status === "live") continue; // handled below per-user
             const pick = allPicks.find(p => p.userId === usr.uid && p.matchId === m.id);
             if (pick && pick.points !== null && pick.points !== undefined) continue;
             groupPending++;
           }
 
-          // Knockout rounds: (expected total) − (already finished) per round
+          // Knockout rounds: (expected total) − (already finished) − (currently live) per round.
+          // Live knockout matches contribute their per-user max separately below.
           let knockoutPending = 0;
           for (const round of Object.keys(EXPECTED_KNOCKOUT_COUNTS)) {
             const expected = EXPECTED_KNOCKOUT_COUNTS[round];
             const finishedInRound = allMatches.filter(m => m.round === round && m.status === "finished").length;
-            knockoutPending += Math.max(0, expected - finishedInRound);
+            const liveInRound = allMatches.filter(m => m.round === round && m.status === "live" && m.homeScore !== null && m.awayScore !== null).length;
+            knockoutPending += Math.max(0, expected - finishedInRound - liveInRound);
           }
 
-          const pendingMatchMax = (groupPending + knockoutPending) * 5;
+          // Live matches (group + knockout): compute realistic max per user based on pick + current score.
+          // If a user has no pick for a live match, they get 0 from it.
+          let liveMax = 0;
+          for (const m of allMatches) {
+            if (m.status !== "live") continue;
+            if (m.homeScore === null || m.awayScore === null) continue;
+            const pick = allPicks.find(p => p.userId === usr.uid && p.matchId === m.id);
+            if (!pick) continue;
+            liveMax += liveAchievable(pick.homeScore, pick.awayScore, m.homeScore, m.awayScore);
+          }
+
+          const pendingMatchMax = (groupPending + knockoutPending) * 5 + liveMax;
 
           // Potential group-standing bonus per group: 1° + 2° + 3° qualifying = 3 pts max.
           // A group only contributes pending points if its official standing hasn't been saved yet.
