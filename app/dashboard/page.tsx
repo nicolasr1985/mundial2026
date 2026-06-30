@@ -363,6 +363,20 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
   // Bono = group standings (1st/2nd/3rd pass) + champion + topScorer
   // Always shown so admin can see whether bonus points are being awarded
   const showBono = true;
+  // Build the ordered list of column headers: phase columns with "Bono" inserted right
+  // after "Grupos" (or at the start if Grupos isn't an active phase).
+  const phaseColumns: string[] = [];
+  let bonoInserted = false;
+  for (const phase of activePhases) {
+    phaseColumns.push(phase);
+    if (phase === "Grupos" && showBono) {
+      phaseColumns.push("Bono");
+      bonoInserted = true;
+    }
+  }
+  if (showBono && !bonoInserted) {
+    phaseColumns.unshift("Bono");
+  }
   const tieGroups = buildTieGroups(ranking, prizes);
   // Total points of whoever currently holds 3rd place (used to flag eliminated contestants)
   const thirdPlaceTotalPoints = ranking.length >= 3 ? ranking[2].totalPoints : -Infinity;
@@ -381,8 +395,11 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
           <tr>
             <th style={{ ...th, textAlign: "left", paddingLeft: 14, width: 36 }}>#</th>
             <th style={{ ...th, textAlign: "left" }}>Participante</th>
-            {activePhases.map(p => <th key={p} style={th}>{p}</th>)}
-            {showBono && <th style={{ ...th, color: "var(--gold)" }} title="Clasificación de grupos + Campeón + Goleador">Bono</th>}
+            {phaseColumns.map(col =>
+              col === "Bono"
+                ? <th key="bono" style={{ ...th, color: "var(--gold)" }} title="Clasificación de grupos + Campeón + Goleador">Bono</th>
+                : <th key={col} style={th}>{col}</th>
+            )}
             <th style={{ ...th, color: "var(--gold)", fontWeight: 700 }}>Total</th>
             <th style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}>Max Pts</th>
             {showPaid && <th style={{ ...th, color: "var(--green)" }}>💰 Pago</th>}
@@ -428,21 +445,22 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{entry.picksCount} apuestas</span>
                   </div>
                 </td>
-                {activePhases.map(phase => (
-                  <td key={phase} style={{ padding: "10px 8px", textAlign: "center" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: (entry.phasePoints?.[phase] ?? 0) > 0 ? "var(--text)" : "var(--text-muted)" }}>
-                      {entry.phasePoints?.[phase] ?? 0}
-                    </div>
-                    <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
-                  </td>
-                ))}
-                {showBono && (
-                  <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: (entry.groupPoints + entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
-                      {(entry.groupPoints + entry.championPoints + entry.topScorerPoints) > 0 ? "+" : ""}{entry.groupPoints + entry.championPoints + entry.topScorerPoints}
-                    </div>
-                    <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
-                  </td>
+                {phaseColumns.map(col =>
+                  col === "Bono" ? (
+                    <td key="bono" style={{ padding: "10px 8px", textAlign: "center" }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: (entry.groupPoints + entry.championPoints + entry.topScorerPoints) > 0 ? "var(--gold)" : "var(--text-muted)" }}>
+                        {(entry.groupPoints + entry.championPoints + entry.topScorerPoints) > 0 ? "+" : ""}{entry.groupPoints + entry.championPoints + entry.topScorerPoints}
+                      </div>
+                      <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                    </td>
+                  ) : (
+                    <td key={col} style={{ padding: "10px 8px", textAlign: "center" }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: (entry.phasePoints?.[col] ?? 0) > 0 ? "var(--text)" : "var(--text-muted)" }}>
+                        {entry.phasePoints?.[col] ?? 0}
+                      </div>
+                      <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase" }}>pts</div>
+                    </td>
+                  )
                 )}
                 <td style={{ padding: "10px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: isMe ? "var(--gold)" : "var(--text)" }}>{entry.totalPoints}</div>
