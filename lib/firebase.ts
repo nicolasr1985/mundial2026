@@ -71,6 +71,11 @@ export interface Match {
   awayRed?: number;
   homeYellowRed?: number;  // indirect red (2nd yellow)
   awayYellowRed?: number;
+  // For knockout-round matches (R32 onwards): if the regular-time score is a draw,
+  // the winner on penalties advances. Scoring of picks is unaffected.
+  penaltyWinner?: "home" | "away" | null;
+  penaltyHome?: number | null;
+  penaltyAway?: number | null;
   matchDate: Timestamp;
   round: string;
   group?: string;
@@ -185,9 +190,10 @@ export async function updateMatchResult(
   matchId: string,
   homeScore: number,
   awayScore: number,
-  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number }
+  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number },
+  penalties?: { winner: "home" | "away" | null; homeScore?: number | null; awayScore?: number | null }
 ) {
-  await updateDoc(doc(db, "matches", matchId), {
+  const payload: Record<string, unknown> = {
     homeScore,
     awayScore,
     status: "finished",
@@ -198,7 +204,14 @@ export async function updateMatchResult(
     awayRed: cards?.awayRed ?? 0,
     homeYellowRed: cards?.homeYellowRed ?? 0,
     awayYellowRed: cards?.awayYellowRed ?? 0,
-  });
+  };
+  // Penalty info — only set when explicitly provided; null clears it
+  if (penalties) {
+    payload.penaltyWinner = penalties.winner ?? null;
+    payload.penaltyHome = penalties.homeScore ?? null;
+    payload.penaltyAway = penalties.awayScore ?? null;
+  }
+  await updateDoc(doc(db, "matches", matchId), payload);
   await recalculatePicksForMatch(matchId, homeScore, awayScore);
 }
 

@@ -41,6 +41,7 @@ interface R32Match {
   displayAwayScore?: number | null;
   realWinner?: string;       // team name that actually advances (always based on real result)
   isFinished?: boolean;      // whether the actual R32 match is finished
+  wonOnPenalties?: boolean;  // true when winner advanced via penalty shootout
 }
 
 // ─── STANDINGS CALCULATOR ────────────────────────────────────────────────────
@@ -909,11 +910,14 @@ export default function StandingsPage() {
     const realHs = actual.homeScore;
     const realAs = actual.awayScore;
     const isFinished = actual.status === "finished" && realHs !== null && realAs !== null;
-    // Real winner — always based on real result
+    // Real winner — always based on real result; for knockout draws use the penalty winner
     let realWinner: string | undefined;
     if (isFinished && realHs !== null && realAs !== null) {
       if (realHs > realAs) realWinner = actual.homeTeam;
       else if (realHs < realAs) realWinner = actual.awayTeam;
+      else if (actual.penaltyWinner === "home") realWinner = actual.homeTeam;
+      else if (actual.penaltyWinner === "away") realWinner = actual.awayTeam;
+      // else: tied with no penalty winner recorded → still pending
     }
     // What score to display
     let displayHs: number | null = null;
@@ -940,6 +944,7 @@ export default function StandingsPage() {
       displayAwayScore: displayAs,
       realWinner,
       isFinished,
+      wonOnPenalties: isFinished && realHs === realAs && !!actual.penaltyWinner,
     };
   });
   const groupTable = displayStandings[activeGroup] || [];
@@ -1300,6 +1305,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
   const realWinner = homeM?.realWinner;
   const homeIsWinner = !!(realWinner && homeM?.homeTeam && realWinner === homeM.homeTeam);
   const awayIsWinner = !!(realWinner && awayM?.awayTeam && realWinner === awayM.awayTeam);
+  const wonOnPens = !!homeM?.wonOnPenalties;
 
   return (
     <div style={{ marginBottom: 0 }}>
@@ -1318,7 +1324,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
         </span>
         {hasScores && (
           <span style={{ marginLeft: 6, fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: homeIsWinner ? "var(--green)" : "var(--text)", flexShrink: 0 }}>
-            {hScore}
+            {hScore}{wonOnPens && homeIsWinner && <span style={{ fontSize: 9, marginLeft: 3, opacity: 0.85 }}>(p)</span>}
           </span>
         )}
       </div>
@@ -1340,7 +1346,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
           )}
           {hasScores && (
             <span style={{ marginLeft: 2, fontFamily: "'Bebas Neue',sans-serif", fontSize: 13, color: awayIsWinner ? "var(--green)" : "var(--text)" }}>
-              {aScore}
+              {aScore}{wonOnPens && awayIsWinner && <span style={{ fontSize: 9, marginLeft: 3, opacity: 0.85 }}>(p)</span>}
             </span>
           )}
         </span>
