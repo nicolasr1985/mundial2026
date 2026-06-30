@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [fetching, setFetching] = useState(true);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [eliminatedTeams, setEliminatedTeams] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -57,6 +58,26 @@ export default function DashboardPage() {
         const settingsObj = s as Record<string, string>;
         const championDecided = !!settingsObj.champion;
         const topScorerDecided = !!settingsObj.topScorer;
+
+        // Compute eliminated teams: any team that LOST a finished knockout match (including penalty loss).
+        // Used to invalidate champion picks for Max Pts and show "ELIMINADO" badge.
+        const KNOCKOUT_ROUNDS = new Set([
+          "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
+        ]);
+        const elimSet = new Set<string>();
+        for (const m of allMatches) {
+          if (!KNOCKOUT_ROUNDS.has(m.round)) continue;
+          if (m.status !== "finished") continue;
+          if (m.homeScore === null || m.awayScore === null) continue;
+          if (m.homeScore > m.awayScore) elimSet.add(m.awayTeam);
+          else if (m.awayScore > m.homeScore) elimSet.add(m.homeTeam);
+          else {
+            // Tie — penalty winner advances, the loser is eliminated. If penaltyWinner not yet set, neither is eliminated.
+            if (m.penaltyWinner === "home") elimSet.add(m.awayTeam);
+            else if (m.penaltyWinner === "away") elimSet.add(m.homeTeam);
+          }
+        }
+        setEliminatedTeams(elimSet);
 
         const maxMap: Record<string, number> = {};
         for (const usr of u) {
@@ -108,8 +129,9 @@ export default function DashboardPage() {
           // (Once admin saves it, the awarded points show up in lockedGroupPts above.)
           const pendingGroupMax = unsavedGroupCount * 3;
 
-          // Champion/top scorer: only countable if not yet officially decided and user made a pick
-          const pendingChampionMax = !championDecided && usr.champion ? 15 : 0;
+          // Champion/top scorer: only countable if not yet officially decided and user made a pick.
+          // For champion, also require the picked team is not eliminated from the knockout bracket.
+          const pendingChampionMax = !championDecided && usr.champion && !elimSet.has(usr.champion) ? 15 : 0;
           const pendingTopScorerMax = !topScorerDecided && usr.topScorer ? 10 : 0;
 
           maxMap[usr.uid] =
@@ -248,7 +270,19 @@ export default function DashboardPage() {
                         {u.uid === user?.uid && <span className="badge badge-gold" style={{ fontSize: 10, padding: "1px 6px", marginLeft: 6 }}>Tú</span>}
                       </td>
                       <td style={{ padding: "10px 16px", fontSize: 13, color: u.champion ? "var(--text)" : "var(--text-muted)" }}>
-                        {u.champion || "—"}
+                        {u.champion ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ textDecoration: eliminatedTeams.has(u.champion) ? "line-through" : "none", opacity: eliminatedTeams.has(u.champion) ? 0.6 : 1 }}>{u.champion}</span>
+                            {eliminatedTeams.has(u.champion) && (
+                              <span style={{
+                                fontSize: 10, fontFamily: "'Rajdhani',sans-serif", fontWeight: 700,
+                                color: "var(--red)", background: "rgba(231,76,60,0.12)",
+                                border: "1px solid rgba(231,76,60,0.35)", borderRadius: 4,
+                                padding: "2px 7px", letterSpacing: "0.06em",
+                              }}>ELIMINADO</span>
+                            )}
+                          </span>
+                        ) : "—"}
                       </td>
                       <td style={{ padding: "10px 16px", fontSize: 13, color: u.topScorer ? "var(--text)" : "var(--text-muted)" }}>
                         {u.topScorer || "—"}
