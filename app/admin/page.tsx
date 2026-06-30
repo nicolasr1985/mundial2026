@@ -231,16 +231,18 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
   const [filter, setFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
   // Penalty shootout state: only relevant for knockout matches that end in a draw.
   // winner: "home" | "away" — which team advanced. Empty string means not yet selected.
-  const [penalties, setPenalties] = useState<Record<string, { winner: "home" | "away" | ""; homeScore: string; awayScore: string }>>({});
+  type PenaltyState = { winner: "home" | "away" | ""; homeScore: string; awayScore: string };
+  const [penalties, setPenalties] = useState<Record<string, PenaltyState>>({});
 
   // Initialize penalties state from existing match data
   useEffect(() => {
     setPenalties(prev => {
-      const next = { ...prev };
+      const next: Record<string, PenaltyState> = { ...prev };
       matches.forEach(m => {
         if (!next[m.id]) {
+          const w = m.penaltyWinner === "home" ? "home" : m.penaltyWinner === "away" ? "away" : "";
           next[m.id] = {
-            winner: (m.penaltyWinner ?? "") as "home" | "away" | "",
+            winner: w,
             homeScore: m.penaltyHome != null ? String(m.penaltyHome) : "",
             awayScore: m.penaltyAway != null ? String(m.penaltyAway) : "",
           };
@@ -333,18 +335,22 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
         awayYellowRed: parseInt(cards[match.id]?.awayYR || "0") || 0,
       };
       // Penalty payload — only meaningful for knockout ties; null clears any prior data otherwise
-      const penaltyData = isTie && isKO && pen && pen.winner !== "" ? {
-        winner: pen.winner as "home" | "away",
-        homeScore: pen.homeScore !== "" ? parseInt(pen.homeScore) : null,
-        awayScore: pen.awayScore !== "" ? parseInt(pen.awayScore) : null,
-      } : { winner: null, homeScore: null, awayScore: null };
+      const hasPenWinner = isTie && isKO && pen && (pen.winner === "home" || pen.winner === "away");
+      const penaltyData: { winner: "home" | "away" | null; homeScore: number | null; awayScore: number | null } = hasPenWinner
+        ? {
+            winner: pen.winner === "home" ? "home" : "away",
+            homeScore: pen.homeScore !== "" ? parseInt(pen.homeScore) : null,
+            awayScore: pen.awayScore !== "" ? parseInt(pen.awayScore) : null,
+          }
+        : { winner: null, homeScore: null, awayScore: null };
 
       if (effectiveStatus(match) === "live") {
         await updateLiveMatchResult(match.id, hScore, aScore, cardData);
         setMsgs((m) => ({ ...m, [match.id]: "🔄 Marcador actualizado + puntos recalculados" }));
       } else {
         await updateMatchResult(match.id, hScore, aScore, cardData, penaltyData);
-        const penMsg = isTie && isKO ? ` · Pasa ${pen!.winner === "home" ? match.homeTeam : match.awayTeam} por penales` : "";
+        const winnerName = hasPenWinner ? (pen.winner === "home" ? match.homeTeam : match.awayTeam) : "";
+        const penMsg = hasPenWinner ? ` · Pasa ${winnerName} por penales` : "";
         setMsgs((m) => ({ ...m, [match.id]: `✅ Resultado guardado + puntos recalculados${penMsg}` }));
       }
       onUpdated();
@@ -611,8 +617,9 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                   const tied = hv !== "" && av !== "" && hv === av;
                   if (!tied || !isKnockoutRound(match.round)) return null;
                   const pen = penalties[match.id] || { winner: "", homeScore: "", awayScore: "" };
-                  const setPen = (patch: Partial<{ winner: "home" | "away" | ""; homeScore: string; awayScore: string }>) =>
-                    setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), ...patch } }));
+                  const setWinner = (w: "home" | "away") => setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), winner: w } }));
+                  const setHomePen = (s: string) => setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), homeScore: s } }));
+                  const setAwayPen = (s: string) => setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), awayScore: s } }));
                   return (
                     <div style={{
                       width: "100%", marginTop: 8, padding: "10px 12px",
@@ -623,7 +630,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                       <span style={{ color: "var(--red)", fontWeight: 600 }}>⚽ Penales:</span>
                       <span style={{ color: "var(--text-muted)" }}>¿Quién pasa?</span>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <button type="button" onClick={() => setPen({ winner: "home" })}
+                        <button type="button" onClick={() => setWinner("home")}
                           style={{
                             padding: "5px 11px", borderRadius: 6, fontSize: 12, cursor: "pointer",
                             fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
@@ -631,7 +638,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                             color: pen.winner === "home" ? "var(--green)" : "var(--text-muted)",
                             border: `1px solid ${pen.winner === "home" ? "rgba(46,204,113,0.45)" : "var(--border)"}`,
                           }}>{match.homeTeam}</button>
-                        <button type="button" onClick={() => setPen({ winner: "away" })}
+                        <button type="button" onClick={() => setWinner("away")}
                           style={{
                             padding: "5px 11px", borderRadius: 6, fontSize: 12, cursor: "pointer",
                             fontFamily: "'Rajdhani',sans-serif", fontWeight: 600,
@@ -643,12 +650,12 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                       <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>Marcador (opcional):</span>
                       <input className="score-input" type="number" min={0} max={20} placeholder="—"
                         value={pen.homeScore}
-                        onChange={(e) => setPen({ homeScore: e.target.value.replace(/\D/g, "") })}
+                        onChange={(e) => setHomePen(e.target.value.replace(/\D/g, ""))}
                         style={{ width: 40, fontSize: 12, padding: "4px 6px" }} />
                       <span style={{ color: "var(--text-muted)" }}>–</span>
                       <input className="score-input" type="number" min={0} max={20} placeholder="—"
                         value={pen.awayScore}
-                        onChange={(e) => setPen({ awayScore: e.target.value.replace(/\D/g, "") })}
+                        onChange={(e) => setAwayPen(e.target.value.replace(/\D/g, ""))}
                         style={{ width: 40, fontSize: 12, padding: "4px 6px" }} />
                     </div>
                   );
