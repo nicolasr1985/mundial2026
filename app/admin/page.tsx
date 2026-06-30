@@ -391,8 +391,23 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
               home: match.homeScore !== null ? String(match.homeScore) : "",
               away: match.awayScore !== null ? String(match.awayScore) : "",
             };
+            // Detect penalty changes: for knockout-round ties, treat selecting/changing
+            // the penalty winner as a pending edit so the EDITAR button turns into "Corregir".
+            const matchIsTie = isFinished && match.homeScore !== null && match.awayScore !== null && match.homeScore === match.awayScore;
+            const penState = penalties[match.id];
+            const currentPenWinner = penState?.winner ?? "";
+            const savedPenWinner = (match.penaltyWinner === "home" || match.penaltyWinner === "away") ? match.penaltyWinner : "";
+            const currentPenHome = penState?.homeScore ?? "";
+            const savedPenHome = match.penaltyHome != null ? String(match.penaltyHome) : "";
+            const currentPenAway = penState?.awayScore ?? "";
+            const savedPenAway = match.penaltyAway != null ? String(match.penaltyAway) : "";
+            const penaltyChanged = isKnockoutRound(match.round) && matchIsTie && (
+              currentPenWinner !== savedPenWinner ||
+              currentPenHome !== savedPenHome ||
+              currentPenAway !== savedPenAway
+            );
             const hasChanged = isFinished && (
-              sc.home !== String(match.homeScore) || sc.away !== String(match.awayScore)
+              sc.home !== String(match.homeScore) || sc.away !== String(match.awayScore) || penaltyChanged
             );
             const bothBlank = sc.home === "" && sc.away === "";
             const hasExistingScore = match.homeScore !== null && match.awayScore !== null;
