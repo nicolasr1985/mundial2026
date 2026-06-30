@@ -79,11 +79,17 @@ export default function DashboardPage() {
         }
         setEliminatedTeams(elimSet);
 
+        // Pre-compute live match IDs so we can exclude their picks from locked totals
+        // (live match picks are recomputed per-user via liveAchievable below, otherwise we'd double-count)
+        const liveMatchIds = new Set(
+          allMatches.filter(m => m.status === "live" && m.homeScore !== null && m.awayScore !== null).map(m => m.id)
+        );
+
         const maxMap: Record<string, number> = {};
         for (const usr of u) {
-          // Points already locked in (can't change)
+          // Points already locked in (can't change) — excludes live match picks (handled in liveMax)
           const lockedMatchPts = allPicks
-            .filter(p => p.userId === usr.uid && p.points !== null && p.points !== undefined)
+            .filter(p => p.userId === usr.uid && p.points !== null && p.points !== undefined && !liveMatchIds.has(p.matchId))
             .reduce((s, p) => s + (p.points ?? 0), 0);
           const lockedGroupPts = allGroupPicks
             .filter((p: any) => p.userId === usr.uid && p.points !== null && p.points !== undefined)
