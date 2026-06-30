@@ -191,7 +191,7 @@ export async function updateMatchResult(
   homeScore: number,
   awayScore: number,
   cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number },
-  penalties?: { winner: "home" | "away" | null; homeScore?: number | null; awayScore?: number | null }
+  penalties?: { winner: string | null; homeScore?: number | null; awayScore?: number | null }
 ) {
   const payload: Record<string, unknown> = {
     homeScore,
