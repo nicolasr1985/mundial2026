@@ -314,13 +314,16 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
       return;
     }
 
-    // Penalty validation: knockout draws require a winner
+    // Penalty validation: knockout draws require a winner ONLY when finishing the match.
+    // For live updates (mid-match score corrections), don't require a penalty winner yet —
+    // the score may be tied during regular time without going to penalties.
     const hScore = parseInt(homeVal);
     const aScore = parseInt(awayVal);
     const isTie = hScore === aScore;
     const isKO = isKnockoutRound(match.round);
     const pen = penalties[match.id];
-    if (isTie && isKO && (!pen || pen.winner === "")) {
+    const isLive = effectiveStatus(match) === "live";
+    if (!isLive && isTie && isKO && (!pen || pen.winner === "")) {
       setMsgs((m) => ({ ...m, [match.id]: `⚠ Empate en fase eliminatoria — selecciona quién ganó por penales` }));
       return;
     }
@@ -591,15 +594,38 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                         const homeVal = sc2.home !== "" ? sc2.home : (match.homeScore !== null ? String(match.homeScore) : "");
                         const awayVal = sc2.away !== "" ? sc2.away : (match.awayScore !== null ? String(match.awayScore) : "");
                         if (!homeVal || !awayVal) return;
+                        // Finalizar transitions the match to "finished", so a tied knockout match
+                        // MUST have a penalty winner selected before we lock it in.
+                        const hS = parseInt(homeVal), aS = parseInt(awayVal);
+                        const isTie2 = hS === aS;
+                        const isKO2 = isKnockoutRound(match.round);
+                        const pen2 = penalties[match.id];
+                        if (isTie2 && isKO2 && (!pen2 || pen2.winner === "")) {
+                          setMsgs((m) => ({ ...m, [match.id]: `⚠ Empate en fase eliminatoria — selecciona quién ganó por penales antes de finalizar` }));
+                          setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 4000);
+                          return;
+                        }
+                        const hasPenWinner2 = isTie2 && isKO2 && pen2 && (pen2.winner === "home" || pen2.winner === "away");
+                        const penaltyData2 = hasPenWinner2
+                          ? {
+                              winner: pen2.winner === "home" ? "home" : "away",
+                              homeScore: pen2.homeScore !== "" ? parseInt(pen2.homeScore) : null,
+                              awayScore: pen2.awayScore !== "" ? parseInt(pen2.awayScore) : null,
+                            }
+                          : { winner: null, homeScore: null, awayScore: null };
                         setSaving(match.id);
                         try {
-                          await updateMatchResult(match.id, parseInt(homeVal), parseInt(awayVal), {
+                          await updateMatchResult(match.id, hS, aS, {
                             homeYellow: parseInt(cards[match.id]?.homeY || "0") || 0,
                             awayYellow: parseInt(cards[match.id]?.awayY || "0") || 0,
                             homeRed: parseInt(cards[match.id]?.homeR || "0") || 0,
                             awayRed: parseInt(cards[match.id]?.awayR || "0") || 0,
-                          });
-                          setMsgs((m) => ({ ...m, [match.id]: "✅ Partido finalizado" }));
+                            homeYellowRed: parseInt(cards[match.id]?.homeYR || "0") || 0,
+                            awayYellowRed: parseInt(cards[match.id]?.awayYR || "0") || 0,
+                          }, penaltyData2);
+                          const winnerName2 = hasPenWinner2 ? (pen2.winner === "home" ? match.homeTeam : match.awayTeam) : "";
+                          const penMsg2 = hasPenWinner2 ? ` · Pasa ${winnerName2} por penales` : "";
+                          setMsgs((m) => ({ ...m, [match.id]: `✅ Partido finalizado${penMsg2}` }));
                           onUpdated();
                         } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
                         finally { setSaving(null); setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 4000); }
