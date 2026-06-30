@@ -18,6 +18,15 @@ const ROUNDS = [
 
 const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
 
+// Penalty shootout state (for knockout-round ties). Kept at module scope to avoid
+// any in-function type-aliasing edge cases with the SWC TSX parser.
+type PenaltyState = { winner: string; homeScore: string; awayScore: string };
+
+const KNOCKOUT_ROUNDS = ["Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final"];
+function isKnockoutRound(round: string): boolean {
+  return KNOCKOUT_ROUNDS.indexOf(round) >= 0;
+}
+
 export default function AdminPage() {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
@@ -230,8 +239,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
   const [msgs, setMsgs] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<"upcoming" | "live" | "finished">("upcoming");
   // Penalty shootout state: only relevant for knockout matches that end in a draw.
-  // winner: "home" | "away" — which team advanced. Empty string means not yet selected.
-  type PenaltyState = { winner: "home" | "away" | ""; homeScore: string; awayScore: string };
+  // winner is "home" | "away" or "" if unselected. Typed as plain string to avoid SWC parser quirks.
   const [penalties, setPenalties] = useState<Record<string, PenaltyState>>({});
 
   // Initialize penalties state from existing match data
@@ -251,13 +259,6 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
       return next;
     });
   }, [matches]);
-
-  // Knockout rounds: penalty info is required when scores are tied (R32 onwards)
-  const isKnockoutRound = (round: string): boolean => {
-    return round === "Ronda de 32" || round === "Octavos de Final" ||
-           round === "Cuartos de Final" || round === "Semifinal" ||
-           round === "Tercer Puesto" || round === "Final";
-  };
 
   // Effective status: if kickoff time has passed but match is still "upcoming"
   // in Firestore, treat it as "live" for display purposes (auto-transition)
@@ -336,7 +337,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
       };
       // Penalty payload — only meaningful for knockout ties; null clears any prior data otherwise
       const hasPenWinner = isTie && isKO && pen && (pen.winner === "home" || pen.winner === "away");
-      const penaltyData: { winner: "home" | "away" | null; homeScore: number | null; awayScore: number | null } = hasPenWinner
+      const penaltyData = hasPenWinner
         ? {
             winner: pen.winner === "home" ? "home" : "away",
             homeScore: pen.homeScore !== "" ? parseInt(pen.homeScore) : null,
@@ -607,8 +608,6 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                   )}
                 </div>
 
-                </div>
-
                 {/* Penalty shootout — show only for knockout-round ties */}
                 {(() => {
                   const sc2 = scores[match.id] || { home: match.homeScore !== null ? String(match.homeScore) : "", away: match.awayScore !== null ? String(match.awayScore) : "" };
@@ -617,7 +616,7 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                   const tied = hv !== "" && av !== "" && hv === av;
                   if (!tied || !isKnockoutRound(match.round)) return null;
                   const pen = penalties[match.id] || { winner: "", homeScore: "", awayScore: "" };
-                  const setWinner = (w: "home" | "away") => setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), winner: w } }));
+                  const setWinner = (w: string) => setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), winner: w } }));
                   const setHomePen = (s: string) => setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), homeScore: s } }));
                   const setAwayPen = (s: string) => setPenalties(p => ({ ...p, [match.id]: { ...(p[match.id] ?? { winner: "", homeScore: "", awayScore: "" }), awayScore: s } }));
                   return (
