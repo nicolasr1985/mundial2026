@@ -1140,18 +1140,31 @@ function WhatsAppTab({ matches, users, settings }: {
     const todayMatchIds = new Set(todayMatches.map(m => m.id));
     getAllPicks().then((allPicks) => {
       const ptsByUser: Record<string, number> = {};
-      for (const u of users) { ptsByUser[u.uid] = 0; }
+      const hasPickToday: Record<string, boolean> = {};
+      for (const u of users) {
+        ptsByUser[u.uid] = 0;
+        hasPickToday[u.uid] = false;
+      }
       for (const p of allPicks) {
-        if (todayMatchIds.has(p.matchId) && p.points != null && ptsByUser[p.userId] !== undefined) {
+        if (!todayMatchIds.has(p.matchId)) continue;
+        if (ptsByUser[p.userId] === undefined) continue;
+        // Mark "betted today" only if the pick has explicit numeric scores
+        const hs = p.homeScore;
+        const as = p.awayScore;
+        if (typeof hs === "number" && typeof as === "number") {
+          hasPickToday[p.userId] = true;
+        }
+        if (p.points != null) {
           ptsByUser[p.userId] += p.points;
         }
       }
       const sorted = users
+        .filter(u => hasPickToday[u.uid])  // exclude users who did NOT bet on any of today's matches
         .map(u => ({ name: u.displayName || u.uid, pts: ptsByUser[u.uid] ?? 0 }))
         .sort((a, b) => b.pts - a.pts);
       setDailyPts(sorted);
     }).catch(() => {});
-  }, [users, todayMatches.length]);
+  }, [users, todayMatches.length, selectedDate]);
 
   // ── scoring helpers ──────────────────────────────────────────────
   function calcMatchPts(ph: number, pa: number, rh: number, ra: number): number {
