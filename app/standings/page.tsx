@@ -1000,7 +1000,7 @@ export default function StandingsPage() {
       {activeTab === "fifa" ? (
         <FifaRankingTab />
       ) : activeTab === "scorers" ? (
-        <GoalscorersTab users={users} />
+        <GoalscorersTab users={users} matches={matches} />
       ) : availableGroups.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
@@ -1462,76 +1462,87 @@ interface GoalScorer {
 }
 
 const GOAL_SCORERS_DATA: GoalScorer[] = [
-  // 5 goals
   // 6 goals
   { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 6 },
+  // 5 goals
+  { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 5 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
   { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 4 },
   { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 4 },
-  { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 4 },
   // 3 goals
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 3 },
   { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
-  { player: "Yoane Wissa", country: "DR Congo", code: "COD", goals: 3 },
+  { player: "Yoane Wissa", country: "Congo DR", code: "COD", goals: 3 },
   { player: "Harry Kane", country: "England", code: "ENG", goals: 3 },
+  { player: "Kai Havertz", country: "Germany", code: "GER", goals: 3 },
   { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
   { player: "Ismael Saibari", country: "Morocco", code: "MAR", goals: 3 },
   { player: "Brian Brobbey", country: "Netherlands", code: "NED", goals: 3 },
+  { player: "Cody Gakpo", country: "Netherlands", code: "NED", goals: 3 },
   { player: "Elijah Just", country: "New Zealand", code: "NZL", goals: 3 },
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 3 },
   { player: "Johan Manzambi", country: "Switzerland", code: "SUI", goals: 3 },
   // 2 goals
   { player: "Riyad Mahrez", country: "Algeria", code: "ALG", goals: 2 },
+  { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 2 },
   { player: "Leandro Trossard", country: "Belgium", code: "BEL", goals: 2 },
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
   { player: "Cyle Larin", country: "Canada", code: "CAN", goals: 2 },
   { player: "Daniel Muñoz", country: "Colombia", code: "COL", goals: 2 },
   { player: "Jude Bellingham", country: "England", code: "ENG", goals: 2 },
-  { player: "Kai Havertz", country: "Germany", code: "GER", goals: 2 },
   { player: "Ramin Rezaeian", country: "Iran", code: "IRN", goals: 2 },
+  { player: "Amad Diallo", country: "Ivory Coast", code: "CIV", goals: 2 },
   { player: "Nicolas Pépé", country: "Ivory Coast", code: "CIV", goals: 2 },
   { player: "Daichi Kamada", country: "Japan", code: "JPN", goals: 2 },
   { player: "Ayase Ueda", country: "Japan", code: "JPN", goals: 2 },
   { player: "Julián Quiñones", country: "Mexico", code: "MEX", goals: 2 },
-  { player: "Cody Gakpo", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Crysencio Summerville", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Cristiano Ronaldo", country: "Portugal", code: "POR", goals: 2 },
+  { player: "Pape Gueye", country: "Senegal", code: "SEN", goals: 2 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 2 },
   { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Anthony Elanga", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Rubén Vargas", country: "Switzerland", code: "SUI", goals: 2 },
   { player: "Folarin Balogun", country: "United States", code: "USA", goals: 2 },
   { player: "Maximiliano Araújo", country: "Uruguay", code: "URU", goals: 2 },
-  // 1 goal (only those potentially picked by participants)
+  // 1 goal (well-known players and all Colombians for display)
   { player: "Amine Gouiri", country: "Algeria", code: "ALG", goals: 1 },
-  { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 1 },
+  { player: "Giovani Lo Celso", country: "Argentina", code: "ARG", goals: 1 },
+  { player: "Lautaro Martínez", country: "Argentina", code: "ARG", goals: 1 },
+  { player: "Marcel Sabitzer", country: "Austria", code: "AUT", goals: 1 },
   { player: "Kevin De Bruyne", country: "Belgium", code: "BEL", goals: 1 },
   { player: "Romelu Lukaku", country: "Belgium", code: "BEL", goals: 1 },
   { player: "Kerim Alajbegović", country: "Bosnia and Herzegovina", code: "BIH", goals: 1 },
+  { player: "Casemiro", country: "Brazil", code: "BRA", goals: 1 },
+  { player: "Gabriel Martinelli", country: "Brazil", code: "BRA", goals: 1 },
   { player: "Promise David", country: "Canada", code: "CAN", goals: 1 },
   { player: "Jaminton Campaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Luis Díaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Ante Budimir", country: "Croatia", code: "CRO", goals: 1 },
+  { player: "Nikola Vlašić", country: "Croatia", code: "CRO", goals: 1 },
+  { player: "Fiston Mayele", country: "Congo DR", code: "COD", goals: 1 },
   { player: "Nilson Angulo", country: "Ecuador", code: "ECU", goals: 1 },
   { player: "Gonzalo Plata", country: "Ecuador", code: "ECU", goals: 1 },
   { player: "Mohamed Salah", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
   { player: "Bradley Barcola", country: "France", code: "FRA", goals: 1 },
+  { player: "Désiré Doué", country: "France", code: "FRA", goals: 1 },
   { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
   { player: "Leroy Sané", country: "Germany", code: "GER", goals: 1 },
   { player: "Wilson Isidor", country: "Haiti", code: "HAI", goals: 1 },
-  { player: "Amad Diallo", country: "Ivory Coast", code: "CIV", goals: 1 },
   { player: "Daizen Maeda", country: "Japan", code: "JPN", goals: 1 },
+  { player: "Musa Al-Taamari", country: "Jordan", code: "JOR", goals: 1 },
   { player: "Raúl Jiménez", country: "Mexico", code: "MEX", goals: 1 },
   { player: "Achraf Hakimi", country: "Morocco", code: "MAR", goals: 1 },
   { player: "Soufiane Rahimi", country: "Morocco", code: "MAR", goals: 1 },
   { player: "Virgil van Dijk", country: "Netherlands", code: "NED", goals: 1 },
+  { player: "Antonio Nusa", country: "Norway", code: "NOR", goals: 1 },
   { player: "Rafael Leão", country: "Portugal", code: "POR", goals: 1 },
   { player: "John McGinn", country: "Scotland", code: "SCO", goals: 1 },
+  { player: "Iliman Ndiaye", country: "Senegal", code: "SEN", goals: 1 },
   { player: "Lamine Yamal", country: "Spain", code: "ESP", goals: 1 },
-  { player: "Anthony Elanga", country: "Sweden", code: "SWE", goals: 1 },
   { player: "Viktor Gyökeres", country: "Sweden", code: "SWE", goals: 1 },
   { player: "Alexander Isak", country: "Sweden", code: "SWE", goals: 1 },
   { player: "Breel Embolo", country: "Switzerland", code: "SUI", goals: 1 },
@@ -1539,6 +1550,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Hazem Mastouri", country: "Tunisia", code: "TUN", goals: 1 },
   { player: "Arda Güler", country: "Turkey", code: "TUR", goals: 1 },
   { player: "Giovanni Reyna", country: "United States", code: "USA", goals: 1 },
+  { player: "Eldor Shomurodov", country: "Uzbekistan", code: "UZB", goals: 1 },
 ];
 
 // Maps a user's topScorer pick string (format: "(CODE) Lastname, Firstname") to current goals.
@@ -1546,6 +1558,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
 const PICK_TO_GOALS: Record<string, number> = {
   // 6 goals
   "(ARG) Messi, Lionel": 6,
+  // 5 goals
+  "(NOR) Haaland, Erling Braut": 5,
   // 4 goals
   "(BRA) Vinicius Jr.": 4,
   "(BRA) De Oliveira Junior, Vinicius": 4,
@@ -1553,28 +1567,29 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(FRA) Dembele, Ousmane": 4,
   "(FRA) Mbappé, Kylian": 4,
   "(FRA) Mbappe, Kylian": 4,
-  "(NOR) Haaland, Erling Braut": 4,
   // 3 goals
   "(BRA) Cunha, Matheus": 3,
   "(CAN) David, Jonathan": 3,
   "(COD) Wissa, Yoane": 3,
   "(ENG) Kane, Harry": 3,
+  "(GER) Havertz, Kai": 3,
   "(GER) Undav, Deniz": 3,
   "(MAR) Saibari, Ismael": 3,
   "(NED) Brobbey, Brian": 3,
+  "(NED) Gakpo, Cody": 3,
   "(SEN) Sarr, Ismaila": 3,
   // 2 goals
   "(ALG) Mahrez, Riyad": 2,
+  "(AUT) Arnautovic, Marko": 2,
   "(BEL) Trossard, Leandro": 2,
   "(CAN) Larin, Cyle": 2,
   "(ENG) Bellingham, Jude": 2,
-  "(GER) Havertz, Kai": 2,
   "(JPN) Kamada, Daichi": 2,
   "(JPN) Ueda, Ayase": 2,
+  "(CIV) Diallo, Amad": 2,
   "(CIV) Pépé, Nicolas": 2,
   "(MEX) Quiñones, Julián": 2,
   "(MEX) Quinones, Julian": 2,
-  "(NED) Gakpo, Cody": 2,
   "(NED) Summerville, Crysencio": 2,
   "(POR) Ronaldo, Cristiano": 2,
   "(ESP) Oyarzabal, Mikel": 2,
@@ -1586,7 +1601,6 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(ALG) Gouiri, Amine": 1,
   "(ARG) Lautaro Martínez": 1,
   "(ARG) Martinez, Lautaro": 1,
-  "(AUT) Arnautovic, Marko": 1,
   "(BEL) De Bruyne, Kevin": 1,
   "(BEL) Lukaku, Romelu": 1,
   "(BIH) Alajbegovic, Kerim": 1,
@@ -1602,10 +1616,11 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(EGY) Trezeguet": 1,
   "(ENG) Rashford, Marcus": 1,
   "(FRA) Barcola, Bradley": 1,
+  "(FRA) Doué, Désiré": 1,
+  "(FRA) Doue, Desire": 1,
   "(GER) Musiala, Jamal": 1,
   "(GER) Sane, Leroy": 1,
   "(HAI) Isidor, Wilson": 1,
-  "(CIV) Diallo, Amad": 1,
   "(JOR) Al Taamari, Musa": 1,
   "(JPN) Maeda, Daizen": 1,
   "(UZB) Shomurodov, Eldor": 1,
@@ -1614,6 +1629,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(MAR) Hakimi, Achraf": 1,
   "(MAR) Rahimi, Soufiane": 1,
   "(NED) Van Dijk, Virgil": 1,
+  "(NOR) Nusa, Antonio": 1,
   "(POR) Leão, Rafael": 1,
   "(POR) Leao, Rafael": 1,
   "(SCO) McGinn, John": 1,
@@ -1629,13 +1645,32 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(USA) Reyna, Giovanni": 1,
 };
 
-function GoalscorersTab({ users }: { users: UserProfile[] }) {
-  // Sort scorers by goals desc, then by FIFA ranking of their country (asc), then by player name
-  const sorted = [...GOAL_SCORERS_DATA].sort((a, b) =>
+function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Match[] }) {
+  // Compute eliminated teams: any team that lost a finished knockout match (including penalty loss)
+  const KO_ROUNDS = new Set(["Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final"]);
+  const eliminatedTeams = new Set<string>();
+  for (const m of matches) {
+    if (!KO_ROUNDS.has(m.round)) continue;
+    if (m.status !== "finished") continue;
+    if (m.homeScore === null || m.awayScore === null) continue;
+    if (m.homeScore > m.awayScore) eliminatedTeams.add(m.awayTeam);
+    else if (m.awayScore > m.homeScore) eliminatedTeams.add(m.homeTeam);
+    else {
+      // Tie → penalty winner advances, loser eliminated. If not set yet, neither is eliminated.
+      if (m.penaltyWinner === "home") eliminatedTeams.add(m.awayTeam);
+      else if (m.penaltyWinner === "away") eliminatedTeams.add(m.homeTeam);
+    }
+  }
+  const isElim = (country: string) => eliminatedTeams.has(country);
+
+  // Sort: goals desc → non-eliminated first → FIFA rank asc → player name
+  const cmp = (a: GoalScorer, b: GoalScorer) =>
     b.goals - a.goals
+    || (isElim(a.country) ? 1 : 0) - (isElim(b.country) ? 1 : 0)
     || getFifaRank(a.country) - getFifaRank(b.country)
-    || a.player.localeCompare(b.player)
-  );
+    || a.player.localeCompare(b.player);
+
+  const sorted = [...GOAL_SCORERS_DATA].sort(cmp);
   // Assign tie-aware positions (only goals tied → share position)
   const sortedWithPos: (GoalScorer & { pos: number })[] = [];
   {
@@ -1682,13 +1717,8 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
     topListSet.push({ ...sc }); // no pinned flag
   }
 
-  // Re-sort the combined list by goals desc → FIFA rank asc → player name
-  // so pinned players appear in the right spot by goals (not just appended at the end).
-  const topList = topListSet.sort((a, b) =>
-    b.goals - a.goals
-    || getFifaRank(a.country) - getFifaRank(b.country)
-    || a.player.localeCompare(b.player)
-  );
+  // Re-sort the combined list with the same rule (goals → eliminated last → FIFA → name)
+  const topList = topListSet.sort(cmp);
 
   // Build picks list: every user that has a topScorer pick (admins included or excluded? exclude admins)
   const picksList = users
@@ -1708,7 +1738,7 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
           ⚽ TOP GOLEADORES
         </h2>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Goleadores del Mundial 2026 — actualizado al 28 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
+          Goleadores del Mundial 2026 — actualizado al 30 de junio, 2026 · <span style={{ color: "var(--gold)" }}>📌 = jugador destacado</span>
         </p>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1734,7 +1764,17 @@ function GoalscorersTab({ users }: { users: UserProfile[] }) {
                     {sc.player}
                   </td>
                   <td style={{ ...s.td, textAlign: "left", color: "var(--text-muted)" }}>
-                    {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
+                    <span style={{ opacity: isElim(sc.country) ? 0.6 : 1 }}>
+                      {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
+                    </span>
+                    {isElim(sc.country) && (
+                      <span style={{
+                        marginLeft: 8, fontSize: 10, fontFamily: "'Rajdhani',sans-serif", fontWeight: 700,
+                        color: "var(--red)", background: "rgba(231,76,60,0.12)",
+                        border: "1px solid rgba(231,76,60,0.35)", borderRadius: 4,
+                        padding: "2px 6px", letterSpacing: "0.06em",
+                      }}>ELIMINADO</span>
+                    )}
                   </td>
                   <td style={{ ...s.td, fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: sc.goals > 0 ? "var(--text)" : "var(--text-muted)" }}>
                     {sc.goals}
