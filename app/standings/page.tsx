@@ -1464,12 +1464,12 @@ interface GoalScorer {
 const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 6 goals
   { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 6 },
+  { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 6 },
   // 5 goals
   { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 5 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
   { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 4 },
-  { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 4 },
   // 3 goals
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 3 },
   { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
@@ -1504,6 +1504,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Anthony Elanga", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Rubén Vargas", country: "Switzerland", code: "SUI", goals: 2 },
+  { player: "Bradley Barcola", country: "France", code: "FRA", goals: 2 },
   { player: "Folarin Balogun", country: "United States", code: "USA", goals: 2 },
   { player: "Maximiliano Araújo", country: "Uruguay", code: "URU", goals: 2 },
   // 1 goal (well-known players and all Colombians for display)
@@ -1527,7 +1528,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Mohamed Salah", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
-  { player: "Bradley Barcola", country: "France", code: "FRA", goals: 1 },
   { player: "Désiré Doué", country: "France", code: "FRA", goals: 1 },
   { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
   { player: "Leroy Sané", country: "Germany", code: "GER", goals: 1 },
@@ -1558,6 +1558,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
 const PICK_TO_GOALS: Record<string, number> = {
   // 6 goals
   "(ARG) Messi, Lionel": 6,
+  "(FRA) Mbappé, Kylian": 6,
+  "(FRA) Mbappe, Kylian": 6,
   // 5 goals
   "(NOR) Haaland, Erling Braut": 5,
   // 4 goals
@@ -1565,8 +1567,6 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(BRA) De Oliveira Junior, Vinicius": 4,
   "(FRA) Dembélé, Ousmane": 4,
   "(FRA) Dembele, Ousmane": 4,
-  "(FRA) Mbappé, Kylian": 4,
-  "(FRA) Mbappe, Kylian": 4,
   // 3 goals
   "(BRA) Cunha, Matheus": 3,
   "(CAN) David, Jonathan": 3,
@@ -1597,6 +1597,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(SWE) Elanga, Anthony": 2,
   "(SUI) Vargas, Ruben": 2,
   "(USA) Balogun, Folarin": 2,
+  "(FRA) Barcola, Bradley": 2,
   // 1 goal
   "(ALG) Gouiri, Amine": 1,
   "(ARG) Lautaro Martínez": 1,
@@ -1615,7 +1616,6 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(EGY) Salah, Mohamed": 1,
   "(EGY) Trezeguet": 1,
   "(ENG) Rashford, Marcus": 1,
-  "(FRA) Barcola, Bradley": 1,
   "(FRA) Doué, Désiré": 1,
   "(FRA) Doue, Desire": 1,
   "(GER) Musiala, Jamal": 1,
