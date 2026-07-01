@@ -6,8 +6,8 @@ export interface FifaEntry {
 }
 
 export const FIFA_RANKINGS: FifaEntry[] = [
-  { rank: 1, name: "Argentina", code: "ARG", pts: 1907.41 },
-  { rank: 2, name: "France", code: "FRA", pts: 1906.84 },
+  { rank: 1, name: "France", code: "FRA", pts: 1916.24 },
+  { rank: 2, name: "Argentina", code: "ARG", pts: 1907.41 },
   { rank: 3, name: "Spain", code: "ESP", pts: 1879.58 },
   { rank: 4, name: "England", code: "ENG", pts: 1840.46 },
   { rank: 5, name: "Brazil", code: "BRA", pts: 1804.92 },
