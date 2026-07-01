@@ -1466,6 +1466,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 6 },
   { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 6 },
   // 5 goals
+  { player: "Harry Kane", country: "England", code: "ENG", goals: 5 },
   { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 5 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
@@ -1474,7 +1475,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 3 },
   { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
   { player: "Yoane Wissa", country: "Congo DR", code: "COD", goals: 3 },
-  { player: "Harry Kane", country: "England", code: "ENG", goals: 3 },
   { player: "Kai Havertz", country: "Germany", code: "GER", goals: 3 },
   { player: "Deniz Undav", country: "Germany", code: "GER", goals: 3 },
   { player: "Ismael Saibari", country: "Morocco", code: "MAR", goals: 3 },
@@ -1571,7 +1571,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(BRA) Cunha, Matheus": 3,
   "(CAN) David, Jonathan": 3,
   "(COD) Wissa, Yoane": 3,
-  "(ENG) Kane, Harry": 3,
+  "(ENG) Kane, Harry": 5,
   "(GER) Havertz, Kai": 3,
   "(GER) Undav, Deniz": 3,
   "(MAR) Saibari, Ismael": 3,
