@@ -59,12 +59,15 @@ export default function DashboardPage() {
         const championDecided = !!settingsObj.champion;
         const topScorerDecided = !!settingsObj.topScorer;
 
-        // Compute eliminated teams: any team that LOST a finished knockout match (including penalty loss).
-        // Used to invalidate champion picks for Max Pts and show "ELIMINADO" badge.
+        // Compute eliminated teams: 
+        // (a) any team that LOST a finished knockout match (including penalty loss)
+        // (b) any team that played group stage but didn't advance to R32
         const KNOCKOUT_ROUNDS = new Set([
           "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
         ]);
         const elimSet = new Set<string>();
+
+        // (a) knockout losers
         for (const m of allMatches) {
           if (!KNOCKOUT_ROUNDS.has(m.round)) continue;
           if (m.status !== "finished") continue;
@@ -72,11 +75,23 @@ export default function DashboardPage() {
           if (m.homeScore > m.awayScore) elimSet.add(m.awayTeam);
           else if (m.awayScore > m.homeScore) elimSet.add(m.homeTeam);
           else {
-            // Tie — penalty winner advances, the loser is eliminated. If penaltyWinner not yet set, neither is eliminated.
             if (m.penaltyWinner === "home") elimSet.add(m.awayTeam);
             else if (m.penaltyWinner === "away") elimSet.add(m.homeTeam);
           }
         }
+
+        // (b) group-stage eliminated: only apply once the R32 bracket is fully set (16 matches)
+        const r32Matches = allMatches.filter(m => m.round === "Ronda de 32");
+        if (r32Matches.length >= 16) {
+          const r32Teams = new Set<string>();
+          for (const m of r32Matches) { r32Teams.add(m.homeTeam); r32Teams.add(m.awayTeam); }
+          for (const m of allMatches) {
+            if (!m.group) continue;
+            if (!r32Teams.has(m.homeTeam)) elimSet.add(m.homeTeam);
+            if (!r32Teams.has(m.awayTeam)) elimSet.add(m.awayTeam);
+          }
+        }
+
         setEliminatedTeams(elimSet);
 
         // Pre-compute live match IDs so we can exclude their picks from locked totals

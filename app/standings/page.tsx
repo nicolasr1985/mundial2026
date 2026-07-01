@@ -1646,9 +1646,13 @@ const PICK_TO_GOALS: Record<string, number> = {
 };
 
 function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Match[] }) {
-  // Compute eliminated teams: any team that lost a finished knockout match (including penalty loss)
+  // Compute eliminated teams:
+  // (a) Any team that lost a finished knockout match (including penalty loss)
+  // (b) Any team that played group stage but didn't advance to R32
   const KO_ROUNDS = new Set(["Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final"]);
   const eliminatedTeams = new Set<string>();
+
+  // (a) knockout losers
   for (const m of matches) {
     if (!KO_ROUNDS.has(m.round)) continue;
     if (m.status !== "finished") continue;
@@ -1656,11 +1660,23 @@ function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Mat
     if (m.homeScore > m.awayScore) eliminatedTeams.add(m.awayTeam);
     else if (m.awayScore > m.homeScore) eliminatedTeams.add(m.homeTeam);
     else {
-      // Tie → penalty winner advances, loser eliminated. If not set yet, neither is eliminated.
       if (m.penaltyWinner === "home") eliminatedTeams.add(m.awayTeam);
       else if (m.penaltyWinner === "away") eliminatedTeams.add(m.homeTeam);
     }
   }
+
+  // (b) group-stage eliminated: only apply once the R32 bracket is fully set (all 16 matches created)
+  const r32Matches = matches.filter(m => m.round === "Ronda de 32");
+  if (r32Matches.length >= 16) {
+    const r32Teams = new Set<string>();
+    for (const m of r32Matches) { r32Teams.add(m.homeTeam); r32Teams.add(m.awayTeam); }
+    for (const m of matches) {
+      if (!m.group) continue; // only look at group-stage matches
+      if (!r32Teams.has(m.homeTeam)) eliminatedTeams.add(m.homeTeam);
+      if (!r32Teams.has(m.awayTeam)) eliminatedTeams.add(m.awayTeam);
+    }
+  }
+
   const isElim = (country: string) => eliminatedTeams.has(country);
 
   // Sort: goals desc → non-eliminated first → FIFA rank asc → player name
