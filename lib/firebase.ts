@@ -76,6 +76,9 @@ export interface Match {
   group?: string;
   status: "upcoming" | "live" | "finished";
   locked: boolean;
+  penaltyWinner?: "home" | "away" | null;
+  penaltyHome?: number | null;
+  penaltyAway?: number | null;
 }
 
 export interface Pick {
@@ -185,9 +188,10 @@ export async function updateMatchResult(
   matchId: string,
   homeScore: number,
   awayScore: number,
-  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number }
+  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number },
+  penalties?: { winner: string | null; homeScore?: number | null; awayScore?: number | null }
 ) {
-  await updateDoc(doc(db, "matches", matchId), {
+  const payload: Record<string, unknown> = {
     homeScore,
     awayScore,
     status: "finished",
@@ -198,7 +202,13 @@ export async function updateMatchResult(
     awayRed: cards?.awayRed ?? 0,
     homeYellowRed: cards?.homeYellowRed ?? 0,
     awayYellowRed: cards?.awayYellowRed ?? 0,
-  });
+  };
+  if (penalties) {
+    payload.penaltyWinner = penalties.winner ?? null;
+    payload.penaltyHome = penalties.homeScore ?? null;
+    payload.penaltyAway = penalties.awayScore ?? null;
+  }
+  await updateDoc(doc(db, "matches", matchId), payload);
   await recalculatePicksForMatch(matchId, homeScore, awayScore);
 }
 
