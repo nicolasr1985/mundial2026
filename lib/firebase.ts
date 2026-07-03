@@ -27,7 +27,6 @@ import {
   Timestamp,
   onSnapshot,
 } from "firebase/firestore";
-import { computeGroupStandings } from "./group-standings-calc";
 
 // ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 // Reemplaza estos valores con los de tu proyecto Firebase
@@ -71,11 +70,6 @@ export interface Match {
   awayRed?: number;
   homeYellowRed?: number;  // indirect red (2nd yellow)
   awayYellowRed?: number;
-  // For knockout-round matches (R32 onwards): if the regular-time score is a draw,
-  // the winner on penalties advances. Scoring of picks is unaffected.
-  penaltyWinner?: "home" | "away" | null;
-  penaltyHome?: number | null;
-  penaltyAway?: number | null;
   matchDate: Timestamp;
   round: string;
   group?: string;
@@ -190,10 +184,9 @@ export async function updateMatchResult(
   matchId: string,
   homeScore: number,
   awayScore: number,
-  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number },
-  penalties?: { winner: string | null; homeScore?: number | null; awayScore?: number | null }
+  cards?: { homeYellow?: number; awayYellow?: number; homeRed?: number; awayRed?: number; homeYellowRed?: number; awayYellowRed?: number }
 ) {
-  const payload: Record<string, unknown> = {
+  await updateDoc(doc(db, "matches", matchId), {
     homeScore,
     awayScore,
     status: "finished",
@@ -204,14 +197,7 @@ export async function updateMatchResult(
     awayRed: cards?.awayRed ?? 0,
     homeYellowRed: cards?.homeYellowRed ?? 0,
     awayYellowRed: cards?.awayYellowRed ?? 0,
-  };
-  // Penalty info — only set when explicitly provided; null clears it
-  if (penalties) {
-    payload.penaltyWinner = penalties.winner ?? null;
-    payload.penaltyHome = penalties.homeScore ?? null;
-    payload.penaltyAway = penalties.awayScore ?? null;
-  }
-  await updateDoc(doc(db, "matches", matchId), payload);
+  });
   await recalculatePicksForMatch(matchId, homeScore, awayScore);
 }
 
@@ -266,7 +252,13 @@ export async function submitPick(
   awayScore: number
 ) {
   const match = await getDoc(doc(db, "matches", matchId));
-  if (match.data()?.locked) throw new Error("Este partido ya no acepta apuestas.");
+  const data = match.data();
+  if (data?.locked) throw new Error("Este partido ya no acepta apuestas.");
+  // Also reject if the match has already kicked off, even if admin never flipped `locked`
+  const kickoff = data?.matchDate?.toDate?.();
+  if (kickoff && new Date() >= kickoff) {
+    throw new Error("Este partido ya empezó — las apuestas están cerradas.");
+  }
 
   const existing = await getDocs(
     query(collection(db, "picks"), where("userId", "==", userId), where("matchId", "==", matchId))
@@ -321,6 +313,14 @@ async function recalculatePicksForMatch(
 
 // ─── STANDINGS DE GRUPO ───────────────────────────────────────────────────────
 export async function deletePick(userId: string, matchId: string): Promise<void> {
+  // Guard: cannot delete a pick after the match has kicked off or been locked
+  const match = await getDoc(doc(db, "matches", matchId));
+  const data = match.data();
+  if (data?.locked) throw new Error("Este partido ya no acepta cambios.");
+  const kickoff = data?.matchDate?.toDate?.();
+  if (kickoff && new Date() >= kickoff) {
+    throw new Error("Este partido ya empezó — no se puede eliminar la apuesta.");
+  }
   const existing = await getDocs(
     query(collection(db, "picks"), where("userId", "==", userId), where("matchId", "==", matchId))
   );
@@ -360,148 +360,23 @@ export async function getUserGroupPicks(userId: string): Promise<GroupPick[]> {
 
 export async function setGroupStanding(standing: Omit<GroupStanding, "id">) {
   await setDoc(doc(db, "groupStandings", standing.group), standing);
-  await recalculateGroupPicksFromMatchPicks({ id: standing.group, ...standing });
+  await recalculateGroupPicks(standing);
 }
 
-export async function getGroupStanding(group: string): Promise<GroupStanding | null> {
-  const snap = await getDoc(doc(db, "groupStandings", group));
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as GroupStanding) : null;
-}
-
-export async function getAllGroupStandings(): Promise<GroupStanding[]> {
-  const snap = await getDocs(collection(db, "groupStandings"));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as GroupStanding));
-}
-
-// Per-user breakdown returned by recalc
-export interface RecalcGroupResult {
-  group: string;
-  usersWithPicks: number;
-  totalUsers: number;
-  pointsAwarded: number;
-  userDetails: {
-    displayName: string;
-    predicted: { first: string; second: string; third: string };
-    points: number;
-    correct: { first: boolean; second: boolean; third: boolean };
-  }[];
-}
-
-// Derive each user's predicted group standings from their match picks,
-// compare to the official standing, and write group-bonus points to the groupPicks collection.
-async function recalculateGroupPicksFromMatchPicks(
-  standing: GroupStanding,
-  cache?: { users: UserProfile[]; allPicks: Pick[]; allMatches: Match[] }
-): Promise<RecalcGroupResult> {
-  // Include ALL users — admin is also a participant in this pool
-  const users = cache?.users ?? (await getAllUsers());
-  const allPicks = cache?.allPicks ?? (await getAllPicks());
-  const allMatches = cache?.allMatches ?? (await getMatches());
-
-  const groupMatches = allMatches.filter(m => m.group === standing.group);
-
-  // Existing groupPicks docs for this group (so we update rather than duplicate)
-  const existingSnap = await getDocs(
+async function recalculateGroupPicks(standing: Omit<GroupStanding, "id">) {
+  const picks = await getDocs(
     query(collection(db, "groupPicks"), where("group", "==", standing.group))
   );
-  const existingMap: Record<string, string> = {};
-  for (const d of existingSnap.docs) {
-    const data = d.data() as GroupPick;
-    existingMap[data.userId] = d.id;
-  }
-
-  const userDetails: RecalcGroupResult["userDetails"] = [];
-  let usersWithPicks = 0;
-  let pointsAwardedTotal = 0;
-
   const batch = writeBatch(db);
-
-  for (const u of users) {
-    // Picks this user made for matches in this group
-    const userPicks = allPicks.filter(p =>
-      p.userId === u.uid && groupMatches.some(m => m.id === p.matchId)
-    );
-    if (userPicks.length === 0) continue;
-
-    // Override official match scores with user's predictions to reconstruct their standings
-    const predicted: Match[] = groupMatches.map(m => {
-      const pick = userPicks.find(p => p.matchId === m.id);
-      if (!pick) return m;
-      return { ...m, homeScore: pick.homeScore, awayScore: pick.awayScore };
-    });
-
-    const standings = computeGroupStandings(predicted, predicted);
-    const table = standings[standing.group];
-    if (!table || table.length < 2) continue;
-
-    usersWithPicks++;
-
-    const firstPick = table[0]?.team ?? "";
-    const secondPick = table[1]?.team ?? "";
-    const thirdPick = table[2]?.team ?? "";
-
-    const correct = { first: false, second: false, third: false };
+  for (const d of picks.docs) {
+    const pick = d.data() as GroupPick;
     let pts = 0;
-    if (firstPick === standing.firstPlace) { pts++; correct.first = true; }
-    if (secondPick === standing.secondPlace) { pts++; correct.second = true; }
-    if (thirdPick && Array.isArray(standing.thirdPlaces) && standing.thirdPlaces.includes(thirdPick)) {
-      pts++; correct.third = true;
-    }
-    pointsAwardedTotal += pts;
-
-    userDetails.push({
-      displayName: u.displayName,
-      predicted: { first: firstPick, second: secondPick, third: thirdPick },
-      points: pts,
-      correct,
-    });
-
-    const payload: Record<string, unknown> = {
-      userId: u.uid,
-      group: standing.group,
-      firstPlace: firstPick,
-      secondPlace: secondPick,
-      thirdPlace: thirdPick,
-      points: pts,
-    };
-
-    const existingDocId = existingMap[u.uid];
-    if (existingDocId) {
-      batch.update(doc(db, "groupPicks", existingDocId), payload);
-    } else {
-      const newRef = doc(collection(db, "groupPicks"));
-      batch.set(newRef, { ...payload, createdAt: Timestamp.now() });
-    }
+    if (pick.firstPlace === standing.firstPlace) pts += 1;
+    if (pick.secondPlace === standing.secondPlace) pts += 1;
+    if (pick.thirdPlace && standing.thirdPlaces.includes(pick.thirdPlace)) pts += 1;
+    batch.update(doc(db, "groupPicks", d.id), { points: pts });
   }
-
   await batch.commit();
-
-  return {
-    group: standing.group,
-    usersWithPicks,
-    totalUsers: users.length,
-    pointsAwarded: pointsAwardedTotal,
-    userDetails,
-  };
-}
-
-// Recalculate group bonuses for every saved group standing (used by admin "Recalcular ahora")
-export async function recalculateAllGroupBonuses(): Promise<RecalcGroupResult[]> {
-  const standings = await getAllGroupStandings();
-  if (standings.length === 0) return [];
-
-  // Preload once for performance — include all users (admin is a participant too)
-  const users = await getAllUsers();
-  const allPicks = await getAllPicks();
-  const allMatches = await getMatches();
-  const cache = { users, allPicks, allMatches };
-
-  const results: RecalcGroupResult[] = [];
-  for (const standing of standings) {
-    const r = await recalculateGroupPicksFromMatchPicks(standing, cache);
-    results.push(r);
-  }
-  return results;
 }
 
 // ─── RANKING ──────────────────────────────────────────────────────────────────
@@ -549,7 +424,6 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
       const PHASES: [string, string][] = [
         ["Grupos", "Fase de Grupos"],
-        ["R32", "Ronda de 32"],
         ["Octavos", "Octavos de Final"],
         ["Cuartos", "Cuartos de Final"],
         ["Semis", "Semifinal"],
