@@ -560,6 +560,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
       const PHASES: [string, string][] = [
         ["Grupos", "Fase de Grupos"],
+        ["R32", "Ronda de 32"],
         ["Octavos", "Octavos de Final"],
         ["Cuartos", "Cuartos de Final"],
         ["Semis", "Semifinal"],

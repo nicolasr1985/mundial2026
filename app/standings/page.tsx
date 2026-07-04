@@ -1020,7 +1020,7 @@ export default function StandingsPage() {
       ) : activeTab === "thirds" ? (
         <ThirdsTab displayThirds={displayThirds} viewMode={viewMode} showRank={showRank} />
       ) : (
-        <R32Tab r32={displayR32} viewMode={viewMode} showRank={showRank} />
+        <R32Tab r32={displayR32} viewMode={viewMode} showRank={showRank} matches={matches} userPickMap={userPickMap} />
       )}
     </div>
   );
@@ -1162,7 +1162,13 @@ function ThirdsTab({ displayThirds, viewMode, showRank }: { displayThirds: (Team
 }
 
 // ─── R32 TAB — VISUAL BRACKET ────────────────────────────────────────────────
-function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string; showRank: boolean }) {
+function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
+  r32: R32Match[];
+  viewMode: string;
+  showRank: boolean;
+  matches: Match[];
+  userPickMap: Record<string, { homeScore: number; awayScore: number }>;
+}) {
   const bySlot: Record<string, R32Match> = Object.fromEntries(r32.map(m => [m.slot, m]));
 
   const leftSlots  = ["R32-1","R32-2","R32-3","R32-4","R32-5","R32-6","R32-7","R32-8"];
@@ -1176,19 +1182,74 @@ function R32Tab({ r32, viewMode, showRank }: { r32: R32Match[]; viewMode: string
   ];
   const leftOctSlots: string[] = [];
   const rightOctSlots: string[] = [];
+  const octavosMatches = matches.filter(m => m.round === "Octavos de Final");
   octPairs.forEach(([aKey, bKey], idx) => {
     const a = bySlot[aKey];
     const b = bySlot[bKey];
     const octKey = `OCT-${idx + 1}`;
+    const homeTeam = a?.realWinner;
+    const awayTeam = b?.realWinner;
+
+    // Try to find the actual Octavos match in Firestore and enrich with real score / user pick
+    let displayHs: number | null | undefined = undefined;
+    let displayAs: number | null | undefined = undefined;
+    let realWinner: string | undefined;
+    let isFinished = false;
+    let wonOnPenalties = false;
+    let penHome: number | null | undefined;
+    let penAway: number | null | undefined;
+
+    if (homeTeam && awayTeam) {
+      const actual = octavosMatches.find(m =>
+        (m.homeTeam === homeTeam && m.awayTeam === awayTeam) ||
+        (m.homeTeam === awayTeam && m.awayTeam === homeTeam)
+      );
+      if (actual) {
+        const sameOrder = actual.homeTeam === homeTeam;
+        const realHs = actual.homeScore;
+        const realAs = actual.awayScore;
+        isFinished = actual.status === "finished" && realHs !== null && realAs !== null;
+        if (isFinished && realHs !== null && realAs !== null) {
+          if (realHs > realAs) realWinner = actual.homeTeam;
+          else if (realHs < realAs) realWinner = actual.awayTeam;
+          else if (actual.penaltyWinner === "home") realWinner = actual.homeTeam;
+          else if (actual.penaltyWinner === "away") realWinner = actual.awayTeam;
+          wonOnPenalties = realHs === realAs && !!actual.penaltyWinner;
+        }
+        if (viewMode === "real") {
+          displayHs = sameOrder ? realHs : realAs;
+          displayAs = sameOrder ? realAs : realHs;
+          penHome = sameOrder ? actual.penaltyHome : actual.penaltyAway;
+          penAway = sameOrder ? actual.penaltyAway : actual.penaltyHome;
+        } else {
+          const pick = userPickMap[actual.id];
+          if (pick) {
+            const ph = Number(pick.homeScore);
+            const pa = Number(pick.awayScore);
+            if (!isNaN(ph) && !isNaN(pa)) {
+              displayHs = sameOrder ? ph : pa;
+              displayAs = sameOrder ? pa : ph;
+            }
+          }
+        }
+      }
+    }
+
     bySlot[octKey] = {
       slot: octKey,
       homeDesc: `Ganador ${aKey}`,
       awayDesc: `Ganador ${bKey}`,
-      homeTeam: a?.realWinner,
-      awayTeam: b?.realWinner,
-      // Treat as "confirmed" (gold) once the winner is locked in
-      homeGroupDone: !!a?.realWinner,
-      awayGroupDone: !!b?.realWinner,
+      homeTeam,
+      awayTeam,
+      homeGroupDone: !!homeTeam,
+      awayGroupDone: !!awayTeam,
+      displayHomeScore: displayHs,
+      displayAwayScore: displayAs,
+      realWinner,
+      isFinished,
+      wonOnPenalties,
+      penaltyHome: penHome,
+      penaltyAway: penAway,
     };
     if (idx < 4) leftOctSlots.push(octKey); else rightOctSlots.push(octKey);
   });
