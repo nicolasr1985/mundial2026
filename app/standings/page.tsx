@@ -1523,8 +1523,9 @@ interface GoalScorer {
 }
 
 const GOAL_SCORERS_DATA: GoalScorer[] = [
+  // 7 goals
+  { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 7 },
   // 6 goals
-  { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 6 },
   { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 6 },
   // 5 goals
   { player: "Harry Kane", country: "England", code: "ENG", goals: 5 },
@@ -1619,8 +1620,9 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
 // Maps a user's topScorer pick string (format: "(CODE) Lastname, Firstname") to current goals.
 // Some players have multiple pick spellings in WC2026_SCORERS — we map all variants.
 const PICK_TO_GOALS: Record<string, number> = {
+  // 7 goals
+  "(ARG) Messi, Lionel": 7,
   // 6 goals
-  "(ARG) Messi, Lionel": 6,
   "(FRA) Mbappé, Kylian": 6,
   "(FRA) Mbappe, Kylian": 6,
   // 5 goals
