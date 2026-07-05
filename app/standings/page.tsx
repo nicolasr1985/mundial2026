@@ -1585,6 +1585,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Casemiro", country: "Brazil", code: "BRA", goals: 1 },
   { player: "Gabriel Martinelli", country: "Brazil", code: "BRA", goals: 1 },
   { player: "Promise David", country: "Canada", code: "CAN", goals: 1 },
+  { player: "Jhon Arias", country: "Colombia", code: "COL", goals: 1 },
   { player: "Jaminton Campaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Luis Díaz", country: "Colombia", code: "COL", goals: 1 },
   { player: "Ante Budimir", country: "Croatia", code: "CRO", goals: 1 },
