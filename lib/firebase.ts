@@ -255,6 +255,23 @@ export async function resetMatch(matchId: string) {
   await batch.commit();
 }
 
+// Revert a finished match back to "live": keeps scores/locked, clears penaltyWinner and resets pick points to null.
+export async function revertMatchToLive(matchId: string) {
+  await updateDoc(doc(db, "matches", matchId), {
+    status: "live",
+    penaltyWinner: null,
+  });
+  // Reset pts on picks so nothing counts until the score is re-saved as finished
+  const picks = await getDocs(
+    query(collection(db, "picks"), where("matchId", "==", matchId))
+  );
+  const batch = writeBatch(db);
+  for (const d of picks.docs) {
+    batch.update(doc(db, "picks", d.id), { points: null });
+  }
+  await batch.commit();
+}
+
 // ─── APUESTAS ─────────────────────────────────────────────────────────────────
 export async function submitPick(
   userId: string,

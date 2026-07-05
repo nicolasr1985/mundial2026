@@ -7,7 +7,7 @@ import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { useAuth } from "@/lib/auth-context";
 import {
-  getMatches, createMatch, updateMatchResult, updateLiveMatchResult, lockMatch, resetMatch, getAllPicks, updateUserProfile, setUserPaid,
+  getMatches, createMatch, updateMatchResult, updateLiveMatchResult, lockMatch, resetMatch, revertMatchToLive, getAllPicks, updateUserProfile, setUserPaid,
   setGroupStanding, getGroupStanding, recalculateAllGroupBonuses, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry, RecalcGroupResult
 } from "@/lib/firebase";
@@ -284,6 +284,30 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
     setTimeout(() => { onUpdated(); setMsgs((m) => { const n = { ...m }; delete n[matchId]; return n; }); }, 1500);
   };
 
+  // Revert match: live → upcoming (uses resetMatch which clears scores + reopens bets)
+  const handleRevertToUpcoming = async (match: Match) => {
+    if (!window.confirm(`¿Devolver ${match.homeTeam} vs ${match.awayTeam} a Próximos? Se reabrirán las apuestas y se borrarán los marcadores ingresados en vivo.`)) return;
+    setSaving(match.id);
+    try {
+      await resetMatch(match.id);
+      setMsgs((m) => ({ ...m, [match.id]: "↩ Devuelto a Próximos" }));
+      onUpdated();
+    } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
+    finally { setSaving(null); setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 3000); }
+  };
+
+  // Revert match: finished → live (keeps score, clears penalty winner, resets picks pts)
+  const handleRevertToLive = async (match: Match) => {
+    if (!window.confirm(`¿Devolver ${match.homeTeam} vs ${match.awayTeam} a "En Juego"? El marcador se conserva pero se anulan los puntos calculados y el ganador por penales.`)) return;
+    setSaving(match.id);
+    try {
+      await revertMatchToLive(match.id);
+      setMsgs((m) => ({ ...m, [match.id]: "↩ Devuelto a En Juego" }));
+      onUpdated();
+    } catch { setMsgs((m) => ({ ...m, [match.id]: "❌ Error" })); }
+    finally { setSaving(null); setTimeout(() => setMsgs((m) => { const n = { ...m }; delete n[match.id]; return n; }), 3000); }
+  };
+
   const handleResult = async (match: Match) => {
     const scRaw = scores[match.id];
     const sc = scRaw || {
@@ -444,11 +468,31 @@ function ResultsTab({ matches, onUpdated }: { matches: Match[]; onUpdated: () =>
                   </div>
                 </div>
 
-                {/* Lock button for non-finished */}
-                {!isFinished && (
+                {/* Lock button for non-finished (upcoming only, live matches already locked) */}
+                {effectiveStatus(match) === "upcoming" && (
                   <button className="btn-ghost" onClick={() => handleLock(match.id)}
                     style={{ fontSize: 12, padding: "6px 12px" }}>
                     🔒 Cerrar apuestas
+                  </button>
+                )}
+
+                {/* Revert live → upcoming */}
+                {effectiveStatus(match) === "live" && (
+                  <button className="btn-ghost" onClick={() => handleRevertToUpcoming(match)}
+                    disabled={saving === match.id}
+                    style={{ fontSize: 12, padding: "6px 12px", color: "var(--text-muted)" }}
+                    title="Reabre las apuestas y borra el marcador">
+                    ↩ Volver a Próximos
+                  </button>
+                )}
+
+                {/* Revert finished → live */}
+                {isFinished && (
+                  <button className="btn-ghost" onClick={() => handleRevertToLive(match)}
+                    disabled={saving === match.id}
+                    style={{ fontSize: 12, padding: "6px 12px", color: "var(--text-muted)" }}
+                    title="Devuelve el partido a En Juego (conserva el marcador)">
+                    ↩ Volver a En Juego
                   </button>
                 )}
 
