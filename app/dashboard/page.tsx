@@ -483,8 +483,8 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
                 ? <th key="bono" className="phase-col" style={{ ...th, color: "var(--gold)" }} title="Clasificación de grupos + Campeón + Goleador"><span className="phase-label">Bono</span></th>
                 : <th key={col} className="phase-col" style={th} title={col}><span className="phase-label">{PHASE_LABEL[col] ?? col}</span></th>
             )}
-            <th style={{ ...th, color: "var(--gold)", fontWeight: 700 }}>Total</th>
-            <th style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}>Max Pts</th>
+            <th className="phase-col" style={{ ...th, color: "var(--gold)", fontWeight: 700 }}><span className="phase-label">Total</span></th>
+            <th className="phase-col" style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}><span className="phase-label">Max Pts</span></th>
             {showPaid && <th style={{ ...th, color: "var(--green)" }}>💰 Pago</th>}
           </tr>
         </thead>
