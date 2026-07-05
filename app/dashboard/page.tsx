@@ -379,6 +379,16 @@ export default function DashboardPage() {
 
 
 const PHASE_ORDER = ["Grupos", "R32", "Octavos", "Cuartos", "Semis", "Final", "3er Puesto"];
+const PHASE_LABEL: Record<string, string> = {
+  "Grupos": "Grp",
+  "R32": "R32",
+  "Octavos": "R16",
+  "Cuartos": "QF",
+  "Semis": "SF",
+  "Final": "Final",
+  "3er Puesto": "3rd",
+  "Bono": "Bono",
+};
 
 function tieScore(e: RankingEntry): string {
   return `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
@@ -451,15 +461,27 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 400 }}>
+      <style>{`
+        .rank-table th.phase-col { padding-left: 8px; padding-right: 8px; }
+        @media (max-width: 640px) {
+          .rank-table th.phase-col { padding-left: 4px; padding-right: 4px; height: 68px; vertical-align: bottom; }
+          .rank-table th.phase-col .phase-label {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            display: inline-block;
+            line-height: 1;
+          }
+        }
+      `}</style>
+      <table className="rank-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 400 }}>
         <thead>
           <tr>
             <th style={{ ...th, textAlign: "left", paddingLeft: 14, width: 36 }}>#</th>
             <th style={{ ...th, textAlign: "left" }}>Participante</th>
             {phaseColumns.map(col =>
               col === "Bono"
-                ? <th key="bono" style={{ ...th, color: "var(--gold)" }} title="Clasificación de grupos + Campeón + Goleador">Bono</th>
-                : <th key={col} style={th}>{col}</th>
+                ? <th key="bono" className="phase-col" style={{ ...th, color: "var(--gold)" }} title="Clasificación de grupos + Campeón + Goleador"><span className="phase-label">Bono</span></th>
+                : <th key={col} className="phase-col" style={th} title={col}><span className="phase-label">{PHASE_LABEL[col] ?? col}</span></th>
             )}
             <th style={{ ...th, color: "var(--gold)", fontWeight: 700 }}>Total</th>
             <th style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}>Max Pts</th>
