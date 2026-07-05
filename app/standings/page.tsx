@@ -1525,8 +1525,7 @@ interface GoalScorer {
 const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 7 goals
   { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 7 },
-  // 6 goals
-  { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 6 },
+  { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 7 },
   // 5 goals
   { player: "Harry Kane", country: "England", code: "ENG", goals: 5 },
   { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 5 },
@@ -1565,6 +1564,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Daichi Kamada", country: "Japan", code: "JPN", goals: 2 },
   { player: "Ayase Ueda", country: "Japan", code: "JPN", goals: 2 },
   { player: "Raúl Jiménez", country: "Mexico", code: "MEX", goals: 2 },
+  { player: "Azzedine Ounahi", country: "Morocco", code: "MAR", goals: 2 },
+  { player: "Soufiane Rahimi", country: "Morocco", code: "MAR", goals: 2 },
   { player: "Crysencio Summerville", country: "Netherlands", code: "NED", goals: 2 },
   { player: "Pape Gueye", country: "Senegal", code: "SEN", goals: 2 },
   { player: "Habib Diarra", country: "Senegal", code: "SEN", goals: 2 },
@@ -1601,7 +1602,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Daizen Maeda", country: "Japan", code: "JPN", goals: 1 },
   { player: "Musa Al-Taamari", country: "Jordan", code: "JOR", goals: 1 },
   { player: "Achraf Hakimi", country: "Morocco", code: "MAR", goals: 1 },
-  { player: "Soufiane Rahimi", country: "Morocco", code: "MAR", goals: 1 },
   { player: "Virgil van Dijk", country: "Netherlands", code: "NED", goals: 1 },
   { player: "Antonio Nusa", country: "Norway", code: "NOR", goals: 1 },
   { player: "Rafael Leão", country: "Portugal", code: "POR", goals: 1 },
@@ -1622,9 +1622,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
 const PICK_TO_GOALS: Record<string, number> = {
   // 7 goals
   "(ARG) Messi, Lionel": 7,
-  // 6 goals
-  "(FRA) Mbappé, Kylian": 6,
-  "(FRA) Mbappe, Kylian": 6,
+  "(FRA) Mbappé, Kylian": 7,
+  "(FRA) Mbappe, Kylian": 7,
   // 5 goals
   "(NOR) Haaland, Erling Braut": 5,
   // 4 goals
@@ -1692,7 +1691,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(MEX) Raúl Jiménez": 2,
   "(MEX) Jimenez, Raul": 2,
   "(MAR) Hakimi, Achraf": 1,
-  "(MAR) Rahimi, Soufiane": 1,
+  "(MAR) Rahimi, Soufiane": 2,
   "(NED) Van Dijk, Virgil": 1,
   "(NOR) Nusa, Antonio": 1,
   "(POR) Leão, Rafael": 1,
