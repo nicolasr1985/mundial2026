@@ -1603,9 +1603,9 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 7 goals
   { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 7 },
   { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 7 },
+  { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 7 },
   // 5 goals
   { player: "Harry Kane", country: "England", code: "ENG", goals: 5 },
-  { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 5 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
   { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 4 },
@@ -1661,6 +1661,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Kerim Alajbegović", country: "Bosnia and Herzegovina", code: "BIH", goals: 1 },
   { player: "Casemiro", country: "Brazil", code: "BRA", goals: 1 },
   { player: "Gabriel Martinelli", country: "Brazil", code: "BRA", goals: 1 },
+  { player: "Neymar", country: "Brazil", code: "BRA", goals: 1 },
   { player: "Promise David", country: "Canada", code: "CAN", goals: 1 },
   { player: "Jhon Arias", country: "Colombia", code: "COL", goals: 1 },
   { player: "Jaminton Campaz", country: "Colombia", code: "COL", goals: 1 },
@@ -1703,7 +1704,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(FRA) Mbappé, Kylian": 7,
   "(FRA) Mbappe, Kylian": 7,
   // 5 goals
-  "(NOR) Haaland, Erling Braut": 5,
+  "(NOR) Haaland, Erling Braut": 7,
   // 4 goals
   "(BRA) Vinicius Jr.": 4,
   "(BRA) De Oliveira Junior, Vinicius": 4,
