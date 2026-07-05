@@ -1254,6 +1254,83 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
     if (idx < 4) leftOctSlots.push(octKey); else rightOctSlots.push(octKey);
   });
 
+  // Build Cuartos pseudo-slots from Octavos winners: (OCT-1,OCT-2)→CUA-1, etc.
+  const cuaPairs: [string, string][] = [
+    ["OCT-1", "OCT-2"], ["OCT-3", "OCT-4"], ["OCT-5", "OCT-6"], ["OCT-7", "OCT-8"],
+  ];
+  const leftCuaSlots: string[] = [];
+  const rightCuaSlots: string[] = [];
+  const cuartosMatches = matches.filter(m => m.round === "Cuartos de Final");
+  cuaPairs.forEach(([aKey, bKey], idx) => {
+    const a = bySlot[aKey];
+    const b = bySlot[bKey];
+    const cuaKey = `CUA-${idx + 1}`;
+    const homeTeam = a?.realWinner;
+    const awayTeam = b?.realWinner;
+
+    let displayHs: number | null | undefined = undefined;
+    let displayAs: number | null | undefined = undefined;
+    let realWinner: string | undefined;
+    let isFinished = false;
+    let wonOnPenalties = false;
+    let penHome: number | null | undefined;
+    let penAway: number | null | undefined;
+
+    if (homeTeam && awayTeam) {
+      const actual = cuartosMatches.find(m =>
+        (m.homeTeam === homeTeam && m.awayTeam === awayTeam) ||
+        (m.homeTeam === awayTeam && m.awayTeam === homeTeam)
+      );
+      if (actual) {
+        const sameOrder = actual.homeTeam === homeTeam;
+        const realHs = actual.homeScore;
+        const realAs = actual.awayScore;
+        isFinished = actual.status === "finished" && realHs !== null && realAs !== null;
+        if (isFinished && realHs !== null && realAs !== null) {
+          if (realHs > realAs) realWinner = actual.homeTeam;
+          else if (realHs < realAs) realWinner = actual.awayTeam;
+          else if (actual.penaltyWinner === "home") realWinner = actual.homeTeam;
+          else if (actual.penaltyWinner === "away") realWinner = actual.awayTeam;
+          wonOnPenalties = realHs === realAs && !!actual.penaltyWinner;
+        }
+        if (viewMode === "real") {
+          displayHs = sameOrder ? realHs : realAs;
+          displayAs = sameOrder ? realAs : realHs;
+          penHome = sameOrder ? actual.penaltyHome : actual.penaltyAway;
+          penAway = sameOrder ? actual.penaltyAway : actual.penaltyHome;
+        } else {
+          const pick = userPickMap[actual.id];
+          if (pick) {
+            const ph = Number(pick.homeScore);
+            const pa = Number(pick.awayScore);
+            if (!isNaN(ph) && !isNaN(pa)) {
+              displayHs = sameOrder ? ph : pa;
+              displayAs = sameOrder ? pa : ph;
+            }
+          }
+        }
+      }
+    }
+
+    bySlot[cuaKey] = {
+      slot: cuaKey,
+      homeDesc: `Ganador ${aKey}`,
+      awayDesc: `Ganador ${bKey}`,
+      homeTeam,
+      awayTeam,
+      homeGroupDone: !!homeTeam,
+      awayGroupDone: !!awayTeam,
+      displayHomeScore: displayHs,
+      displayAwayScore: displayAs,
+      realWinner,
+      isFinished,
+      wonOnPenalties,
+      penaltyHome: penHome,
+      penaltyAway: penAway,
+    };
+    if (idx < 2) leftCuaSlots.push(cuaKey); else rightCuaSlots.push(cuaKey);
+  });
+
   return (
     <div>
       {/* Legend */}
@@ -1277,7 +1354,7 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
           <BracketConnectors count={2} />
 
           {/* LEFT QF */}
-          <BracketRound title="Cuartos" slots={[]} bySlot={bySlot} count={2} tbd />
+          <BracketRound title="Cuartos" slots={leftCuaSlots} bySlot={bySlot} count={2} showRank={showRank} />
           <BracketConnectors count={1} />
 
           {/* SEMI LEFT */}
@@ -1301,7 +1378,7 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
           <BracketConnectors count={1} />
 
           {/* RIGHT QF */}
-          <BracketRound title="Cuartos" slots={[]} bySlot={bySlot} count={2} tbd />
+          <BracketRound title="Cuartos" slots={rightCuaSlots} bySlot={bySlot} count={2} showRank={showRank} />
           <BracketConnectors count={2} />
 
           {/* RIGHT R16 */}
