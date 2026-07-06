@@ -9,7 +9,7 @@ export const FIFA_RANKINGS: FifaEntry[] = [
   { rank: 1, name: "France", code: "FRA", pts: 1925.86 },
   { rank: 2, name: "Argentina", code: "ARG", pts: 1913.72 },
   { rank: 3, name: "Spain", code: "ESP", pts: 1892.28 },
-  { rank: 4, name: "England", code: "ENG", pts: 1850.97 },
+  { rank: 4, name: "England", code: "ENG", pts: 1871.39 },
   { rank: 5, name: "Brazil", code: "BRA", pts: 1804.92 },
   { rank: 6, name: "Morocco", code: "MAR", pts: 1803.99 },
   { rank: 7, name: "Portugal", code: "POR", pts: 1787.86 },
