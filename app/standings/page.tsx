@@ -1686,6 +1686,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Rafael Leão", country: "Portugal", code: "POR", goals: 1 },
   { player: "John McGinn", country: "Scotland", code: "SCO", goals: 1 },
   { player: "Iliman Ndiaye", country: "Senegal", code: "SEN", goals: 1 },
+  { player: "Mikel Merino", country: "Spain", code: "ESP", goals: 1 },
   { player: "Lamine Yamal", country: "Spain", code: "ESP", goals: 1 },
   { player: "Viktor Gyökeres", country: "Sweden", code: "SWE", goals: 1 },
   { player: "Alexander Isak", country: "Sweden", code: "SWE", goals: 1 },
