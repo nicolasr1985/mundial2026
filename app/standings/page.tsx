@@ -1879,9 +1879,9 @@ function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Mat
   // Re-sort the combined list with the same rule (goals → eliminated last → FIFA → name)
   const topList = topListSet.sort(cmp);
 
-  // Build picks list: every user that has a topScorer pick (admins included or excluded? exclude admins)
+  // Build picks list: every user that has a topScorer pick (admins included — admin is also a participant)
   const picksList = users
-    .filter(u => !u.isAdmin && u.topScorer)
+    .filter(u => u.topScorer)
     .map(u => ({
       displayName: u.displayName,
       pick: u.topScorer as string,
