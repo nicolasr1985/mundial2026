@@ -983,7 +983,7 @@ export default function StandingsPage() {
         {([
           { id: "groups", label: "📋 Grupos" },
           { id: "thirds", label: "🏅 Tabla de Terceros" },
-          { id: "r32", label: "⚔️ Ronda de 32" },
+          { id: "r32", label: "⚔️ Bracket" },
           { id: "fifa", label: "🌍 Ranking FIFA" },
           { id: "scorers", label: "⚽ Goleadores" },
         ] as const).map((t) => (
@@ -1457,10 +1457,9 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
           <BracketRound title="Semifinal" slots={semiSlots} bySlot={bySlot} count={2} showRank={showRank} />
           <BracketConnectors count={1} />
 
-          {/* FINAL column: Final centered vertically, 3er Puesto pushed to bottom */}
-          <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 140, flex: "0 0 auto" }}>
-            <div style={{ flex: 1 }} />
-            <div>
+          {/* FINAL column: Final at exact vertical center (aligned between semis), 3er Puesto at 75% */}
+          <div style={{ position: "relative", width: "max-content", minWidth: 140, flex: "0 0 auto", alignSelf: "stretch" }}>
+            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, transform: "translateY(-50%)" }}>
               <div style={rStyle.roundTitle as React.CSSProperties}>
                 <span style={{ color: "var(--gold)" }}>Final</span>
               </div>
@@ -1468,8 +1467,7 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
                 <BracketMatch homeM={bySlot["FINAL"]} awayM={bySlot["FINAL"]} showRank={showRank} />
               </div>
             </div>
-            <div style={{ flex: 1 }} />
-            <div>
+            <div style={{ position: "absolute", top: "75%", left: 0, right: 0, transform: "translateY(-50%)" }}>
               <div style={rStyle.roundTitle as React.CSSProperties}>3er Puesto</div>
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "4px 0" }}>
                 <BracketMatch homeM={bySlot["TERCERO"]} awayM={bySlot["TERCERO"]} showRank={showRank} />
