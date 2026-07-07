@@ -1457,8 +1457,9 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
           <BracketRound title="Semifinal" slots={semiSlots} bySlot={bySlot} count={2} showRank={showRank} />
           <BracketConnectors count={1} />
 
-          {/* FINAL column with 3er Puesto below */}
-          <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 140, flex: "0 0 auto", justifyContent: "space-around", gap: 12 }}>
+          {/* FINAL column: Final centered vertically, 3er Puesto pushed to bottom */}
+          <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 140, flex: "0 0 auto" }}>
+            <div style={{ flex: 1 }} />
             <div>
               <div style={rStyle.roundTitle as React.CSSProperties}>
                 <span style={{ color: "var(--gold)" }}>Final</span>
@@ -1467,6 +1468,7 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
                 <BracketMatch homeM={bySlot["FINAL"]} awayM={bySlot["FINAL"]} showRank={showRank} />
               </div>
             </div>
+            <div style={{ flex: 1 }} />
             <div>
               <div style={rStyle.roundTitle as React.CSSProperties}>3er Puesto</div>
               <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "4px 0" }}>
