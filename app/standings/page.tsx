@@ -1622,7 +1622,7 @@ function BracketRound({ title, slots, bySlot, count, tbd, showRank, compactMode 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 100, flex: "0 0 auto" }}>
       <div style={rStyle.roundTitle as React.CSSProperties}>{title}</div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: compactMode ? "center" : "space-around", gap: 6, padding: "4px 0", transition: "gap 0.25s ease" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: compactMode ? "center" : "space-around", gap: compactMode ? Math.max(6, Math.round(160 / count)) : 6, padding: "4px 0", transition: "gap 0.25s ease" }}>
         {items.map(({ slot, m }, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {m ? (
