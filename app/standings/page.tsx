@@ -1466,7 +1466,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
         fontWeight: homeIsWinner ? 700 : (homeConfirmed ? 700 : 400),
         background: homeIsWinner ? "rgba(46,204,113,0.08)" : "var(--surface2)",
       }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+        <span style={{ whiteSpace: "nowrap", flex: 1 }}>
           {homeLabel}
         </span>
         {hasScores && (
@@ -1484,7 +1484,7 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
         fontWeight: awayIsWinner ? 700 : (awayConfirmed ? 700 : 400),
         background: awayIsWinner ? "rgba(46,204,113,0.08)" : "var(--surface2)",
       }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+        <span style={{ whiteSpace: "nowrap", flex: 1 }}>
           {awayLabel}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
@@ -1513,7 +1513,7 @@ function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minWidth: 202, flex: "0 0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 100, flex: "0 0 auto" }}>
       <div style={rStyle.roundTitle as React.CSSProperties}>{title}</div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-around", gap: 4, padding: "4px 0" }}>
         {items.map(({ slot, m }, i) => (
