@@ -1331,6 +1331,106 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
     if (idx < 2) leftCuaSlots.push(cuaKey); else rightCuaSlots.push(cuaKey);
   });
 
+  // ─── Helper: enrich a paired-round slot with actual Firestore match + user pick ───
+  const enrichPairedSlot = (
+    aKey: string, bKey: string, slotKey: string, roundStr: string,
+    homeTeamIn?: string, awayTeamIn?: string
+  ): R32Match => {
+    const homeTeam = homeTeamIn;
+    const awayTeam = awayTeamIn;
+    let displayHs: number | null | undefined;
+    let displayAs: number | null | undefined;
+    let realWinner: string | undefined;
+    let isFinished = false;
+    let wonOnPenalties = false;
+    let penHome: number | null | undefined;
+    let penAway: number | null | undefined;
+
+    if (homeTeam && awayTeam) {
+      const roundMatches = matches.filter(m => m.round === roundStr);
+      const actual = roundMatches.find(m =>
+        (m.homeTeam === homeTeam && m.awayTeam === awayTeam) ||
+        (m.homeTeam === awayTeam && m.awayTeam === homeTeam)
+      );
+      if (actual) {
+        const sameOrder = actual.homeTeam === homeTeam;
+        const realHs = actual.homeScore;
+        const realAs = actual.awayScore;
+        isFinished = actual.status === "finished" && realHs !== null && realAs !== null;
+        if (isFinished && realHs !== null && realAs !== null) {
+          if (realHs > realAs) realWinner = actual.homeTeam;
+          else if (realHs < realAs) realWinner = actual.awayTeam;
+          else if (actual.penaltyWinner === "home") realWinner = actual.homeTeam;
+          else if (actual.penaltyWinner === "away") realWinner = actual.awayTeam;
+          wonOnPenalties = realHs === realAs && !!actual.penaltyWinner;
+        }
+        if (viewMode === "real") {
+          displayHs = sameOrder ? realHs : realAs;
+          displayAs = sameOrder ? realAs : realHs;
+          penHome = sameOrder ? actual.penaltyHome : actual.penaltyAway;
+          penAway = sameOrder ? actual.penaltyAway : actual.penaltyHome;
+        } else {
+          const pick = userPickMap[actual.id];
+          if (pick) {
+            const ph = Number(pick.homeScore);
+            const pa = Number(pick.awayScore);
+            if (!isNaN(ph) && !isNaN(pa)) {
+              displayHs = sameOrder ? ph : pa;
+              displayAs = sameOrder ? pa : ph;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      slot: slotKey,
+      homeDesc: `Ganador ${aKey}`,
+      awayDesc: `Ganador ${bKey}`,
+      homeTeam,
+      awayTeam,
+      homeGroupDone: !!homeTeam,
+      awayGroupDone: !!awayTeam,
+      displayHomeScore: displayHs,
+      displayAwayScore: displayAs,
+      realWinner,
+      isFinished,
+      wonOnPenalties,
+      penaltyHome: penHome,
+      penaltyAway: penAway,
+    };
+  };
+
+  // Semi: (CUA-1,CUA-2)→SEMI-1, (CUA-3,CUA-4)→SEMI-2
+  const semiPairs: [string, string][] = [["CUA-1", "CUA-2"], ["CUA-3", "CUA-4"]];
+  const semiSlots: string[] = [];
+  semiPairs.forEach(([aKey, bKey], idx) => {
+    const a = bySlot[aKey];
+    const b = bySlot[bKey];
+    const semiKey = `SEMI-${idx + 1}`;
+    bySlot[semiKey] = enrichPairedSlot(aKey, bKey, semiKey, "Semifinal", a?.realWinner, b?.realWinner);
+    semiSlots.push(semiKey);
+  });
+
+  // Final: SEMI-1 winner vs SEMI-2 winner
+  const s1 = bySlot["SEMI-1"];
+  const s2 = bySlot["SEMI-2"];
+  bySlot["FINAL"] = enrichPairedSlot("SEMI-1", "SEMI-2", "FINAL", "Final", s1?.realWinner, s2?.realWinner);
+
+  // Tercer Puesto: SEMI-1 loser vs SEMI-2 loser
+  const semiLoser = (s: R32Match | undefined): string | undefined => {
+    if (!s?.realWinner || !s.homeTeam || !s.awayTeam) return undefined;
+    return s.realWinner === s.homeTeam ? s.awayTeam : s.homeTeam;
+  };
+  bySlot["TERCERO"] = enrichPairedSlot("SEMI-1", "SEMI-2", "TERCERO", "Tercer Puesto", semiLoser(s1), semiLoser(s2));
+  bySlot["TERCERO"].homeDesc = "Perdedor SEMI-1";
+  bySlot["TERCERO"].awayDesc = "Perdedor SEMI-2";
+
+  // Combined slot arrays for linear left-to-right layout
+  const allR32Slots  = [...leftSlots, ...rightSlots];
+  const allOctSlots  = [...leftOctSlots, ...rightOctSlots];
+  const allCuaSlots  = [...leftCuaSlots, ...rightCuaSlots];
+
   return (
     <div>
       {/* Legend */}
@@ -1343,50 +1443,37 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>← Desliza para ver el bracket completo →</div>
       {/* Bracket scroll container */}
       <div style={{ overflowX: "auto", overflowY: "hidden", paddingBottom: 8, WebkitOverflowScrolling: "touch", maxWidth: "100vw" } as React.CSSProperties}>
-        <div style={{ display: "flex", gap: 0, minWidth: 900, alignItems: "stretch" }}>
+        <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
 
-          {/* LEFT R32 */}
-          <BracketRound title="Ronda de 32" slots={leftSlots} bySlot={bySlot} count={8} showRank={showRank} />
+          <BracketRound title="Ronda de 32" slots={allR32Slots} bySlot={bySlot} count={16} showRank={showRank} />
+          <BracketConnectors count={8} />
+
+          <BracketRound title="Octavos" slots={allOctSlots} bySlot={bySlot} count={8} showRank={showRank} />
           <BracketConnectors count={4} />
 
-          {/* LEFT R16 */}
-          <BracketRound title="Octavos" slots={leftOctSlots} bySlot={bySlot} count={4} showRank={showRank} />
+          <BracketRound title="Cuartos" slots={allCuaSlots} bySlot={bySlot} count={4} showRank={showRank} />
           <BracketConnectors count={2} />
 
-          {/* LEFT QF */}
-          <BracketRound title="Cuartos" slots={leftCuaSlots} bySlot={bySlot} count={2} showRank={showRank} />
+          <BracketRound title="Semifinal" slots={semiSlots} bySlot={bySlot} count={2} showRank={showRank} />
           <BracketConnectors count={1} />
 
-          {/* SEMI LEFT */}
-          <BracketRound title="Semi" slots={[]} bySlot={bySlot} count={1} tbd />
-          <BracketConnectors count={1} half />
-
-          {/* FINAL */}
-          <div style={{ display: "flex", flexDirection: "column", minWidth: 140 }}>
-            <div style={rStyle.roundTitle as React.CSSProperties}>
-              <span style={{ color: "var(--gold)" }}>Final</span>
+          {/* FINAL column with 3er Puesto below */}
+          <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 140, flex: "0 0 auto", justifyContent: "space-around", gap: 12 }}>
+            <div>
+              <div style={rStyle.roundTitle as React.CSSProperties}>
+                <span style={{ color: "var(--gold)" }}>Final</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "4px 0" }}>
+                <BracketMatch homeM={bySlot["FINAL"]} awayM={bySlot["FINAL"]} showRank={showRank} />
+              </div>
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <BracketMatch home="Semi 1" away="Semi 2" tbd />
+            <div>
+              <div style={rStyle.roundTitle as React.CSSProperties}>3er Puesto</div>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "4px 0" }}>
+                <BracketMatch homeM={bySlot["TERCERO"]} awayM={bySlot["TERCERO"]} showRank={showRank} />
+              </div>
             </div>
           </div>
-
-          <BracketConnectors count={1} half reverse />
-
-          {/* SEMI RIGHT */}
-          <BracketRound title="Semi" slots={[]} bySlot={bySlot} count={1} tbd />
-          <BracketConnectors count={1} />
-
-          {/* RIGHT QF */}
-          <BracketRound title="Cuartos" slots={rightCuaSlots} bySlot={bySlot} count={2} showRank={showRank} />
-          <BracketConnectors count={2} />
-
-          {/* RIGHT R16 */}
-          <BracketRound title="Octavos" slots={rightOctSlots} bySlot={bySlot} count={4} showRank={showRank} />
-          <BracketConnectors count={4} />
-
-          {/* RIGHT R32 */}
-          <BracketRound title="Ronda de 32" slots={rightSlots} bySlot={bySlot} count={8} showRank={showRank} />
 
         </div>
       </div>
