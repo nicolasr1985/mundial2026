@@ -2013,14 +2013,7 @@ function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Mat
     if (PINNED_PLAYERS.some(p => p.displayName === row.player)) row.pinned = true;
   }
 
-  // Always include ALL Colombian players who have scored — no special distinction
-  for (const sc of sortedWithPos) {
-    if (sc.country !== "Colombia") continue;
-    if (topListSet.some(t => t.player === sc.player)) continue;
-    topListSet.push({ ...sc }); // no pinned flag
-  }
-
-  // Re-sort the combined list with the same rule (goals → eliminated last → FIFA → name)
+  // (removed: Colombia used to be force-included regardless of goals; now they only appear if in top 15)
   const topList = topListSet.sort(cmp);
 
   // Build picks list: every user that has a topScorer pick (admins included — admin is also a participant)
