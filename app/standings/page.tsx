@@ -1604,7 +1604,7 @@ function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 100, flex: "0 0 auto" }}>
       <div style={rStyle.roundTitle as React.CSSProperties}>{title}</div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-around", gap: 4, padding: "4px 0" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6, padding: "4px 0" }}>
         {items.map(({ slot, m }, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {m ? (
@@ -1621,7 +1621,7 @@ function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
 
 function BracketConnectors({ count, half, reverse }: { count: number; half?: boolean; reverse?: boolean }) {
   return (
-    <div style={{ width: 16, display: "flex", flexDirection: "column", justifyContent: "space-around", flex: "0 0 auto", paddingTop: 22 }}>
+    <div style={{ width: 16, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, flex: "0 0 auto", paddingTop: 22 }}>
       {Array.from({ length: count }, (_, i) => (
         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ height: "50%", borderRight: half && !reverse ? "none" : "1px solid var(--border)", borderTop: reverse ? "none" : "1px solid var(--border)", borderBottom: reverse ? "1px solid var(--border)" : "none" }} />
