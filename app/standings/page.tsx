@@ -1,6 +1,6 @@
 // app/standings/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMatches, getUserPicks, getAllUsers, getAllGroupStandings, Match, UserProfile } from "@/lib/firebase";
@@ -1171,6 +1171,26 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
 }) {
   const bySlot: Record<string, R32Match> = Object.fromEntries(r32.map(m => [m.slot, m]));
 
+  // Scroll-based layout: spread rounds when viewing left side, compact when viewing right
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [compactMode, setCompactMode] = useState(false);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+      setCompactMode(ratio > 0.4);
+    };
+    onScroll();
+    el.addEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
   const leftSlots  = ["R32-1","R32-2","R32-3","R32-4","R32-5","R32-6","R32-7","R32-8"];
   const rightSlots = ["R32-9","R32-10","R32-11","R32-12","R32-13","R32-14","R32-15","R32-16"];
 
@@ -1442,20 +1462,20 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
 
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>← Desliza para ver el bracket completo →</div>
       {/* Bracket scroll container */}
-      <div style={{ overflowX: "auto", overflowY: "hidden", paddingBottom: 8, WebkitOverflowScrolling: "touch", maxWidth: "100vw" } as React.CSSProperties}>
+      <div ref={scrollRef} style={{ overflowX: "auto", overflowY: "hidden", paddingBottom: 8, WebkitOverflowScrolling: "touch", maxWidth: "100vw" } as React.CSSProperties}>
         <div style={{ display: "flex", gap: 0, alignItems: "stretch" }}>
 
-          <BracketRound title="Ronda de 32" slots={allR32Slots} bySlot={bySlot} count={16} showRank={showRank} />
-          <BracketConnectors count={8} />
+          <BracketRound title="Ronda de 32" slots={allR32Slots} bySlot={bySlot} count={16} showRank={showRank} compactMode={compactMode} />
+          <BracketConnectors count={8} compactMode={compactMode} />
 
-          <BracketRound title="Octavos" slots={allOctSlots} bySlot={bySlot} count={8} showRank={showRank} />
-          <BracketConnectors count={4} />
+          <BracketRound title="Octavos" slots={allOctSlots} bySlot={bySlot} count={8} showRank={showRank} compactMode={compactMode} />
+          <BracketConnectors count={4} compactMode={compactMode} />
 
-          <BracketRound title="Cuartos" slots={allCuaSlots} bySlot={bySlot} count={4} showRank={showRank} />
-          <BracketConnectors count={2} />
+          <BracketRound title="Cuartos" slots={allCuaSlots} bySlot={bySlot} count={4} showRank={showRank} compactMode={compactMode} />
+          <BracketConnectors count={2} compactMode={compactMode} />
 
-          <BracketRound title="Semifinal" slots={semiSlots} bySlot={bySlot} count={2} showRank={showRank} />
-          <BracketConnectors count={1} />
+          <BracketRound title="Semifinal" slots={semiSlots} bySlot={bySlot} count={2} showRank={showRank} compactMode={compactMode} />
+          <BracketConnectors count={1} compactMode={compactMode} />
 
           {/* FINAL column: Final at exact vertical center (aligned between semis), 3er Puesto at 75% */}
           <div style={{ position: "relative", width: "max-content", minWidth: 140, flex: "0 0 auto", alignSelf: "stretch" }}>
@@ -1589,9 +1609,9 @@ function BracketMatch({ home, away, homeM, awayM, tbd, showRank }: {
   );
 }
 
-function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
+function BracketRound({ title, slots, bySlot, count, tbd, showRank, compactMode }: {
   title: string; slots: string[]; bySlot: Record<string, R32Match>;
-  count: number; tbd?: boolean; showRank?: boolean;
+  count: number; tbd?: boolean; showRank?: boolean; compactMode?: boolean;
 }) {
   const items = Array.from({ length: count }, (_, i) => {
     const slot = slots[i];
@@ -1602,7 +1622,7 @@ function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "max-content", minWidth: 100, flex: "0 0 auto" }}>
       <div style={rStyle.roundTitle as React.CSSProperties}>{title}</div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6, padding: "4px 0" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: compactMode ? "center" : "space-around", gap: 6, padding: "4px 0", transition: "gap 0.25s ease" }}>
         {items.map(({ slot, m }, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {m ? (
@@ -1617,9 +1637,9 @@ function BracketRound({ title, slots, bySlot, count, tbd, showRank }: {
   );
 }
 
-function BracketConnectors({ count, half, reverse }: { count: number; half?: boolean; reverse?: boolean }) {
+function BracketConnectors({ count, half, reverse, compactMode }: { count: number; half?: boolean; reverse?: boolean; compactMode?: boolean }) {
   return (
-    <div style={{ width: 16, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, flex: "0 0 auto", paddingTop: 22 }}>
+    <div style={{ width: 16, display: "flex", flexDirection: "column", justifyContent: compactMode ? "center" : "space-around", gap: 12, flex: "0 0 auto", paddingTop: 22 }}>
       {Array.from({ length: count }, (_, i) => (
         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ height: "50%", borderRight: half && !reverse ? "none" : "1px solid var(--border)", borderTop: reverse ? "none" : "1px solid var(--border)", borderBottom: reverse ? "1px solid var(--border)" : "none" }} />
