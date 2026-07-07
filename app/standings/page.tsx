@@ -1180,7 +1180,10 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
     const onScroll = () => {
       const maxScroll = el.scrollWidth - el.clientWidth;
       const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-      setCompactMode(ratio > 0.4);
+      // On mobile, R32 column occupies a smaller fraction of total width, so trigger compact earlier
+      const isNarrow = window.innerWidth < 640;
+      const threshold = isNarrow ? 0.12 : 0.4;
+      setCompactMode(ratio > threshold);
     };
     onScroll();
     el.addEventListener("scroll", onScroll);
