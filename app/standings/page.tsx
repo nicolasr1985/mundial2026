@@ -1614,6 +1614,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 4 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 4 },
   // 3 goals
+  { player: "Romelu Lukaku", country: "Belgium", code: "BEL", goals: 3 },
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 3 },
   { player: "Jonathan David", country: "Canada", code: "CAN", goals: 3 },
   { player: "Yoane Wissa", country: "Congo DR", code: "COD", goals: 3 },
@@ -1631,7 +1632,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Riyad Mahrez", country: "Algeria", code: "ALG", goals: 2 },
   { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 2 },
   { player: "Leandro Trossard", country: "Belgium", code: "BEL", goals: 2 },
-  { player: "Romelu Lukaku", country: "Belgium", code: "BEL", goals: 2 },
+  { player: "Charles De Ketelaere", country: "Belgium", code: "BEL", goals: 2 },
   { player: "Youri Tielemans", country: "Belgium", code: "BEL", goals: 2 },
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
   { player: "Cyle Larin", country: "Canada", code: "CAN", goals: 2 },
@@ -1650,6 +1651,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Yasin Ayari", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Anthony Elanga", country: "Sweden", code: "SWE", goals: 2 },
   { player: "Rubén Vargas", country: "Switzerland", code: "SUI", goals: 2 },
+  { player: "Malik Tillman", country: "United States", code: "USA", goals: 2 },
   { player: "Bradley Barcola", country: "France", code: "FRA", goals: 2 },
   { player: "Maximiliano Araújo", country: "Uruguay", code: "URU", goals: 2 },
   // 1 goal (well-known players and all Colombians for display)
@@ -1747,7 +1749,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(ARG) Lautaro Martínez": 1,
   "(ARG) Martinez, Lautaro": 1,
   "(BEL) De Bruyne, Kevin": 1,
-  "(BEL) Lukaku, Romelu": 2,
+  "(BEL) Lukaku, Romelu": 3,
   "(BIH) Alajbegovic, Kerim": 1,
   "(CAN) David, Promise": 1,
   "(COL) Díaz, Luis": 1,
