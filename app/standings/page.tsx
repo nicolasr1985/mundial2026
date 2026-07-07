@@ -1689,8 +1689,9 @@ interface GoalScorer {
 }
 
 const GOAL_SCORERS_DATA: GoalScorer[] = [
+  // 8 goals
+  { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 8 },
   // 7 goals
-  { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 7 },
   { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 7 },
   { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 7 },
   // 6 goals
@@ -1726,6 +1727,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
   { player: "Cyle Larin", country: "Canada", code: "CAN", goals: 2 },
   { player: "Daniel Muñoz", country: "Colombia", code: "COL", goals: 2 },
+  { player: "Emam Ashour", country: "Egypt", code: "EGY", goals: 2 },
+  { player: "Mostafa Ziko", country: "Egypt", code: "EGY", goals: 2 },
   { player: "Ramin Rezaeian", country: "Iran", code: "IRN", goals: 2 },
   { player: "Amad Diallo", country: "Ivory Coast", code: "CIV", goals: 2 },
   { player: "Nicolas Pépé", country: "Ivory Coast", code: "CIV", goals: 2 },
@@ -1746,6 +1749,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 1 goal (well-known players and all Colombians for display)
   { player: "Amine Gouiri", country: "Algeria", code: "ALG", goals: 1 },
   { player: "Giovani Lo Celso", country: "Argentina", code: "ARG", goals: 1 },
+  { player: "Enzo Fernández", country: "Argentina", code: "ARG", goals: 1 },
+  { player: "Cristian Romero", country: "Argentina", code: "ARG", goals: 1 },
   { player: "Lautaro Martínez", country: "Argentina", code: "ARG", goals: 1 },
   { player: "Marcel Sabitzer", country: "Austria", code: "AUT", goals: 1 },
   { player: "Kevin De Bruyne", country: "Belgium", code: "BEL", goals: 1 },
@@ -1762,6 +1767,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Fiston Mayele", country: "Congo DR", code: "COD", goals: 1 },
   { player: "Nilson Angulo", country: "Ecuador", code: "ECU", goals: 1 },
   { player: "Gonzalo Plata", country: "Ecuador", code: "ECU", goals: 1 },
+  { player: "Yasser Ibrahim", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Mohamed Salah", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
@@ -1792,7 +1798,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
 // Some players have multiple pick spellings in WC2026_SCORERS — we map all variants.
 const PICK_TO_GOALS: Record<string, number> = {
   // 7 goals
-  "(ARG) Messi, Lionel": 7,
+  "(ARG) Messi, Lionel": 8,
   "(FRA) Mbappé, Kylian": 7,
   "(FRA) Mbappe, Kylian": 7,
   // 5 goals
