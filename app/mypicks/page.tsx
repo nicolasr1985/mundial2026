@@ -1108,7 +1108,7 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
                   Resto del ranking
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {teamRanking.slice(1, 8).map((t, i) => (
+                  {teamRanking.slice(1, 10).map((t, i) => (
                     <div key={t.team} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", flexWrap: "wrap" }}>
                       <span style={{ fontSize: 11, color: "var(--text-muted)", width: 18, textAlign: "center" }}>{i + 2}</span>
                       <TeamFlag team={t.team} size={20} />
