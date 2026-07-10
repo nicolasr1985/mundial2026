@@ -937,33 +937,79 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
 
   // My team stats: sum points per team across my finished picks.
   // Only count points for teams that I predicted to win or draw (not lose).
-  // - Pick was a draw → both teams get credit
-  // - Pick had a winner → only the predicted winner gets credit
-  const teamPoints: Record<string, number> = {};
-  const teamMatches: Record<string, number> = {};
+  // Attribution rules:
+  // - 5 pts (exact score): only the predicted winner. If pick was a draw, both teams get credit.
+  // - 2 pts (correct result): only the predicted winner. If pick was a draw, both teams get credit.
+  // - 1 pt (correct goals for team X): only team X (whichever team's goals I got right).
+  interface TeamStat { team: string; fives: number; twos: number; ones: number; matches: number; total: number; }
+  const teamStats: Record<string, TeamStat> = {};
+  const bump = (team: string, field: "fives" | "twos" | "ones") => {
+    if (!teamStats[team]) teamStats[team] = { team, fives: 0, twos: 0, ones: 0, matches: 0, total: 0 };
+    teamStats[team][field] += 1;
+  };
+  const bumpMatch = (team: string) => {
+    if (!teamStats[team]) teamStats[team] = { team, fives: 0, twos: 0, ones: 0, matches: 0, total: 0 };
+    teamStats[team].matches += 1;
+  };
+
   for (const p of myPicks) {
     const m = matchMap[p.matchId];
-    if (!m || m.status !== "finished" || p.points === null || p.points === undefined) continue;
-    const pts = p.points ?? 0;
-    if (p.homeScore === p.awayScore) {
-      // I predicted a draw → both teams get credit
-      teamPoints[m.homeTeam] = (teamPoints[m.homeTeam] ?? 0) + pts;
-      teamPoints[m.awayTeam] = (teamPoints[m.awayTeam] ?? 0) + pts;
-      teamMatches[m.homeTeam] = (teamMatches[m.homeTeam] ?? 0) + 1;
-      teamMatches[m.awayTeam] = (teamMatches[m.awayTeam] ?? 0) + 1;
-    } else if (p.homeScore > p.awayScore) {
-      // I predicted home to win → only home gets credit
-      teamPoints[m.homeTeam] = (teamPoints[m.homeTeam] ?? 0) + pts;
-      teamMatches[m.homeTeam] = (teamMatches[m.homeTeam] ?? 0) + 1;
+    if (!m || m.status !== "finished" || m.homeScore === null || m.awayScore === null) continue;
+    if (p.points === null || p.points === undefined) continue;
+
+    const predHome = p.homeScore;
+    const predAway = p.awayScore;
+    const realHome = m.homeScore;
+    const realAway = m.awayScore;
+    const predIsDraw = predHome === predAway;
+    const isExact = predHome === realHome && predAway === realAway;
+    const predWinnerTeam = predIsDraw ? null : (predHome > predAway ? m.homeTeam : m.awayTeam);
+
+    if (isExact) {
+      // 5 pts: winner (or both teams on a draw pick)
+      if (predIsDraw) { bump(m.homeTeam, "fives"); bump(m.awayTeam, "fives"); }
+      else { bump(predWinnerTeam!, "fives"); }
     } else {
-      // I predicted away to win → only away gets credit
-      teamPoints[m.awayTeam] = (teamPoints[m.awayTeam] ?? 0) + pts;
-      teamMatches[m.awayTeam] = (teamMatches[m.awayTeam] ?? 0) + 1;
+      // 2 pts if correct result
+      const predRes = Math.sign(predHome - predAway);
+      const realRes = Math.sign(realHome - realAway);
+      if (predRes === realRes) {
+        if (predIsDraw) { bump(m.homeTeam, "twos"); bump(m.awayTeam, "twos"); }
+        else { bump(predWinnerTeam!, "twos"); }
+      }
+      // 1 pt per team whose exact goals I predicted
+      if (predHome === realHome) bump(m.homeTeam, "ones");
+      if (predAway === realAway) bump(m.awayTeam, "ones");
     }
+
+    // Match participation: attribute to teams that received any credit above
+    // (so "3 partidos" reflects matches that contributed to this team's total)
+    // — count once per team per pick.
+    const teamsScored = new Set<string>();
+    if (isExact) {
+      if (predIsDraw) { teamsScored.add(m.homeTeam); teamsScored.add(m.awayTeam); }
+      else teamsScored.add(predWinnerTeam!);
+    } else {
+      const predRes = Math.sign(predHome - predAway);
+      const realRes = Math.sign(realHome - realAway);
+      if (predRes === realRes) {
+        if (predIsDraw) { teamsScored.add(m.homeTeam); teamsScored.add(m.awayTeam); }
+        else teamsScored.add(predWinnerTeam!);
+      }
+      if (predHome === realHome) teamsScored.add(m.homeTeam);
+      if (predAway === realAway) teamsScored.add(m.awayTeam);
+    }
+    teamsScored.forEach(t => bumpMatch(t));
   }
-  const teamRanking = Object.entries(teamPoints)
-    .map(([team, pts]) => ({ team, pts, matches: teamMatches[team] ?? 0 }))
-    .sort((a, b) => b.pts - a.pts);
+
+  // Compute totals from fives/twos/ones
+  for (const s of Object.values(teamStats)) {
+    s.total = s.fives * 5 + s.twos * 2 + s.ones * 1;
+  }
+
+  const teamRanking = Object.values(teamStats)
+    .filter(s => s.total > 0)
+    .sort((a, b) => b.total - a.total);
   const topTeam = teamRanking[0];
 
   return (
@@ -1039,10 +1085,15 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
                   {codeMap[topTeam.team] ?? topTeam.team.slice(0, 3).toUpperCase()}
                 </div>
                 <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{topTeam.team}</div>
+                <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+                  <ScoreBadge count={topTeam.fives} label="5pts" color="var(--gold)" />
+                  <ScoreBadge count={topTeam.twos} label="2pts" color="var(--green)" />
+                  <ScoreBadge count={topTeam.ones} label="1pt" color="var(--text-muted)" />
+                </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 40, color: "var(--gold)", lineHeight: 1 }}>
-                  {topTeam.pts}
+                  {topTeam.total}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                   pts en {topTeam.matches} partido{topTeam.matches !== 1 ? "s" : ""}
@@ -1058,14 +1109,19 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {teamRanking.slice(1, 8).map((t, i) => (
-                    <div key={t.team} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 10px", background: "var(--surface2)", borderRadius: "var(--radius-sm)" }}>
+                    <div key={t.team} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "var(--surface2)", borderRadius: "var(--radius-sm)", flexWrap: "wrap" }}>
                       <span style={{ fontSize: 11, color: "var(--text-muted)", width: 18, textAlign: "center" }}>{i + 2}</span>
                       <TeamFlag team={t.team} size={20} />
                       <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 14, color: "var(--text)", letterSpacing: "0.04em", width: 50 }}>
                         {codeMap[t.team] ?? t.team.slice(0, 3).toUpperCase()}
                       </span>
-                      <span style={{ flex: 1, fontSize: 12, color: "var(--text-muted)" }}>{t.team}</span>
-                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)" }}>{t.pts}</span>
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--text-muted)", minWidth: 80 }}>{t.team}</span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <ScoreBadge count={t.fives} label="5" color="var(--gold)" small />
+                        <ScoreBadge count={t.twos} label="2" color="var(--green)" small />
+                        <ScoreBadge count={t.ones} label="1" color="var(--text-muted)" small />
+                      </div>
+                      <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)", minWidth: 32, textAlign: "right" }}>{t.total}</span>
                       <span style={{ fontSize: 11, color: "var(--text-muted)" }}>pts</span>
                     </div>
                   ))}
@@ -1183,3 +1239,32 @@ const s: Record<string, React.CSSProperties> = {
   filterRow: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
   filterBtn: { padding: "6px 12px", borderRadius: 20, fontSize: 13, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" },
 };
+
+function ScoreBadge({ count, label, color, small }: { count: number; label: string; color: string; small?: boolean }) {
+  if (count === 0) return (
+    <span style={{
+      fontSize: small ? 10 : 11,
+      color: "var(--text-muted)",
+      opacity: 0.35,
+      fontFamily: "'Rajdhani',sans-serif",
+      fontWeight: 600,
+      padding: small ? "1px 6px" : "2px 8px",
+      background: "var(--surface2)",
+      borderRadius: 4,
+      whiteSpace: "nowrap",
+    }}>0×{label}</span>
+  );
+  return (
+    <span style={{
+      fontSize: small ? 10 : 11,
+      color,
+      fontFamily: "'Rajdhani',sans-serif",
+      fontWeight: 700,
+      padding: small ? "1px 6px" : "2px 8px",
+      background: `${color === "var(--gold)" ? "rgba(201,168,76,0.12)" : color === "var(--green)" ? "rgba(46,204,113,0.12)" : "var(--surface2)"}`,
+      border: `1px solid ${color === "var(--gold)" ? "var(--border-gold)" : color === "var(--green)" ? "rgba(46,204,113,0.3)" : "var(--border)"}`,
+      borderRadius: 4,
+      whiteSpace: "nowrap",
+    }}>{count}×{label}</span>
+  );
+}
