@@ -1086,9 +1086,9 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
                 </div>
                 <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{topTeam.team}</div>
                 <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-                  <ScoreBadge count={topTeam.fives} label="5pts" color="var(--gold)" />
-                  <ScoreBadge count={topTeam.twos} label="2pts" color="var(--green)" />
-                  <ScoreBadge count={topTeam.ones} label="1pt" color="var(--text-muted)" />
+                  <ScoreBadge count={topTeam.fives} icon="⭐" color="var(--gold)" />
+                  <ScoreBadge count={topTeam.twos} icon="✅" color="var(--green)" />
+                  <ScoreBadge count={topTeam.ones} icon="⚽" color="var(--text-muted)" />
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -1117,9 +1117,9 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
                       </span>
                       <span style={{ flex: 1, fontSize: 12, color: "var(--text-muted)", minWidth: 80 }}>{t.team}</span>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <ScoreBadge count={t.fives} label="5" color="var(--gold)" small />
-                        <ScoreBadge count={t.twos} label="2" color="var(--green)" small />
-                        <ScoreBadge count={t.ones} label="1" color="var(--text-muted)" small />
+                        <ScoreBadge count={t.fives} icon="⭐" color="var(--gold)" small />
+                        <ScoreBadge count={t.twos} icon="✅" color="var(--green)" small />
+                        <ScoreBadge count={t.ones} icon="⚽" color="var(--text-muted)" small />
                       </div>
                       <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: "var(--gold)", minWidth: 32, textAlign: "right" }}>{t.total}</span>
                       <span style={{ fontSize: 11, color: "var(--text-muted)" }}>pts</span>
@@ -1240,10 +1240,10 @@ const s: Record<string, React.CSSProperties> = {
   filterBtn: { padding: "6px 12px", borderRadius: 20, fontSize: 13, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" },
 };
 
-function ScoreBadge({ count, label, color, small }: { count: number; label: string; color: string; small?: boolean }) {
+function ScoreBadge({ count, icon, color, small }: { count: number; icon: string; color: string; small?: boolean }) {
   if (count === 0) return (
     <span style={{
-      fontSize: small ? 10 : 11,
+      fontSize: small ? 11 : 12,
       color: "var(--text-muted)",
       opacity: 0.35,
       fontFamily: "'Rajdhani',sans-serif",
@@ -1252,11 +1252,14 @@ function ScoreBadge({ count, label, color, small }: { count: number; label: stri
       background: "var(--surface2)",
       borderRadius: 4,
       whiteSpace: "nowrap",
-    }}>0×{label}</span>
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3,
+    }}>{icon} 0</span>
   );
   return (
     <span style={{
-      fontSize: small ? 10 : 11,
+      fontSize: small ? 11 : 12,
       color,
       fontFamily: "'Rajdhani',sans-serif",
       fontWeight: 700,
@@ -1265,6 +1268,9 @@ function ScoreBadge({ count, label, color, small }: { count: number; label: stri
       border: `1px solid ${color === "var(--gold)" ? "var(--border-gold)" : color === "var(--green)" ? "rgba(46,204,113,0.3)" : "var(--border)"}`,
       borderRadius: 4,
       whiteSpace: "nowrap",
-    }}>{count}×{label}</span>
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 3,
+    }}>{icon} {count}</span>
   );
 }
