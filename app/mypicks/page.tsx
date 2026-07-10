@@ -1085,7 +1085,21 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
   const myMostCommon = mostCommon(myScoreCounts);
   const myTotal = myPicks.length;
 
-  // Who else has this same personal most-common score matching the global?
+  // ── SCORE REAL MÁS COMÚN (marcadores reales de partidos finalizados) ──
+  const realScoreCounts: Record<string, number> = {};
+  let realTotalMatches = 0;
+  for (const m of matches) {
+    if (m.status !== "finished" || m.homeScore === null || m.awayScore === null) continue;
+    // Normalize: unordered pair — 2-1 and 1-2 count as the same score
+    const a = m.homeScore;
+    const b = m.awayScore;
+    const hi = Math.max(a, b);
+    const lo = Math.min(a, b);
+    const key = `${hi}-${lo}`;
+    realScoreCounts[key] = (realScoreCounts[key] ?? 0) + 1;
+    realTotalMatches++;
+  }
+  const realMostCommon = mostCommon(realScoreCounts);
   const usersWithGlobalAsFavorite: string[] = [];
   if (globalMostCommon) {
     // Group picks by user
@@ -1256,10 +1270,10 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
         )}
       </div>
 
-      {/* ── SCORE MÁS COMÚN ── */}
+      {/* ── PRONÓSTICO MÁS COMÚN ── */}
       <div style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
-          🎯 SCORE MÁS COMÚN
+          🎯 PRONÓSTICO MÁS COMÚN
         </h2>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
           El marcador que más se predice
@@ -1319,6 +1333,43 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
                 </div>
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* ── SCORE MÁS COMÚN REAL ── */}
+      <div style={{ marginTop: 24 }}>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          ⚽ SCORE MÁS COMÚN REAL
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
+          El marcador que más se ha repetido en los partidos finalizados del Mundial
+        </p>
+        {!realMostCommon ? (
+          <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
+            Aún no hay partidos finalizados.
+          </div>
+        ) : (
+          <div className="card" style={{ padding: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 44, color: "var(--gold)", lineHeight: 1 }}>
+                {realMostCommon.score}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, color: "var(--text)" }}>
+                  Se ha repetido <strong>{realMostCommon.count}</strong> {realMostCommon.count === 1 ? "vez" : "veces"} en <strong>{realTotalMatches}</strong> partidos
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                  {Math.round(realMostCommon.count / realTotalMatches * 100)}% de los partidos
+                </div>
+              </div>
+              {globalMostCommon?.score === realMostCommon.score && (
+                <span className="badge badge-gold" style={{ fontSize: 10 }}>🎯 Es el más apostado</span>
+              )}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>
+              Marcadores contados sin importar quién fue local o visitante (2–1 = 1–2)
+            </div>
           </div>
         )}
       </div>
