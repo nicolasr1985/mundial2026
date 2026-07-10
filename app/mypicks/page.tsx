@@ -1012,6 +1012,96 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
     .sort((a, b) => b.total - a.total);
   const topTeam = teamRanking[0];
 
+  // ── PEOR PICK (global + personal) — distancia Manhattan al resultado real ──
+  interface WorstPickInfo {
+    uid: string;
+    displayName: string;
+    match: Match;
+    predHome: number;
+    predAway: number;
+    distance: number;
+  }
+  const userNameMap: Record<string, string> = Object.fromEntries(allUsers.map(u => [u.uid, u.displayName]));
+  const finishedWithRealScore = (p: Pick): { match: Match; realHome: number; realAway: number } | null => {
+    const m = matchMap[p.matchId];
+    if (!m || m.status !== "finished" || m.homeScore === null || m.awayScore === null) return null;
+    return { match: m, realHome: m.homeScore, realAway: m.awayScore };
+  };
+  const pickDistance = (p: Pick, realHome: number, realAway: number) =>
+    Math.abs(p.homeScore - realHome) + Math.abs(p.awayScore - realAway);
+
+  let worstGlobal: WorstPickInfo | null = null;
+  for (const p of allPicks) {
+    const info = finishedWithRealScore(p);
+    if (!info) continue;
+    const d = pickDistance(p, info.realHome, info.realAway);
+    if (!worstGlobal || d > worstGlobal.distance) {
+      worstGlobal = {
+        uid: p.userId,
+        displayName: userNameMap[p.userId] ?? "?",
+        match: info.match,
+        predHome: p.homeScore,
+        predAway: p.awayScore,
+        distance: d,
+      };
+    }
+  }
+  let worstPersonal: WorstPickInfo | null = null;
+  for (const p of myPicks) {
+    const info = finishedWithRealScore(p);
+    if (!info) continue;
+    const d = pickDistance(p, info.realHome, info.realAway);
+    if (!worstPersonal || d > worstPersonal.distance) {
+      worstPersonal = {
+        uid: p.userId,
+        displayName: userNameMap[p.userId] ?? "?",
+        match: info.match,
+        predHome: p.homeScore,
+        predAway: p.awayScore,
+        distance: d,
+      };
+    }
+  }
+
+  // ── SCORE MÁS COMÚN (global + personal) ──
+  const countScores = (picks: Pick[]) => {
+    const c: Record<string, number> = {};
+    for (const p of picks) {
+      const key = `${p.homeScore}-${p.awayScore}`;
+      c[key] = (c[key] ?? 0) + 1;
+    }
+    return c;
+  };
+  const mostCommon = (c: Record<string, number>): { score: string; count: number } | null => {
+    const entries = Object.entries(c);
+    if (entries.length === 0) return null;
+    entries.sort((a, b) => b[1] - a[1]);
+    return { score: entries[0][0], count: entries[0][1] };
+  };
+  const globalScoreCounts = countScores(allPicks);
+  const globalMostCommon = mostCommon(globalScoreCounts);
+  const globalTotal = allPicks.length;
+  const myScoreCounts = countScores(myPicks);
+  const myMostCommon = mostCommon(myScoreCounts);
+  const myTotal = myPicks.length;
+
+  // Who else has this same personal most-common score matching the global?
+  const usersWithGlobalAsFavorite: string[] = [];
+  if (globalMostCommon) {
+    // Group picks by user
+    const byUser: Record<string, Pick[]> = {};
+    for (const p of allPicks) {
+      (byUser[p.userId] ??= []).push(p);
+    }
+    for (const [uid, picks] of Object.entries(byUser)) {
+      const c = countScores(picks);
+      const mc = mostCommon(c);
+      if (mc && mc.score === globalMostCommon.score) {
+        usersWithGlobalAsFavorite.push(userNameMap[uid] ?? "?");
+      }
+    }
+  }
+
   return (
     <div>
       {/* Global records */}
@@ -1131,6 +1221,107 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
           </div>
         )}
       </div>
+
+      {/* ── PEOR PICK ── */}
+      <div style={{ marginTop: 24 }}>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          💀 PEOR PICK
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
+          El marcador más lejano al resultado real
+        </p>
+        {(!worstGlobal && !worstPersonal) ? (
+          <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
+            Aún no hay apuestas finalizadas.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {worstGlobal && (
+              <WorstPickCard
+                title="🏆 Peor pick de todos"
+                subtitle={worstGlobal.displayName}
+                info={worstGlobal}
+                accent="var(--red)"
+              />
+            )}
+            {worstPersonal && (
+              <WorstPickCard
+                title="😬 Tu peor pick"
+                subtitle="Personal"
+                info={worstPersonal}
+                accent="var(--gold)"
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── SCORE MÁS COMÚN ── */}
+      <div style={{ marginTop: 24 }}>
+        <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+          🎯 SCORE MÁS COMÚN
+        </h2>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
+          El marcador que más se predice
+        </p>
+        {(!globalMostCommon && !myMostCommon) ? (
+          <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--text-muted)" }}>
+            Aún no hay apuestas registradas.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {globalMostCommon && (
+              <div className="card" style={{ padding: 16 }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                  🌎 De todas las apuestas
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 44, color: "var(--gold)", lineHeight: 1 }}>
+                    {globalMostCommon.score}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: "var(--text)" }}>
+                      <strong>{globalMostCommon.count}</strong> de <strong>{globalTotal}</strong> apuestas
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                      {Math.round(globalMostCommon.count / globalTotal * 100)}% del total
+                    </div>
+                  </div>
+                </div>
+                {usersWithGlobalAsFavorite.length > 0 && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", fontSize: 12 }}>
+                    <span style={{ color: "var(--text-muted)" }}>También es el favorito personal de: </span>
+                    <span style={{ color: "var(--gold)", fontWeight: 600 }}>{usersWithGlobalAsFavorite.join(", ")}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {myMostCommon && (
+              <div className="card" style={{ padding: 16 }}>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+                  🙋 Tu favorito
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 44, color: myMostCommon.score === globalMostCommon?.score ? "var(--gold)" : "var(--text)", lineHeight: 1 }}>
+                    {myMostCommon.score}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: "var(--text)" }}>
+                      <strong>{myMostCommon.count}</strong> de <strong>{myTotal}</strong> apuestas
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                      {Math.round(myMostCommon.count / myTotal * 100)}% de las tuyas
+                    </div>
+                  </div>
+                  {myMostCommon.score === globalMostCommon?.score && (
+                    <span className="badge badge-gold" style={{ fontSize: 10 }}>🎯 Coincide</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1239,6 +1430,44 @@ const s: Record<string, React.CSSProperties> = {
   filterRow: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 },
   filterBtn: { padding: "6px 12px", borderRadius: 20, fontSize: 13, fontFamily: "'Rajdhani',sans-serif", fontWeight: 600, cursor: "pointer", transition: "all 0.15s" },
 };
+
+function WorstPickCard({ title, subtitle, info, accent }: {
+  title: string;
+  subtitle: string;
+  info: { match: Match; predHome: number; predAway: number; distance: number };
+  accent: string;
+}) {
+  const m = info.match;
+  return (
+    <div className="card" style={{ padding: 14, borderLeft: `3px solid ${accent}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: accent, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>
+          {title}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          {subtitle} · distancia {info.distance}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, color: "var(--text)", marginBottom: 6 }}>
+        <strong>{m.homeTeam}</strong> vs <strong>{m.awayTeam}</strong>
+      </div>
+      <div style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 12, color: "var(--text-muted)" }}>
+        <div>
+          <span style={{ opacity: 0.7 }}>Pick: </span>
+          <span style={{ color: "var(--text)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 18 }}>
+            {info.predHome}–{info.predAway}
+          </span>
+        </div>
+        <div>
+          <span style={{ opacity: 0.7 }}>Real: </span>
+          <span style={{ color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 18 }}>
+            {m.homeScore}–{m.awayScore}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ScoreBadge({ count, icon, color, small }: { count: number; icon: string; color: string; small?: boolean }) {
   if (count === 0) return (
