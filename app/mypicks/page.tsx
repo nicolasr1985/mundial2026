@@ -1161,6 +1161,7 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
             codeMap={codeMap}
             personalCount={myZeroStreak}
             personalLabel="cero"
+            personalPrefix="Tu peor"
           />
         </div>
       </div>
@@ -1377,7 +1378,7 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
   );
 }
 
-function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, showMatches, personalCount, personalLabel }: {
+function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, showMatches, personalCount, personalLabel, personalPrefix }: {
   icon: string;
   title: string;
   unit: string;
@@ -1388,6 +1389,7 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
   showMatches?: boolean;
   personalCount?: number;
   personalLabel?: string;
+  personalPrefix?: string;
 }) {
   // Personal record line shown at the bottom of the card with breathing room
   const personalLine = personalCount !== undefined ? (
@@ -1396,7 +1398,7 @@ function StreakCard({ icon, title, unit, records, color, matchMap, codeMap, show
       marginTop: 14, paddingTop: 10,
       borderTop: "1px dashed var(--border)",
     }}>
-      (Tu mejor: <span style={{ color: color, fontWeight: 600 }}>{personalCount}</span>
+      ({personalPrefix ?? "Tu mejor"}: <span style={{ color: color, fontWeight: 600 }}>{personalCount}</span>
       {personalLabel ? ` ${personalLabel}${personalCount === 1 ? "" : "s"} seguido${personalCount === 1 ? "" : "s"}` : ""})
     </div>
   ) : null;
