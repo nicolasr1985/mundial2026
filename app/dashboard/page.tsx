@@ -7,6 +7,7 @@ import { getRanking, getTournamentSettings, getAllUsers, RankingEntry, UserProfi
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { isDeadlinePassed } from "@/lib/scoring";
+import { computeEliminatedUsers } from "@/lib/max-pts";
 
 const BET_PER_USER = 150000;
 function formatCOP(n: number) {
@@ -23,6 +24,7 @@ export default function DashboardPage() {
   const [fetching, setFetching] = useState(true);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [eliminatedTeams, setEliminatedTeams] = useState<Set<string>>(new Set());
+  const [eliminatedUsers, setEliminatedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -200,6 +202,22 @@ export default function DashboardPage() {
             pendingMatchMax + pendingGroupMax + pendingChampionMax + pendingTopScorerMax;
         }
         setMaxPointsMap(maxMap);
+
+        // Compute per-user pair-wise elimination (stricter than maxPts < 3rd-place total)
+        const totalsMap: Record<string, number> = {};
+        r.forEach(e => { totalsMap[e.uid] = e.totalPoints; });
+        const elimUsers = computeEliminatedUsers({
+          users: u,
+          allPicks,
+          allGroupPicks,
+          allMatches,
+          savedGroupIds: Array.from(savedGroups),
+          settingsChampion: settingsObj.champion,
+          settingsTopScorer: settingsObj.topScorer,
+          eliminatedTeams: elimSet,
+          totals: totalsMap,
+        });
+        setEliminatedUsers(elimUsers);
       } catch (err) {
         console.warn("Dashboard load error:", err);
       } finally {
@@ -449,8 +467,6 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
     phaseColumns.unshift("Bono");
   }
   const tieGroups = buildTieGroups(ranking, prizes);
-  // Total points of whoever currently holds 3rd place (used to flag eliminated contestants)
-  const thirdPlaceTotalPoints = ranking.length >= 3 ? ranking[2].totalPoints : -Infinity;
 
   const th: React.CSSProperties = {
     fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase",
@@ -505,7 +521,7 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 600, fontSize: 14 }}>{entry.displayName}</span>
                     {isMe && <span className="badge badge-gold" style={{ fontSize: 10, padding: "1px 6px" }}>Tú</span>}
-                    {(maxPointsMap[entry.uid] ?? entry.totalPoints) < thirdPlaceTotalPoints && (
+                    {eliminatedUsers.has(entry.uid) && (
                       <span style={{
                         fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
                         background: "rgba(231,76,60,0.15)", color: "var(--red)",

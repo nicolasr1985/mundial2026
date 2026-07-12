@@ -119,6 +119,109 @@ export function computeMaxPointsMap(input: ComputeMaxPtsInput): Record<string, n
   return maxMap;
 }
 
+// Compute the set of users who cannot mathematically reach top 3 based on remaining events.
+// Approach: for each user B, count rivals X such that maxAdvantage(B, X) < X.total - B.total,
+// i.e. B cannot catch X under any outcome of the remaining events. If ≥3 rivals meet that condition,
+// B is eliminated (they will always finish 4th or lower).
+export function computeEliminatedUsers(input: ComputeMaxPtsInput & {
+  totals: Record<string, number>;  // uid → current totalPoints
+}): Set<string> {
+  const { users, allPicks, allGroupPicks, allMatches, savedGroupIds, settingsChampion, settingsTopScorer, eliminatedTeams, totals } = input;
+  const ALL_GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+  const savedSet = new Set(savedGroupIds);
+
+  // Precompute per-user match pick map for speed.
+  const pickByUserMatch: Record<string, Pick> = {};
+  for (const p of allPicks) pickByUserMatch[`${p.userId}::${p.matchId}`] = p;
+  const gpByUserGroup: Record<string, GroupPick> = {};
+  for (const p of allGroupPicks) gpByUserGroup[`${p.userId}::${p.group}`] = p;
+
+  const pairMaxAdv = (bUid: string, xUid: string): number => {
+    const bUser = users.find(u => u.uid === bUid);
+    const xUser = users.find(u => u.uid === xUid);
+    if (!bUser || !xUser) return Infinity;
+    let adv = 0;
+
+    // Existing (not-finished) matches
+    for (const m of allMatches) {
+      if (m.status === "finished") continue;
+      const pB = pickByUserMatch[`${bUid}::${m.id}`];
+      const pX = pickByUserMatch[`${xUid}::${m.id}`];
+      if (!pB && !pX) continue;
+      if (!pB && pX) continue;             // B can't gain over X here
+      if (pB && !pX) { adv += 5; continue; }
+      if (pB.homeScore === pX.homeScore && pB.awayScore === pX.awayScore) continue;
+      adv += 5;
+    }
+
+    // Not-yet-created knockout matches → safe upper bound of 5 each
+    for (const [round, expected] of Object.entries(EXPECTED_KNOCKOUT_COUNTS)) {
+      const existing = allMatches.filter(m => m.round === round).length;
+      const missing = Math.max(0, expected - existing);
+      adv += missing * 5;
+    }
+
+    // Group picks
+    for (const g of ALL_GROUPS) {
+      if (savedSet.has(g)) continue;
+      const gpB = gpByUserGroup[`${bUid}::${g}`];
+      const gpX = gpByUserGroup[`${xUid}::${g}`];
+      if (!gpB && !gpX) continue;
+      if (!gpB && gpX) continue;
+      if (gpB && !gpX) { adv += 3; continue; }
+      let diff = 0;
+      if (gpB.firstPlace !== gpX.firstPlace) diff++;
+      if (gpB.secondPlace !== gpX.secondPlace) diff++;
+      if ((gpB.thirdPlace ?? "") !== (gpX.thirdPlace ?? "")) diff++;
+      adv += diff;
+    }
+
+    // Champion
+    if (!settingsChampion) {
+      const cB = bUser.champion;
+      const cX = xUser.champion;
+      if (cB && cX && cB === cX) {
+        // same pick → both hit or both miss → no gain
+      } else if (!cB && !cX) {
+        adv += 15;
+      } else if (cB && !cX) {
+        if (!eliminatedTeams.has(cB)) adv += 15;
+      } else if (!cB && cX) {
+        adv += 15;
+      } else if (cB) {
+        if (!eliminatedTeams.has(cB)) adv += 15;
+      }
+    }
+
+    // Top scorer (we don't track top scorer eliminations, assume always live)
+    if (!settingsTopScorer) {
+      const tB = bUser.topScorer;
+      const tX = xUser.topScorer;
+      if (tB && tX && tB === tX) {
+        // same → no gain
+      } else {
+        adv += 10;
+      }
+    }
+
+    return adv;
+  };
+
+  const eliminatedUsers = new Set<string>();
+  for (const B of users) {
+    let cannotPass = 0;
+    for (const X of users) {
+      if (X.uid === B.uid) continue;
+      const gap = (totals[X.uid] ?? 0) - (totals[B.uid] ?? 0);
+      if (gap <= 0) continue;
+      const maxAdv = pairMaxAdv(B.uid, X.uid);
+      if (maxAdv < gap) cannotPass++;
+    }
+    if (cannotPass >= 3) eliminatedUsers.add(B.uid);
+  }
+  return eliminatedUsers;
+}
+
 // Compute the set of eliminated teams (knockout losers + group-stage non-advancers).
 export function computeEliminatedTeams(allMatches: Match[]): Set<string> {
   const elimSet = new Set<string>();

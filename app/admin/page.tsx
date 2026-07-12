@@ -12,7 +12,7 @@ import {
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry, RecalcGroupResult, db
 } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { computeMaxPointsMap, computeEliminatedTeams } from "@/lib/max-pts";
+import { computeMaxPointsMap, computeEliminatedTeams, computeEliminatedUsers } from "@/lib/max-pts";
 
 const ROUNDS = [
   "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
@@ -1206,7 +1206,9 @@ function WhatsAppTab({ matches, users, settings }: {
         const savedGroupIds = groupStandingsSnap.docs.map(d => d.id);
 
         const eliminatedTeams = computeEliminatedTeams(matches);
-        const maxPtsMap = computeMaxPointsMap({
+        const totalsMap: Record<string, number> = {};
+        ranking.forEach(e => { totalsMap[e.uid] = e.totalPoints; });
+        const eliminatedUsers = computeEliminatedUsers({
           users,
           allPicks,
           allGroupPicks,
@@ -1215,17 +1217,17 @@ function WhatsAppTab({ matches, users, settings }: {
           settingsChampion: settings.champion,
           settingsTopScorer: settings.topScorer,
           eliminatedTeams,
+          totals: totalsMap,
         });
 
         const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
         const firstIndex: Record<string, number> = {};
         ranking.forEach((e, i) => { const k = tieKey(e); if (!(k in firstIndex)) firstIndex[k] = i; });
-        const thirdPlaceTotal = ranking[2]?.totalPoints ?? 0;
         const result = ranking.map((e) => ({
           pos: firstIndex[tieKey(e)] + 1,
           name: e.displayName || e.uid,
           pts: e.totalPoints,
-          eliminated: (maxPtsMap[e.uid] ?? e.totalPoints) < thirdPlaceTotal,
+          eliminated: eliminatedUsers.has(e.uid),
         }));
         setRankedUsers(result);
       } catch {}
