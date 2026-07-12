@@ -150,8 +150,10 @@ export function computeEliminatedUsers(input: ComputeMaxPtsInput & {
       if (m.status === "finished") continue;
       const pB = pickByUserMatch[`${bUid}::${m.id}`];
       const pX = pickByUserMatch[`${xUid}::${m.id}`];
-      if (!pB && !pX) continue;
-      if (!pB && pX) continue;             // B can't gain over X here
+      // If picks still open (upcoming + not locked), both users can still submit different scores
+      const stillOpen = m.status === "upcoming" && !m.locked;
+      if (!pB && !pX) { if (stillOpen) adv += 5; continue; }
+      if (!pB && pX) { if (stillOpen) adv += 5; continue; }
       if (pB && !pX) { adv += 5; continue; }
       if (pB.homeScore === pX.homeScore && pB.awayScore === pX.awayScore) continue;
       adv += 5;
