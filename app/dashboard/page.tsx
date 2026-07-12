@@ -319,6 +319,7 @@ export default function DashboardPage() {
             userId={user?.uid ?? ""}
             prizes={[firstPrize, secondPrize, thirdPrize]}
             maxPointsMap={maxPointsMap}
+            eliminatedUsers={eliminatedUsers}
           />
         )}
       </div>
@@ -441,8 +442,9 @@ function buildTieGroups(ranking: RankingEntry[], prizes: number[]): { pos: numbe
   });
 }
 
-function RankingTable({ ranking, userId, prizes, maxPointsMap }: {
+function RankingTable({ ranking, userId, prizes, maxPointsMap, eliminatedUsers }: {
   ranking: RankingEntry[]; userId: string; prizes: number[]; maxPointsMap: Record<string, number>;
+  eliminatedUsers: Set<string>;
 }) {
   const allPaid = ranking.every(e => e.hasPaid);
   const showPaid = !allPaid;
