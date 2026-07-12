@@ -7,6 +7,9 @@ import type { Match, Pick, UserProfile } from "./firebase";
 interface GroupPick {
   userId: string;
   group: string;
+  firstPlace?: string;
+  secondPlace?: string;
+  thirdPlace?: string;
   points?: number | null;
 }
 
