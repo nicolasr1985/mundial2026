@@ -1176,7 +1176,7 @@ function WhatsAppTab({ matches, users, settings }: {
 }) {
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<"today" | "general">("today");
-  const [rankedUsers, setRankedUsers] = useState<{ pos: number; name: string; pts: number }[]>([]);
+  const [rankedUsers, setRankedUsers] = useState<{ pos: number; name: string; pts: number; eliminated: boolean }[]>([]);
   const [dailyPts, setDailyPts] = useState<{ name: string; pts: number }[]>([]);
 
   const nowBogota = new Date(Date.now() - 5 * 3600 * 1000);
@@ -1196,14 +1196,19 @@ function WhatsAppTab({ matches, users, settings }: {
       const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
       const firstIndex: Record<string, number> = {};
       ranking.forEach((e, i) => { const k = tieKey(e); if (!(k in firstIndex)) firstIndex[k] = i; });
+      // Count unfinished matches to compute max achievable pts per user.
+      // Simplification: everyone still up for grabs = same # of upcoming matches × 5 pts each.
+      const remainingMatches = matches.filter(m => m.status !== "finished").length;
+      const thirdPlaceTotal = ranking[2]?.totalPoints ?? 0;
       const result = ranking.map((e) => ({
         pos: firstIndex[tieKey(e)] + 1,
         name: e.displayName || e.uid,
         pts: e.totalPoints,
+        eliminated: (e.totalPoints + remainingMatches * 5) < thirdPlaceTotal,
       }));
       setRankedUsers(result);
     }).catch(() => {});
-  }, [users]);
+  }, [users, matches]);
 
   useEffect(() => {
     if (todayMatches.length === 0) { setDailyPts([]); return; }
@@ -1300,7 +1305,8 @@ function WhatsAppTab({ matches, users, settings }: {
         const medals = ["🥇","🥈","🥉"];
         rankedUsers.forEach((u) => {
           const prefix = medals[u.pos - 1] ?? `${u.pos}.`;
-          lines.push(`${prefix} ${u.name} — *${u.pts} pts*`);
+          const suffix = u.eliminated ? " 💀 _eliminado_" : "";
+          lines.push(`${prefix} ${u.name} — *${u.pts} pts*${suffix}`);
         });
       } else {
         lines.push("_Posiciones actualizadas:_");
