@@ -1741,12 +1741,12 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 7 goals
   { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 7 },
   // 6 goals
+  { player: "Jude Bellingham", country: "England", code: "ENG", goals: 6 },
   { player: "Harry Kane", country: "England", code: "ENG", goals: 6 },
   // 5 goals
   { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 5 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
-  { player: "Jude Bellingham", country: "England", code: "ENG", goals: 4 },
   { player: "Julián Quiñones", country: "Mexico", code: "MEX", goals: 4 },
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 4 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 4 },
@@ -1827,6 +1827,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Achraf Hakimi", country: "Morocco", code: "MAR", goals: 1 },
   { player: "Virgil van Dijk", country: "Netherlands", code: "NED", goals: 1 },
   { player: "Antonio Nusa", country: "Norway", code: "NOR", goals: 1 },
+  { player: "Andreas Schjelderup", country: "Norway", code: "NOR", goals: 1 },
   { player: "Rafael Leão", country: "Portugal", code: "POR", goals: 1 },
   { player: "John McGinn", country: "Scotland", code: "SCO", goals: 1 },
   { player: "Iliman Ndiaye", country: "Senegal", code: "SEN", goals: 1 },
@@ -1872,7 +1873,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(AUT) Arnautovic, Marko": 2,
   "(BEL) Trossard, Leandro": 2,
   "(CAN) Larin, Cyle": 2,
-  "(ENG) Bellingham, Jude": 4,
+  "(ENG) Bellingham, Jude": 6,
   "(JPN) Kamada, Daichi": 2,
   "(JPN) Ueda, Ayase": 2,
   "(CIV) Diallo, Amad": 2,
