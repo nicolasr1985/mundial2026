@@ -8,9 +8,11 @@ import { FIFA_RANKINGS } from "@/lib/fifa-ranking";
 import { useAuth } from "@/lib/auth-context";
 import {
   getMatches, createMatch, updateMatchResult, updateLiveMatchResult, lockMatch, resetMatch, revertMatchToLive, getAllPicks, updateUserProfile, setUserPaid,
-  setGroupStanding, getGroupStanding, recalculateAllGroupBonuses, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
-  sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry, RecalcGroupResult
+  setGroupStanding, getGroupStanding, getAllGroupStandings, recalculateAllGroupBonuses, setTournamentResult, getTournamentSettings, getAllUsers, getRanking,
+  sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry, RecalcGroupResult, db
 } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { computeMaxPointsMap, computeEliminatedTeams } from "@/lib/max-pts";
 
 const ROUNDS = [
   "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
@@ -1192,23 +1194,43 @@ function WhatsAppTab({ matches, users, settings }: {
   });
 
   useEffect(() => {
-    getRanking().then((ranking) => {
-      const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
-      const firstIndex: Record<string, number> = {};
-      ranking.forEach((e, i) => { const k = tieKey(e); if (!(k in firstIndex)) firstIndex[k] = i; });
-      // Count unfinished matches to compute max achievable pts per user.
-      // Simplification: everyone still up for grabs = same # of upcoming matches × 5 pts each.
-      const remainingMatches = matches.filter(m => m.status !== "finished").length;
-      const thirdPlaceTotal = ranking[2]?.totalPoints ?? 0;
-      const result = ranking.map((e) => ({
-        pos: firstIndex[tieKey(e)] + 1,
-        name: e.displayName || e.uid,
-        pts: e.totalPoints,
-        eliminated: (e.totalPoints + remainingMatches * 5) < thirdPlaceTotal,
-      }));
-      setRankedUsers(result);
-    }).catch(() => {});
-  }, [users, matches]);
+    (async () => {
+      try {
+        const ranking = await getRanking();
+        const [allPicks, groupPicksSnap, groupStandingsSnap] = await Promise.all([
+          getAllPicks(),
+          getDocs(collection(db, "groupPicks")),
+          getDocs(collection(db, "groupStandings")),
+        ]);
+        const allGroupPicks = groupPicksSnap.docs.map(d => d.data() as { userId: string; group: string; points?: number | null });
+        const savedGroupIds = groupStandingsSnap.docs.map(d => d.id);
+
+        const eliminatedTeams = computeEliminatedTeams(matches);
+        const maxPtsMap = computeMaxPointsMap({
+          users,
+          allPicks,
+          allGroupPicks,
+          allMatches: matches,
+          savedGroupIds,
+          settingsChampion: settings.champion,
+          settingsTopScorer: settings.topScorer,
+          eliminatedTeams,
+        });
+
+        const tieKey = (e: RankingEntry) => `${e.totalPoints}-${e.exactCount}-${e.resultCount ?? 0}-${e.partialCount ?? 0}`;
+        const firstIndex: Record<string, number> = {};
+        ranking.forEach((e, i) => { const k = tieKey(e); if (!(k in firstIndex)) firstIndex[k] = i; });
+        const thirdPlaceTotal = ranking[2]?.totalPoints ?? 0;
+        const result = ranking.map((e) => ({
+          pos: firstIndex[tieKey(e)] + 1,
+          name: e.displayName || e.uid,
+          pts: e.totalPoints,
+          eliminated: (maxPtsMap[e.uid] ?? e.totalPoints) < thirdPlaceTotal,
+        }));
+        setRankedUsers(result);
+      } catch {}
+    })();
+  }, [users, matches, settings]);
 
   useEffect(() => {
     if (todayMatches.length === 0) { setDailyPts([]); return; }

@@ -1,0 +1,147 @@
+// lib/max-pts.ts
+// Single source of truth for computing each user's maximum achievable points.
+// Consumed by dashboard (Ranking table) and admin (WhatsApp summary).
+
+import type { Match, Pick, UserProfile } from "./firebase";
+
+interface GroupPick {
+  userId: string;
+  group: string;
+  points?: number | null;
+}
+
+interface ComputeMaxPtsInput {
+  users: UserProfile[];
+  allPicks: Pick[];
+  allGroupPicks: GroupPick[];
+  allMatches: Match[];
+  savedGroupIds: string[];            // group letters whose official standing has been saved
+  settingsChampion?: string;
+  settingsTopScorer?: string;
+  eliminatedTeams: Set<string>;
+}
+
+const KNOCKOUT_ROUNDS = new Set([
+  "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
+]);
+
+const EXPECTED_KNOCKOUT_COUNTS: Record<string, number> = {
+  "Ronda de 32": 16,
+  "Octavos de Final": 8,
+  "Cuartos de Final": 4,
+  "Semifinal": 2,
+  "Tercer Puesto": 1,
+  "Final": 1,
+};
+
+// Compute the maximum achievable points map: uid → max pts.
+export function computeMaxPointsMap(input: ComputeMaxPtsInput): Record<string, number> {
+  const { users, allPicks, allGroupPicks, allMatches, savedGroupIds, settingsChampion, settingsTopScorer, eliminatedTeams } = input;
+  const championDecided = !!settingsChampion;
+  const topScorerDecided = !!settingsTopScorer;
+
+  const ALL_GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+  const savedSet = new Set(savedGroupIds);
+  const unsavedGroupCount = ALL_GROUPS.filter(g => !savedSet.has(g)).length;
+
+  const liveMatchIds = new Set(
+    allMatches.filter(m => m.status === "live" && m.homeScore !== null && m.awayScore !== null).map(m => m.id)
+  );
+
+  const calcPts = (ph: number, pa: number, rh: number, ra: number): number => {
+    if (ph === rh && pa === ra) return 5;
+    let pts = 0;
+    if (Math.sign(ph - pa) === Math.sign(rh - ra)) pts += 2;
+    if (ph === rh) pts += 1;
+    if (pa === ra) pts += 1;
+    return pts;
+  };
+  const liveAchievable = (ph: number, pa: number, lh: number, la: number): number => {
+    let best = 0;
+    const horizon = 10;
+    for (let fh = lh; fh <= lh + horizon; fh++) {
+      for (let fa = la; fa <= la + horizon; fa++) {
+        const pts = calcPts(ph, pa, fh, fa);
+        if (pts > best) best = pts;
+        if (best === 5) return 5;
+      }
+    }
+    return best;
+  };
+
+  const maxMap: Record<string, number> = {};
+  for (const usr of users) {
+    const lockedMatchPts = allPicks
+      .filter(p => p.userId === usr.uid && p.points !== null && p.points !== undefined && !liveMatchIds.has(p.matchId))
+      .reduce((s, p) => s + (p.points ?? 0), 0);
+    const lockedGroupPts = allGroupPicks
+      .filter(p => p.userId === usr.uid && p.points !== null && p.points !== undefined)
+      .reduce((s, p) => s + (p.points ?? 0), 0);
+    const lockedChampionPts = settingsChampion && usr.champion === settingsChampion ? 15 : 0;
+    const lockedTopScorerPts = settingsTopScorer && usr.topScorer === settingsTopScorer ? 10 : 0;
+
+    let groupPending = 0;
+    for (const m of allMatches) {
+      if (!m.group) continue;
+      if (m.status === "finished") continue;
+      if (m.status === "live") continue;
+      const pick = allPicks.find(p => p.userId === usr.uid && p.matchId === m.id);
+      if (pick && pick.points !== null && pick.points !== undefined) continue;
+      groupPending++;
+    }
+
+    let knockoutPending = 0;
+    for (const round of Object.keys(EXPECTED_KNOCKOUT_COUNTS)) {
+      const expected = EXPECTED_KNOCKOUT_COUNTS[round];
+      const finishedInRound = allMatches.filter(m => m.round === round && m.status === "finished").length;
+      const liveInRound = allMatches.filter(m => m.round === round && m.status === "live" && m.homeScore !== null && m.awayScore !== null).length;
+      knockoutPending += Math.max(0, expected - finishedInRound - liveInRound);
+    }
+
+    let liveMax = 0;
+    for (const m of allMatches) {
+      if (m.status !== "live") continue;
+      if (m.homeScore === null || m.awayScore === null) continue;
+      const pick = allPicks.find(p => p.userId === usr.uid && p.matchId === m.id);
+      if (!pick) continue;
+      liveMax += liveAchievable(pick.homeScore, pick.awayScore, m.homeScore, m.awayScore);
+    }
+
+    const pendingMatchMax = (groupPending + knockoutPending) * 5 + liveMax;
+    const pendingGroupMax = unsavedGroupCount * 3;
+    const pendingChampionMax = !championDecided && usr.champion && !eliminatedTeams.has(usr.champion) ? 15 : 0;
+    const pendingTopScorerMax = !topScorerDecided && usr.topScorer ? 10 : 0;
+
+    maxMap[usr.uid] =
+      lockedMatchPts + lockedGroupPts + lockedChampionPts + lockedTopScorerPts +
+      pendingMatchMax + pendingGroupMax + pendingChampionMax + pendingTopScorerMax;
+  }
+  return maxMap;
+}
+
+// Compute the set of eliminated teams (knockout losers + group-stage non-advancers).
+export function computeEliminatedTeams(allMatches: Match[]): Set<string> {
+  const elimSet = new Set<string>();
+  for (const m of allMatches) {
+    if (!KNOCKOUT_ROUNDS.has(m.round)) continue;
+    if (m.status !== "finished") continue;
+    if (m.homeScore === null || m.awayScore === null) continue;
+    if (m.homeScore > m.awayScore) elimSet.add(m.awayTeam);
+    else if (m.awayScore > m.homeScore) elimSet.add(m.homeTeam);
+    else {
+      if (m.penaltyWinner === "home") elimSet.add(m.awayTeam);
+      else if (m.penaltyWinner === "away") elimSet.add(m.homeTeam);
+    }
+  }
+  const r32Matches = allMatches.filter(m => m.round === "Ronda de 32");
+  if (r32Matches.length >= 16) {
+    const r32Teams = new Set<string>();
+    for (const m of r32Matches) { r32Teams.add(m.homeTeam); r32Teams.add(m.awayTeam); }
+    for (const m of allMatches) {
+      if (!m.group) continue;
+      if (!r32Teams.has(m.homeTeam)) elimSet.add(m.homeTeam);
+      if (!r32Teams.has(m.awayTeam)) elimSet.add(m.awayTeam);
+    }
+  }
+  return elimSet;
+}
