@@ -1939,13 +1939,13 @@ const PICK_TO_GOALS: Record<string, number> = {
 };
 
 function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Match[] }) {
-  // Compute eliminated teams:
-  // (a) Any team that lost a finished knockout match (including penalty loss)
-  // (b) Any team that played group stage but didn't advance to R32
-  const KO_ROUNDS = new Set(["Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final"]);
+  // Compute eliminated teams for the top scorer display:
+  // A team is "eliminated" here if their tournament is completely over (no more matches to play).
+  // Semi losers are NOT eliminated because they still play the 3rd/4th place match.
+  const KO_ROUNDS = new Set(["Ronda de 32", "Octavos de Final", "Cuartos de Final", "Tercer Puesto", "Final"]);
   const eliminatedTeams = new Set<string>();
 
-  // (a) knockout losers
+  // (a) knockout losers (excluding Semifinal — those teams go to 3rd/4th)
   for (const m of matches) {
     if (!KO_ROUNDS.has(m.round)) continue;
     if (m.status !== "finished") continue;
@@ -1956,6 +1956,13 @@ function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Mat
       if (m.penaltyWinner === "home") eliminatedTeams.add(m.awayTeam);
       else if (m.penaltyWinner === "away") eliminatedTeams.add(m.homeTeam);
     }
+  }
+  // Also: teams that lost 3rd place OR are done after Final — both participants have no more matches
+  for (const m of matches) {
+    if (m.round !== "Tercer Puesto" && m.round !== "Final") continue;
+    if (m.status !== "finished") continue;
+    eliminatedTeams.add(m.homeTeam);
+    eliminatedTeams.add(m.awayTeam);
   }
 
   // (b) group-stage eliminated: only apply once the R32 bracket is fully set (all 16 matches created)
