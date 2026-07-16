@@ -1751,6 +1751,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Julián Quiñones", country: "Mexico", code: "MEX", goals: 4 },
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 4 },
   // 3 goals
+  { player: "Lautaro Martínez", country: "Argentina", code: "ARG", goals: 3 },
   { player: "Romelu Lukaku", country: "Belgium", code: "BEL", goals: 3 },
   { player: "Charles De Ketelaere", country: "Belgium", code: "BEL", goals: 3 },
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 3 },
@@ -1769,7 +1770,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   // 2 goals
   { player: "Riyad Mahrez", country: "Algeria", code: "ALG", goals: 2 },
   { player: "Marko Arnautović", country: "Austria", code: "AUT", goals: 2 },
-  { player: "Lautaro Martínez", country: "Argentina", code: "ARG", goals: 2 },
+  { player: "Enzo Fernández", country: "Argentina", code: "ARG", goals: 2 },
   { player: "Leandro Trossard", country: "Belgium", code: "BEL", goals: 2 },
   { player: "Youri Tielemans", country: "Belgium", code: "BEL", goals: 2 },
   { player: "Ermin Mahmić", country: "Bosnia and Herzegovina", code: "BIH", goals: 2 },
@@ -1802,7 +1803,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Giovani Lo Celso", country: "Argentina", code: "ARG", goals: 1 },
   { player: "Julián Álvarez", country: "Argentina", code: "ARG", goals: 1 },
   { player: "Alexis Mac Allister", country: "Argentina", code: "ARG", goals: 1 },
-  { player: "Enzo Fernández", country: "Argentina", code: "ARG", goals: 1 },
+  { player: "Lisandro Martínez", country: "Argentina", code: "ARG", goals: 1 },
   { player: "Cristian Romero", country: "Argentina", code: "ARG", goals: 1 },
   { player: "Marcel Sabitzer", country: "Austria", code: "AUT", goals: 1 },
   { player: "Kevin De Bruyne", country: "Belgium", code: "BEL", goals: 1 },
@@ -1822,6 +1823,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Yasser Ibrahim", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Mohamed Salah", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
+  { player: "Anthony Gordon", country: "England", code: "ENG", goals: 1 },
   { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
   { player: "Désiré Doué", country: "France", code: "FRA", goals: 1 },
   { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
