@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, getAllPicks, getAllUsers, updateChampionPick, Pick, Match, GroupPick, UserProfile } from "@/lib/firebase";
+import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, getAllPicks, getAllUsers, getRanking, updateChampionPick, Pick, Match, GroupPick, UserProfile, RankingEntry } from "@/lib/firebase";
+import { computePositionRanges, computeEliminatedTeams } from "@/lib/max-pts";
 import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { getPointsBreakdown, isDeadlinePassed } from "@/lib/scoring";
 import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
@@ -23,6 +24,7 @@ export default function MyPicksPage() {
 
   const [allPicks, setAllPicks] = useState<Pick[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [activeView, setActiveView] = useState<"mine" | "community" | "stats">("mine");
   const [mineCollapsedPhases, setMineCollapsedPhases] = useState<Set<string>>(new Set());
 
@@ -37,13 +39,14 @@ export default function MyPicksPage() {
   const loadData = useCallback(async () => {
     if (!user) return;
     await refreshProfile();
-    const [p, m, gp, st, ap, au] = await Promise.all([
+    const [p, m, gp, st, ap, au, rk] = await Promise.all([
       getUserPicks(user.uid),
       getMatches(),
       getUserGroupPicks(user.uid),
       getTournamentSettings(),
       getAllPicks(),
       getAllUsers(),
+      getRanking(),
     ]);
     setPicks(p);
     setMatches(m);
@@ -51,6 +54,7 @@ export default function MyPicksPage() {
     setSettings(st as Record<string, string>);
     setAllPicks(ap);
     setAllUsers(au);
+    setRanking(rk);
     setFetching(false);
   }, [user, refreshProfile]);
 
@@ -128,6 +132,8 @@ export default function MyPicksPage() {
           allUsers={allUsers}
           myUid={user?.uid ?? ""}
           myPicks={picks}
+          settings={settings}
+          ranking={ranking}
         />
       )}
 
@@ -843,12 +849,14 @@ interface StreakRecord {
   picks: Pick[];
 }
 
-function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
+function StatsView({ matches, allPicks, allUsers, myUid, myPicks, settings, ranking }: {
   matches: Match[];
   allPicks: Pick[];
   allUsers: UserProfile[];
   myUid: string;
   myPicks: Pick[];
+  settings: Record<string, string>;
+  ranking: RankingEntry[];
 }) {
   const matchMap = Object.fromEntries(matches.map(m => [m.id, m]));
 
@@ -1374,6 +1382,95 @@ function StatsView({ matches, allPicks, allUsers, myUid, myPicks }: {
           </div>
         )}
       </div>
+
+      {/* ── POSICIONES POSIBLES ── */}
+      {(() => {
+        const totals: Record<string, number> = {};
+        for (const r of ranking) totals[r.uid] = r.totalPoints;
+        // For users not in ranking (shouldn't happen), default 0
+        for (const u of allUsers) if (!(u.uid in totals)) totals[u.uid] = 0;
+
+        const eliminatedTeams = computeEliminatedTeams(matches);
+        const positions = computePositionRanges({
+          users: allUsers,
+          allPicks,
+          allGroupPicks: [],  // not fetched here; safe: unsaved group count = 0 near tournament end
+          allMatches: matches,
+          savedGroupIds: ["A","B","C","D","E","F","G","H","I","J","K","L"], // treat all as saved (accurate at knockout stage)
+          settingsChampion: settings.champion || undefined,
+          settingsTopScorer: settings.topScorer || undefined,
+          eliminatedTeams,
+          totals,
+        });
+
+        // Sort users by current total desc
+        const sortedUsers = [...allUsers]
+          .filter(u => u.uid in totals)
+          .sort((a, b) => (totals[b.uid] ?? 0) - (totals[a.uid] ?? 0));
+
+        return (
+          <div style={{ marginTop: 24 }}>
+            <h2 style={{ fontSize: 18, color: "var(--gold)", fontFamily: "'Bebas Neue',sans-serif", letterSpacing: "0.06em", marginBottom: 4 }}>
+              🎲 POSICIONES POSIBLES
+            </h2>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
+              La mejor y peor posición que cada participante puede lograr según los picks pendientes
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {sortedUsers.map((u, idx) => {
+                const pos = positions[u.uid] ?? { best: idx + 1, worst: idx + 1 };
+                const isMe = u.uid === myUid;
+                const fixed = pos.best === pos.worst;
+                return (
+                  <div key={u.uid} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px",
+                    background: isMe ? "rgba(201,168,76,0.08)" : "var(--surface2)",
+                    border: isMe ? "1px solid var(--border-gold)" : "1px solid var(--border)",
+                    borderRadius: "var(--radius-sm)",
+                    flexWrap: "wrap",
+                  }}>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)", width: 22, textAlign: "center", fontFamily: "'Rajdhani',sans-serif", fontWeight: 700 }}>
+                      #{idx + 1}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 14, color: "var(--text)", fontWeight: isMe ? 700 : 500, minWidth: 90 }}>
+                      {u.displayName}
+                      {isMe && <span className="badge badge-gold" style={{ fontSize: 9, padding: "1px 6px", marginLeft: 6 }}>Tú</span>}
+                    </span>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", minWidth: 60 }}>
+                      {totals[u.uid] ?? 0} pts
+                    </span>
+                    {fixed ? (
+                      <span style={{
+                        fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "var(--gold)",
+                        letterSpacing: "0.04em",
+                      }}>
+                        {pos.best}°
+                      </span>
+                    ) : (
+                      <>
+                        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
+                          <span style={{ fontSize: 8, color: "var(--text-muted)", letterSpacing: "0.06em" }}>MEJOR</span>
+                          <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "var(--green)", lineHeight: 1 }}>
+                            {pos.best}°
+                          </span>
+                        </span>
+                        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
+                        <span style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 44 }}>
+                          <span style={{ fontSize: 8, color: "var(--text-muted)", letterSpacing: "0.06em" }}>PEOR</span>
+                          <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, color: "var(--red)", lineHeight: 1 }}>
+                            {pos.worst}°
+                          </span>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

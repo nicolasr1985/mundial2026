@@ -227,7 +227,84 @@ export function computeEliminatedUsers(input: ComputeMaxPtsInput & {
   return eliminatedUsers;
 }
 
-// Compute the set of eliminated teams (knockout losers + group-stage non-advancers).
+// Compute best and worst possible final position for each user.
+// bestPos = min rank achievable (1 = 1st). worstPos = max rank achievable.
+export function computePositionRanges(input: ComputeMaxPtsInput & { totals: Record<string, number> }): Record<string, { best: number; worst: number }> {
+  const { users, allPicks, allGroupPicks, allMatches, savedGroupIds, settingsChampion, settingsTopScorer, eliminatedTeams, totals } = input;
+  const ALL_GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+  const savedSet = new Set(savedGroupIds);
+
+  const pickByUserMatch: Record<string, Pick> = {};
+  for (const p of allPicks) pickByUserMatch[`${p.userId}::${p.matchId}`] = p;
+  const gpByUserGroup: Record<string, GroupPick> = {};
+  for (const p of allGroupPicks) gpByUserGroup[`${p.userId}::${p.group}`] = p;
+
+  const pairAdv = (bUid: string, xUid: string): number => {
+    const bUser = users.find(u => u.uid === bUid);
+    const xUser = users.find(u => u.uid === xUid);
+    if (!bUser || !xUser) return 0;
+    let adv = 0;
+    for (const m of allMatches) {
+      if (m.status === "finished") continue;
+      const pB = pickByUserMatch[`${bUid}::${m.id}`];
+      const pX = pickByUserMatch[`${xUid}::${m.id}`];
+      const stillOpen = m.status === "upcoming" && !m.locked;
+      if (!pB && !pX) { if (stillOpen) adv += 5; continue; }
+      if (!pB && pX) { if (stillOpen) adv += 5; continue; }
+      if (pB && !pX) { adv += 5; continue; }
+      if (pB.homeScore === pX.homeScore && pB.awayScore === pX.awayScore) continue;
+      adv += 5;
+    }
+    for (const [round, expected] of Object.entries(EXPECTED_KNOCKOUT_COUNTS)) {
+      const existing = allMatches.filter(m => m.round === round).length;
+      adv += Math.max(0, expected - existing) * 5;
+    }
+    for (const g of ALL_GROUPS) {
+      if (savedSet.has(g)) continue;
+      const gpB = gpByUserGroup[`${bUid}::${g}`];
+      const gpX = gpByUserGroup[`${xUid}::${g}`];
+      if (!gpB && !gpX) continue;
+      if (!gpB && gpX) continue;
+      if (gpB && !gpX) { adv += 3; continue; }
+      let diff = 0;
+      if (gpB.firstPlace !== gpX.firstPlace) diff++;
+      if (gpB.secondPlace !== gpX.secondPlace) diff++;
+      if ((gpB.thirdPlace ?? "") !== (gpX.thirdPlace ?? "")) diff++;
+      adv += diff;
+    }
+    if (!settingsChampion) {
+      const cB = bUser.champion, cX = xUser.champion;
+      if (cB && cX && cB === cX) {}
+      else if (!cB && !cX) adv += 15;
+      else if (cB && !cX) { if (!eliminatedTeams.has(cB)) adv += 15; }
+      else if (!cB && cX) adv += 15;
+      else if (cB) { if (!eliminatedTeams.has(cB)) adv += 15; }
+    }
+    if (!settingsTopScorer) {
+      const tB = bUser.topScorer, tX = xUser.topScorer;
+      if (!(tB && tX && tB === tX)) adv += 10;
+    }
+    return adv;
+  };
+
+  const result: Record<string, { best: number; worst: number }> = {};
+  for (const u of users) {
+    const uTotal = totals[u.uid] ?? 0;
+    let definitelyAbove = 0;   // rivals U cannot catch → contribute to U's best position
+    let couldOvertakeU = 0;    // rivals that could end above U → contribute to U's worst position
+    for (const x of users) {
+      if (x.uid === u.uid) continue;
+      const xTotal = totals[x.uid] ?? 0;
+      const uToX = pairAdv(u.uid, x.uid);
+      const xToU = pairAdv(x.uid, u.uid);
+      if (uTotal + uToX < xTotal) definitelyAbove++;
+      if (xTotal + xToU > uTotal) couldOvertakeU++;
+    }
+    result[u.uid] = { best: definitelyAbove + 1, worst: couldOvertakeU + 1 };
+  }
+  return result;
+}
+
 export function computeEliminatedTeams(allMatches: Match[]): Set<string> {
   const elimSet = new Set<string>();
   for (const m of allMatches) {
