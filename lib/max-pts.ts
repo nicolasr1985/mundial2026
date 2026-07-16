@@ -24,6 +24,11 @@ interface ComputeMaxPtsInput {
   eliminatedTeams: Set<string>;
 }
 
+// Normalize strings for equality comparison (strip diacritics + lowercase).
+// Handles cases like "Mbappé" vs "Mbappe" which represent the same player.
+const normalize = (s: string | undefined | null): string =>
+  (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
 const KNOCKOUT_ROUNDS = new Set([
   "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
 ]);
@@ -202,7 +207,7 @@ export function computeEliminatedUsers(input: ComputeMaxPtsInput & {
     if (!settingsTopScorer) {
       const tB = bUser.topScorer;
       const tX = xUser.topScorer;
-      if (tB && tX && tB === tX) {
+      if (tB && tX && normalize(tB) === normalize(tX)) {
         // same → no gain
       } else {
         adv += 10;
@@ -282,7 +287,7 @@ export function computePositionRanges(input: ComputeMaxPtsInput & { totals: Reco
     }
     if (!settingsTopScorer) {
       const tB = bUser.topScorer, tX = xUser.topScorer;
-      if (!(tB && tX && tB === tX)) adv += 10;
+      if (!(tB && tX && normalize(tB) === normalize(tX))) adv += 10;
     }
     return adv;
   };
