@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [maxPointsMap, setMaxPointsMap] = useState<Record<string, number>>({});
+  const [tournamentOver, setTournamentOver] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [totalUsers, setTotalUsers] = useState(0);
   const [fetching, setFetching] = useState(true);
@@ -48,6 +49,9 @@ export default function DashboardPage() {
         const allGroupPicks = groupPicksSnap.docs.map(d => d.data() as any);
         const matchMap: Record<string, Match> = {};
         allMatches.forEach(m => { matchMap[m.id] = m; });
+
+        // Tournament is over once the Final is finished → Max Pts column no longer relevant
+        setTournamentOver(allMatches.some(m => m.round === "Final" && m.status === "finished"));
 
         // Groups that already have an official standing saved (no more pending bonus from them)
         const savedGroups = new Set(groupStandingsSnap.docs.map(d => d.id));
@@ -320,6 +324,7 @@ export default function DashboardPage() {
             prizes={[firstPrize, secondPrize, thirdPrize]}
             maxPointsMap={maxPointsMap}
             eliminatedUsers={eliminatedUsers}
+            hideMaxPts={tournamentOver}
           />
         )}
       </div>
@@ -456,8 +461,8 @@ function buildTieGroups(ranking: RankingEntry[], prizes: number[]): { pos: numbe
   });
 }
 
-function RankingTable({ ranking, userId, prizes, maxPointsMap, eliminatedUsers }: {
-  ranking: RankingEntry[]; userId: string; prizes: number[]; maxPointsMap: Record<string, number>;
+function RankingTable({ ranking, userId, prizes, maxPointsMap, eliminatedUsers, hideMaxPts }: {
+  ranking: RankingEntry[]; userId: string; prizes: number[]; maxPointsMap: Record<string, number>; hideMaxPts?: boolean;
   eliminatedUsers: Set<string>;
 }) {
   const allPaid = ranking.every(e => e.hasPaid);
@@ -516,7 +521,7 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap, eliminatedUsers }
                 : <th key={col} className="phase-col" style={th} title={col}><span className="phase-label">{PHASE_LABEL[col] ?? col}</span></th>
             )}
             <th className="phase-col" style={{ ...th, color: "var(--gold)", fontWeight: 700 }}><span className="phase-label">Total</span></th>
-            <th className="phase-col" style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}><span className="phase-label">Max Pts</span></th>
+            {!hideMaxPts && <th className="phase-col" style={{ ...th, color: "var(--text-muted)", fontWeight: 500, fontSize: 9 }}><span className="phase-label">Max Pts</span></th>}
             {showPaid && <th style={{ ...th, color: "var(--green)" }}>💰 Pago</th>}
           </tr>
         </thead>
@@ -581,9 +586,11 @@ function RankingTable({ ranking, userId, prizes, maxPointsMap, eliminatedUsers }
                   <div style={{ fontSize: 22, fontFamily: "'Bebas Neue',sans-serif", color: isMe ? "var(--gold)" : "var(--text)" }}>{entry.totalPoints}</div>
                   <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", marginTop: -2 }}>pts</div>
                 </td>
-                <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                  <div style={{ fontSize: 13, color: "var(--green)" }}>{maxPointsMap[entry.uid] ?? entry.totalPoints}</div>
-                </td>
+                {!hideMaxPts && (
+                  <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontSize: 13, color: "var(--green)" }}>{maxPointsMap[entry.uid] ?? entry.totalPoints}</div>
+                  </td>
+                )}
                 {showPaid && (
                   <td style={{ padding: "10px 8px", textAlign: "center", fontSize: 18 }}>
                     {entry.hasPaid ? "✅" : "❌"}
