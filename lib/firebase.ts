@@ -573,7 +573,7 @@ export async function getRanking(): Promise<RankingEntry[]> {
       const matchPoints = userPicks.reduce((s, p) => s + (p.points ?? 0), 0);
       const groupPoints = userGroupPicks.reduce((s, p) => s + (p.points ?? 0), 0);
       const championPoints = settings.champion && u.champion === settings.champion ? 15 : 0;
-      const topScorerPoints = settings.topScorer && u.topScorer === settings.topScorer ? 10 : 0;
+      const topScorerPoints = settings.topScorer && (u.topScorer ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase() === settings.topScorer.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase() ? 10 : 0;
 
       const PHASES: [string, string][] = [
         ["Grupos", "Fase de Grupos"],

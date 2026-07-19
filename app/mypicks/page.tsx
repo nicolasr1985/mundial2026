@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getUserPicks, getMatches, getUserGroupPicks, getTournamentSettings, getAllPicks, getAllUsers, getRanking, updateChampionPick, Pick, Match, GroupPick, UserProfile, RankingEntry } from "@/lib/firebase";
-import { computePositionRanges, computeEliminatedTeams } from "@/lib/max-pts";
+import { computePositionRanges, computeEliminatedTeams, sameScorer } from "@/lib/max-pts";
 import { WC2026_TEAMS, WC2026_SCORERS, formatScorer } from "@/lib/wc2026-data";
 import { getPointsBreakdown, isDeadlinePassed } from "@/lib/scoring";
 import { teamWithRank, canSeeRanking } from "@/lib/fifa-ranking";
@@ -84,7 +84,7 @@ export default function MyPicksPage() {
   const totalPts = picks.reduce((s, p) => s + (p.points ?? 0), 0)
     + groupPicks.reduce((s, p) => s + (p.points ?? 0), 0)
     + (settings.champion && profile?.champion === settings.champion ? 15 : 0)
-    + (settings.topScorer && profile?.topScorer === settings.topScorer ? 10 : 0);
+    + (sameScorer(profile?.topScorer, settings.topScorer) ? 10 : 0);
   const exactCount = finishedPicks.filter((e) => e.pick.points === 5).length;
   const correctCount = finishedPicks.filter((e) => (e.pick.points ?? 0) >= 2 && e.pick.points !== 5).length;
   const accuracy = finishedPicks.length > 0 ? Math.round((exactCount + correctCount) / finishedPicks.length * 100) : 0;

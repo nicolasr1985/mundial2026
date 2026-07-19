@@ -12,7 +12,7 @@ import {
   sendUserPasswordReset, deleteUserData, toggleUserAdmin, Match, Timestamp, UserProfile, RankingEntry, RecalcGroupResult, db
 } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { computeMaxPointsMap, computeEliminatedTeams, computeEliminatedUsers } from "@/lib/max-pts";
+import { computeMaxPointsMap, computeEliminatedTeams, computeEliminatedUsers, sameScorer } from "@/lib/max-pts";
 
 const ROUNDS = [
   "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
@@ -1133,7 +1133,7 @@ function SpecialTab({ settings, users, onUpdated }: {
                     <tr><td colSpan={3} style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>No hay participantes registrados</td></tr>
                   ) : nonAdminUsers.map((u) => {
                     const champCorrect = settings.champion && u.champion === settings.champion;
-                    const scorerCorrect = settings.topScorer && u.topScorer === settings.topScorer;
+                    const scorerCorrect = sameScorer(u.topScorer, settings.topScorer);
                     return (
                       <tr key={u.uid} style={{ borderBottom: "1px solid var(--border)" }}>
                         <td style={{ padding: "12px 16px", fontWeight: 600, fontSize: 14 }}>

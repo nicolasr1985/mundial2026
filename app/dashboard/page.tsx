@@ -7,7 +7,7 @@ import { getRanking, getTournamentSettings, getAllUsers, RankingEntry, UserProfi
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { isDeadlinePassed } from "@/lib/scoring";
-import { computeEliminatedUsers, topScorerViable } from "@/lib/max-pts";
+import { computeEliminatedUsers, topScorerViable, sameScorer } from "@/lib/max-pts";
 
 const BET_PER_USER = 150000;
 function formatCOP(n: number) {
@@ -112,7 +112,7 @@ export default function DashboardPage() {
             .filter((p: any) => p.userId === usr.uid && p.points !== null && p.points !== undefined)
             .reduce((s: number, p: any) => s + (p.points ?? 0), 0);
           const lockedChampionPts = settingsObj.champion && usr.champion === settingsObj.champion ? 15 : 0;
-          const lockedTopScorerPts = settingsObj.topScorer && usr.topScorer === settingsObj.topScorer ? 10 : 0;
+          const lockedTopScorerPts = sameScorer(usr.topScorer, settingsObj.topScorer) ? 10 : 0;
 
           // Potential points from pending (not-yet-finished) matches — max 5 pts each.
           // For knockout rounds, we use the expected total per round since matches may not yet exist

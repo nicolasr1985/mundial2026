@@ -37,6 +37,11 @@ export const topScorerViable = (pick: string | undefined | null): boolean => {
   return VIABLE_TOP_SCORERS.some(p => n.includes(p));
 };
 
+// Accent/case-insensitive comparison for top scorer picks vs the official result.
+// Handles "Mbappé" vs "Mbappe" spelling variants.
+export const sameScorer = (a: string | undefined | null, b: string | undefined | null): boolean =>
+  !!a && !!b && normalize(a) === normalize(b);
+
 const KNOCKOUT_ROUNDS = new Set([
   "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
 ]);
@@ -94,7 +99,7 @@ export function computeMaxPointsMap(input: ComputeMaxPtsInput): Record<string, n
       .filter(p => p.userId === usr.uid && p.points !== null && p.points !== undefined)
       .reduce((s, p) => s + (p.points ?? 0), 0);
     const lockedChampionPts = settingsChampion && usr.champion === settingsChampion ? 15 : 0;
-    const lockedTopScorerPts = settingsTopScorer && usr.topScorer === settingsTopScorer ? 10 : 0;
+    const lockedTopScorerPts = sameScorer(usr.topScorer, settingsTopScorer) ? 10 : 0;
 
     let groupPending = 0;
     for (const m of allMatches) {
