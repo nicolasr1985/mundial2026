@@ -365,7 +365,19 @@ export default function DashboardPage() {
                         ) : "—"}
                       </td>
                       <td style={{ padding: "10px 16px", fontSize: 13, color: u.topScorer ? "var(--text)" : "var(--text-muted)" }}>
-                        {u.topScorer || "—"}
+                        {u.topScorer ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ textDecoration: !topScorerViable(u.topScorer) ? "line-through" : "none", opacity: !topScorerViable(u.topScorer) ? 0.6 : 1 }}>{u.topScorer}</span>
+                            {!topScorerViable(u.topScorer) && (
+                              <span style={{
+                                fontSize: 10, fontFamily: "'Rajdhani',sans-serif", fontWeight: 700,
+                                color: "var(--red)", background: "rgba(231,76,60,0.12)",
+                                border: "1px solid rgba(231,76,60,0.35)", borderRadius: 4,
+                                padding: "2px 7px", letterSpacing: "0.06em",
+                              }}>ELIMINADO</span>
+                            )}
+                          </span>
+                        ) : "—"}
                       </td>
                     </tr>
                   ))}
@@ -385,6 +397,8 @@ export default function DashboardPage() {
           ["🥇", "1° grupo", "1 pt"],
           ["🥈", "2° grupo", "1 pt"],
           ["🎯", "3° que pasa", "1 pt"],
+          ["🏆", "Campeón", "15 pts"],
+          ["⚽", "Goleador", "10 pts"],
         ].map(([icon, label, pts]) => (
           <div key={label} style={s.legendItem}>
             <span>{icon} {label}</span>
