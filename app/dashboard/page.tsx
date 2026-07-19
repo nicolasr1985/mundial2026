@@ -7,7 +7,7 @@ import { getRanking, getTournamentSettings, getAllUsers, RankingEntry, UserProfi
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { isDeadlinePassed } from "@/lib/scoring";
-import { computeEliminatedUsers } from "@/lib/max-pts";
+import { computeEliminatedUsers, topScorerViable } from "@/lib/max-pts";
 
 const BET_PER_USER = 150000;
 function formatCOP(n: number) {
@@ -195,7 +195,7 @@ export default function DashboardPage() {
           // Champion/top scorer: only countable if not yet officially decided and user made a pick.
           // For champion, also require the picked team is not eliminated from the knockout bracket.
           const pendingChampionMax = !championDecided && usr.champion && !elimSet.has(usr.champion) ? 15 : 0;
-          const pendingTopScorerMax = !topScorerDecided && usr.topScorer ? 10 : 0;
+          const pendingTopScorerMax = !topScorerDecided && usr.topScorer && topScorerViable(usr.topScorer) ? 10 : 0;
 
           maxMap[usr.uid] =
             lockedMatchPts + lockedGroupPts + lockedChampionPts + lockedTopScorerPts +

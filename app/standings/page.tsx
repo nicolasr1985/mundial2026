@@ -1982,12 +1982,15 @@ function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Mat
     }
   }
 
-  const isElim = (country: string) => eliminatedTeams.has(country);
+  // Golden Boot race post tercer puesto: Mbappé lidera con 10 y nadie más puede ganar el botín
+  // (solo Messi podría alcanzarlo con 2+ goles en la final — actualizar aquí si eso pasa).
+  const BOOT_VIABLE_PLAYERS = new Set(["Kylian Mbappé"]);
+  const isElim = (player: string) => !BOOT_VIABLE_PLAYERS.has(player);
 
   // Sort: goals desc → non-eliminated first → FIFA rank asc → player name
   const cmp = (a: GoalScorer, b: GoalScorer) =>
     b.goals - a.goals
-    || (isElim(a.country) ? 1 : 0) - (isElim(b.country) ? 1 : 0)
+    || (isElim(a.player) ? 1 : 0) - (isElim(b.player) ? 1 : 0)
     || getFifaRank(a.country) - getFifaRank(b.country)
     || a.player.localeCompare(b.player);
 
@@ -2078,10 +2081,10 @@ function GoalscorersTab({ users, matches }: { users: UserProfile[]; matches: Mat
                     {sc.player}
                   </td>
                   <td style={{ ...s.td, textAlign: "left", color: "var(--text-muted)" }}>
-                    <span style={{ opacity: isElim(sc.country) ? 0.6 : 1 }}>
+                    <span style={{ opacity: isElim(sc.player) ? 0.6 : 1 }}>
                       {sc.country} <span style={{ fontSize: 11, opacity: 0.7 }}>({sc.code})</span>
                     </span>
-                    {isElim(sc.country) && (
+                    {isElim(sc.player) && (
                       <span style={{
                         marginLeft: 8, fontSize: 10, fontFamily: "'Rajdhani',sans-serif", fontWeight: 700,
                         color: "var(--red)", background: "rgba(231,76,60,0.12)",

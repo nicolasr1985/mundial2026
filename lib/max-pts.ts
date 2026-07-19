@@ -32,7 +32,7 @@ const normalize = (s: string | undefined | null): string =>
 // Players who can still win the Golden Boot (update manually as the tournament progresses).
 // Post tercer puesto: Mbapp\u00e9 leads with 10; only Messi (8, plays the final) can still catch him.
 const VIABLE_TOP_SCORERS = ["mbappe", "messi"];
-const topScorerViable = (pick: string | undefined | null): boolean => {
+export const topScorerViable = (pick: string | undefined | null): boolean => {
   const n = normalize(pick);
   return VIABLE_TOP_SCORERS.some(p => n.includes(p));
 };
