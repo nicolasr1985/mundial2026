@@ -1735,16 +1735,17 @@ interface GoalScorer {
 }
 
 const GOAL_SCORERS_DATA: GoalScorer[] = [
+  // 10 goals
+  { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 10 },
   // 8 goals
   { player: "Lionel Messi", country: "Argentina", code: "ARG", goals: 8 },
-  { player: "Kylian Mbappé", country: "France", code: "FRA", goals: 8 },
   // 7 goals
+  { player: "Jude Bellingham", country: "England", code: "ENG", goals: 7 },
   { player: "Erling Haaland", country: "Norway", code: "NOR", goals: 7 },
   // 6 goals
-  { player: "Jude Bellingham", country: "England", code: "ENG", goals: 6 },
   { player: "Harry Kane", country: "England", code: "ENG", goals: 6 },
+  { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 6 },
   // 5 goals
-  { player: "Ousmane Dembélé", country: "France", code: "FRA", goals: 5 },
   { player: "Mikel Oyarzabal", country: "Spain", code: "ESP", goals: 5 },
   // 4 goals
   { player: "Vinícius Júnior", country: "Brazil", code: "BRA", goals: 4 },
@@ -1752,6 +1753,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Ismaïla Sarr", country: "Senegal", code: "SEN", goals: 4 },
   // 3 goals
   { player: "Lautaro Martínez", country: "Argentina", code: "ARG", goals: 3 },
+  { player: "Bukayo Saka", country: "England", code: "ENG", goals: 3 },
+  { player: "Bradley Barcola", country: "France", code: "FRA", goals: 3 },
   { player: "Romelu Lukaku", country: "Belgium", code: "BEL", goals: 3 },
   { player: "Charles De Ketelaere", country: "Belgium", code: "BEL", goals: 3 },
   { player: "Matheus Cunha", country: "Brazil", code: "BRA", goals: 3 },
@@ -1796,7 +1799,6 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Mikel Merino", country: "Spain", code: "ESP", goals: 2 },
   { player: "Pedro Porro", country: "Spain", code: "ESP", goals: 2 },
   { player: "Malik Tillman", country: "United States", code: "USA", goals: 2 },
-  { player: "Bradley Barcola", country: "France", code: "FRA", goals: 2 },
   { player: "Maximiliano Araújo", country: "Uruguay", code: "URU", goals: 2 },
   // 1 goal (well-known players and all Colombians for display)
   { player: "Amine Gouiri", country: "Algeria", code: "ALG", goals: 1 },
@@ -1825,6 +1827,8 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Trézéguet", country: "Egypt", code: "EGY", goals: 1 },
   { player: "Anthony Gordon", country: "England", code: "ENG", goals: 1 },
   { player: "Marcus Rashford", country: "England", code: "ENG", goals: 1 },
+  { player: "Declan Rice", country: "England", code: "ENG", goals: 1 },
+  { player: "Ezri Konsa", country: "England", code: "ENG", goals: 1 },
   { player: "Désiré Doué", country: "France", code: "FRA", goals: 1 },
   { player: "Jamal Musiala", country: "Germany", code: "GER", goals: 1 },
   { player: "Leroy Sané", country: "Germany", code: "GER", goals: 1 },
@@ -1853,17 +1857,14 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
 // Maps a user's topScorer pick string (format: "(CODE) Lastname, Firstname") to current goals.
 // Some players have multiple pick spellings in WC2026_SCORERS — we map all variants.
 const PICK_TO_GOALS: Record<string, number> = {
-  // 7 goals
+  "(FRA) Mbappé, Kylian": 10,
+  "(FRA) Mbappe, Kylian": 10,
   "(ARG) Messi, Lionel": 8,
-  "(FRA) Mbappé, Kylian": 8,
-  "(FRA) Mbappe, Kylian": 8,
-  // 5 goals
   "(NOR) Haaland, Erling Braut": 7,
-  // 4 goals
   "(BRA) Vinicius Jr.": 4,
   "(BRA) De Oliveira Junior, Vinicius": 4,
-  "(FRA) Dembélé, Ousmane": 5,
-  "(FRA) Dembele, Ousmane": 5,
+  "(FRA) Dembélé, Ousmane": 6,
+  "(FRA) Dembele, Ousmane": 6,
   // 3 goals
   "(BRA) Cunha, Matheus": 3,
   "(CAN) David, Jonathan": 3,
@@ -1880,7 +1881,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(AUT) Arnautovic, Marko": 2,
   "(BEL) Trossard, Leandro": 2,
   "(CAN) Larin, Cyle": 2,
-  "(ENG) Bellingham, Jude": 6,
+  "(ENG) Bellingham, Jude": 7,
   "(JPN) Kamada, Daichi": 2,
   "(JPN) Ueda, Ayase": 2,
   "(CIV) Diallo, Amad": 2,
@@ -1894,7 +1895,7 @@ const PICK_TO_GOALS: Record<string, number> = {
   "(SWE) Elanga, Anthony": 2,
   "(SUI) Vargas, Ruben": 2,
   "(USA) Balogun, Folarin": 3,
-  "(FRA) Barcola, Bradley": 2,
+  "(FRA) Barcola, Bradley": 3,
   // 1 goal
   "(ALG) Gouiri, Amine": 1,
   "(ARG) Lautaro Martínez": 1,
