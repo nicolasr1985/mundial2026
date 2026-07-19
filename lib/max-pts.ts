@@ -29,6 +29,14 @@ interface ComputeMaxPtsInput {
 const normalize = (s: string | undefined | null): string =>
   (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+// Players who can still win the Golden Boot (update manually as the tournament progresses).
+// Post tercer puesto: Mbapp\u00e9 leads with 10; only Messi (8, plays the final) can still catch him.
+const VIABLE_TOP_SCORERS = ["mbappe", "messi"];
+const topScorerViable = (pick: string | undefined | null): boolean => {
+  const n = normalize(pick);
+  return VIABLE_TOP_SCORERS.some(p => n.includes(p));
+};
+
 const KNOCKOUT_ROUNDS = new Set([
   "Ronda de 32", "Octavos de Final", "Cuartos de Final", "Semifinal", "Tercer Puesto", "Final",
 ]);
@@ -118,7 +126,7 @@ export function computeMaxPointsMap(input: ComputeMaxPtsInput): Record<string, n
     const pendingMatchMax = (groupPending + knockoutPending) * 5 + liveMax;
     const pendingGroupMax = unsavedGroupCount * 3;
     const pendingChampionMax = !championDecided && usr.champion && !eliminatedTeams.has(usr.champion) ? 15 : 0;
-    const pendingTopScorerMax = !topScorerDecided && usr.topScorer ? 10 : 0;
+    const pendingTopScorerMax = !topScorerDecided && usr.topScorer && topScorerViable(usr.topScorer) ? 10 : 0;
 
     maxMap[usr.uid] =
       lockedMatchPts + lockedGroupPts + lockedChampionPts + lockedTopScorerPts +
@@ -203,15 +211,12 @@ export function computeEliminatedUsers(input: ComputeMaxPtsInput & {
       }
     }
 
-    // Top scorer (we don't track top scorer eliminations, assume always live)
+    // Top scorer: B only gains if B's pick can still win the Golden Boot and X's pick is different
     if (!settingsTopScorer) {
       const tB = bUser.topScorer;
       const tX = xUser.topScorer;
-      if (tB && tX && normalize(tB) === normalize(tX)) {
-        // same → no gain
-      } else {
-        adv += 10;
-      }
+      const samePick = tB && tX && normalize(tB) === normalize(tX);
+      if (!samePick && topScorerViable(tB)) adv += 10;
     }
 
     return adv;
@@ -287,7 +292,8 @@ export function computePositionRanges(input: ComputeMaxPtsInput & { totals: Reco
     }
     if (!settingsTopScorer) {
       const tB = bUser.topScorer, tX = xUser.topScorer;
-      if (!(tB && tX && normalize(tB) === normalize(tX))) adv += 10;
+      const samePick = tB && tX && normalize(tB) === normalize(tX);
+      if (!samePick && topScorerViable(tB)) adv += 10;
     }
     return adv;
   };
