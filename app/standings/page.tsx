@@ -1845,6 +1845,7 @@ const GOAL_SCORERS_DATA: GoalScorer[] = [
   { player: "Fabián Ruiz", country: "Spain", code: "ESP", goals: 1 },
   { player: "Álex Baena", country: "Spain", code: "ESP", goals: 1 },
   { player: "Lamine Yamal", country: "Spain", code: "ESP", goals: 1 },
+  { player: "Ferran Torres", country: "Spain", code: "ESP", goals: 1 },
   { player: "Viktor Gyökeres", country: "Sweden", code: "SWE", goals: 1 },
   { player: "Alexander Isak", country: "Sweden", code: "SWE", goals: 1 },
   { player: "Granit Xhaka", country: "Switzerland", code: "SUI", goals: 1 },
