@@ -1481,7 +1481,8 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
           <BracketConnectors count={1} compactMode={compactMode} />
 
           {/* FINAL column: Final at exact vertical center (aligned between semis), 3er Puesto at 75% */}
-          <div style={{ position: "relative", width: "max-content", minWidth: 140, flex: "0 0 auto", alignSelf: "stretch" }}>
+          {/* minWidth = TEAM_BOX_W: the absolutely-positioned match boxes are 200px wide and would overflow into the champion column otherwise */}
+          <div style={{ position: "relative", width: "max-content", minWidth: TEAM_BOX_W, flex: "0 0 auto", alignSelf: "stretch" }}>
             <div style={{ position: "absolute", top: "50%", left: 0, right: 0, transform: "translateY(-50%)" }}>
               <div style={rStyle.roundTitle as React.CSSProperties}>
                 <span style={{ color: "var(--gold)" }}>Final</span>
