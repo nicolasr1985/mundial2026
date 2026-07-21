@@ -1499,8 +1499,8 @@ function R32Tab({ r32, viewMode, showRank, matches, userPickMap }: {
           </div>
 
           {/* CHAMPION box: gold-bordered slot to the right of Final showing the winner */}
-          <div style={{ position: "relative", width: "max-content", minWidth: 130, flex: "0 0 auto", alignSelf: "stretch", paddingLeft: 12 }}>
-            <div style={{ position: "absolute", top: "50%", left: 12, right: 0, transform: "translateY(-50%)" }}>
+          <div style={{ position: "relative", width: "max-content", minWidth: 150, flex: "0 0 auto", alignSelf: "stretch", paddingLeft: 32 }}>
+            <div style={{ position: "absolute", top: "50%", left: 32, right: 0, transform: "translateY(-50%)" }}>
               <div style={{ ...rStyle.roundTitle as React.CSSProperties, color: "var(--gold)" }}>🏆 Campeón</div>
               <div style={{
                 border: "2px solid var(--gold)",
